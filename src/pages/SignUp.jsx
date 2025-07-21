@@ -1,14 +1,24 @@
 import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebookF, FaApple } from "react-icons/fa";
-
+import { FaFacebookF, FaApple, FaEye, FaEyeSlash } from "react-icons/fa";
+import { HiOutlineUpload } from "react-icons/hi";
+import { FiUser, FiMail, FiLock } from "react-icons/fi";
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
+  const [file, setFile] = useState(null);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-full lg:flex-row">
       {/* Left Side Image */}
+
       <div className="w-full md:w-1/2 h-screen">
         <img
           src="https://images.unsplash.com/photo-1519389950473-47ba0277781c"
@@ -20,7 +30,7 @@ export default function SignUp() {
       <div className="w-full md:w-1/2 flex items-center justify-center bg-white px-8 py-12">
         <div className="w-auto max-w-lg">
           {/* Top login link */}
-          <div className="text-right mb-6 text-sm text-[#171A1F] font-[Archivo]">
+          <div className="text-right mb-6 text-sm text-[#171A1F]">
             Already have an account?{" "}
             <a href="/login" className="underline hover:text-[#636AE8]">
               Log in
@@ -28,84 +38,96 @@ export default function SignUp() {
           </div>
 
           {/* Heading */}
-          <h2 className="text-[32px] leading-[48px] font-bold text-[#2e349a] mb-8 font-[Archivo]">
+          <h2 className="text-[32px] leading-[48px] font-bold text-[#2e349a] mb-8">
             Sign up
           </h2>
 
           {/* Social Buttons */}
-          <div className="space-y-px mb-8 ">
-            <button className="w-full h-[50px] px-4 flex items-center justify-center font-inter text-[16px] font-medium text-[#FFFFFF] bg-[#DE3B40] hover:bg-[#C12126] active:bg-[#AA1D22] rounded-[6px] gap-[6px] transition">
-              <FcGoogle className="w-5 h-5 mr-2" />
+          <div className="space-y-px mb-8">
+            <button
+              type="button"
+              className="w-full h-[50px] px-4 flex items-center justify-center gap-[6px] font-medium text-[#FFFFFF] bg-[#DE3B40] hover:bg-[#C12126] active:bg-[#AA1D22] rounded-[6px] transition"
+            >
+              <FcGoogle className="w-5 h-5" />
               Sign up with Google
             </button>
 
-            <button className="w-full h-[50px] px-4 flex items-center justify-center font-inter text-[16px] font-medium text-[#FFFFFF] bg-[#335CA6] hover:bg-[#233F72] active:bg-[#172A4C] rounded-[6px] gap-[6px] transition">
-              <FaFacebookF className="w-5 h-5 mr-2 " />
+            <button
+              type="button"
+              className="w-full h-[50px] px-4 flex items-center justify-center gap-[6px] font-medium text-[#FFFFFF] bg-[#335CA6] hover:bg-[#233F72] active:bg-[#172A4C] rounded-[6px] transition"
+            >
+              <FaFacebookF className="w-5 h-5" />
               Sign up with Facebook
             </button>
 
-            <button className="w-full h-[50px] px-4 flex items-center justify-center font-inter text-[16px] font-medium text-[#FFFFFF] bg-[#9095A1] hover:bg-[#6F7787] active:bg-[#565D6D] rounded-[6px] gap-[6px] transition">
-              <FaApple className="w-5 h-5 mr-2" />
+            <button
+              type="button"
+              className="w-full h-[50px] px-4 flex items-center justify-center gap-[6px] font-medium text-[#FFFFFF] bg-[#9095A1] hover:bg-[#6F7787] active:bg-[#565D6D] rounded-[6px] transition"
+            >
+              <FaApple className="w-5 h-5" />
               Sign up with Apple
             </button>
           </div>
 
           {/* Divider */}
-          <div className="flex items-center mb-6">
+          <div className="flex items-center my-6">
             <hr className="flex-grow border-gray-300" />
             <span className="mx-2 text-gray-400">OR</span>
             <hr className="flex-grow border-gray-300" />
           </div>
 
-          {/* Form Fields */}
+          {/* Form */}
           <form className="space-y-px">
-            <div className="grid grid-cols-2 gap-px mb-6">
+            <div className="grid grid-cols-2 gap-px mb-4">
               <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-700 mb-1" // Unchanged
-                >
+                <label className=" text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  <FiUser className="mr-2" />
                   First Name
                 </label>
                 <input
-                  id="firstName"
                   type="text"
-                  placeholder="Input first name"
-                  className="w-full h-[29px] pl-3 pr-3 font-inter text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px]  border-1 outline-none hover:text-[#BDC1CA] focus:text-[#BDC1CA] focus:bg-white text-center" // Add text-center here
+                  placeholder="John"
+                  required
+                  className="w-full h-[29px] px-3 text-center text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px] border border-gray-300 outline-none hover:text-[#BDC1CA] focus:text-[#000000] focus:bg-white"
                 />
               </div>
               <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-700 mb-1" // Unchanged
-                >
+                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  <FiUser className="mr-2" />
                   Last Name
                 </label>
                 <input
-                  id="lastName"
                   type="text"
-                  placeholder="Input last name"
-                  className="w-full h-[29px] pl-3 pr-3 font-inter text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px]  border-1 outline-none hover:text-[#BDC1CA] focus:text-[#BDC1CA] focus:bg-white text-center" // Add text-center here
+                  placeholder="Doe"
+                  required
+                  className="w-full h-[29px] px-3 text-center text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px] border border-gray-300 outline-none hover:text-[#BDC1CA] focus:text-[#000000] focus:bg-white"
                 />
               </div>
             </div>
-            <label className="block mb-2 text-gray-700 font-medium">
-              Email
-            </label>
-            <input
-              type="email"
-              placeholder="example.email@gmail.com"
-              className="w-full h-[29px] pl-3 pr-3 font-inter text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px]  border-1 outline-none hover:text-[#BDC1CA] focus:text-[#BDC1CA] focus:bg-white text-center"
-            />
 
-            <label className="block mb-2 text-gray-700 font-medium">
-              Password
-            </label>
-            <div className="relative">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <FiMail className="mr-2" />
+                Email
+              </label>
+              <input
+                type="email"
+                placeholder="example.email@gmail.com"
+                required
+                className="w-full h-[29px] px-3 text-center text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px] border border-gray-300 outline-none hover:text-[#BDC1CA] focus:text-[#070708] focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 items-center">
+                <FiLock className="mr-2" />
+                Password
+              </label>
+              <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter at least 8+ characters"
-                className="w-full h-[29px] pl-3 pr-3 font-inter text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px]  border-1 outline-none hover:text-[#BDC1CA] focus:text-[#BDC1CA] focus:bg-white text-center"
+                className="w-full h-[29px] pl-3 pr-3 font-inter text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px]  border-1 outline-none hover:text-[#BDC1CA] focus:text-[#000000] focus:bg-white text-center"
               />
               <button
                 type="button"
@@ -116,48 +138,62 @@ export default function SignUp() {
                 {/* Eye Icon changes can be added here */}
               </button>
             </div>
-
-            <br />
-            <label className="block mb-2 text-gray-700 font-medium">
-              Upload University Registration Letter
-            </label>
-            <div className="mb-6 border border-dashed border-gray-400 rounded cursor-pointer hover:border-blue-500">
-              <input
-                type="file"
-                className="opacity-0 w-full h-16 cursor-pointer"
-              />
-              <div className="flex items-center justify-center h-16 text-gray-400">
-                Drag and drop or browse files
-              </div>
             </div>
-            <br />
 
-            <div className="flex items-center space-x-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 space-y-px">
+                Upload University Registration Letter
+              </label>
               <label
-                htmlFor="terms"
-                className="flex items-center space-x-2 cursor-pointer select-none gap-[6px]"
+                htmlFor="file-upload"
+                className="flex flex-col items-center justify-center w-full p-6 border border-dashed border-gray-400 rounded-[6px] cursor-pointer hover:border-blue-500 transition"
               >
+                <HiOutlineUpload className="w-8 h-8 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-400 text-center">
+                  <span className="font-medium">Drag and drop</span> or{" "}
+                  <span className="font-medium">browse</span> files
+                </p>
+                {file && (
+                  <p className="mt-2 text-sm text-gray-900 font-medium">
+                    {file.name}
+                  </p>
+                )}
                 <input
-                  type="checkbox"
+                  id="file-upload"
+                  type="file"
+                  className="sr-only"
+                  onChange={handleFileChange}
+                />
+              </label>
+            </div>
+
+            <div className="flex items-start pt-2 ">
+              <div className="flex items-center h-5">
+                <input
                   id="terms"
+                  type="checkbox"
+                  required
                   className="w-5 h-5 rounded border-gray-300 focus:ring-blue-500"
                 />
-                <span className="text-gray-700 text-sm">
-                  By signing up, I agree with the{" "}
-                  <a href="#" className="text-blue-600 underline">
-                    Terms of Use
-                  </a>{" "}
-                  &{" "}
-                  <a href="#" className="text-blue-600 underline">
-                    Privacy Policy
-                  </a>
-                </span>
+              </div>
+              <label
+                htmlFor="terms"
+                className="ml-2 text-sm text-gray-700 cursor-pointer "
+              >
+                By signing up, I agree with the{" "}
+                <a href="#" className="text-blue-600 underline">
+                  Terms of Use
+                </a>{" "}
+                &{" "}
+                <a href="#" className="text-blue-600 underline">
+                  Privacy Policy
+                </a>
               </label>
             </div>
 
             <button
               type="submit"
-              className="w-full h-[52px] px-5 flex items-center justify-center font-inter text-[18px] leading-[28px] text-[#FFFFFF] bg-[#636AE8] hover:bg-[#4850E4] active:bg-[#2C35E0] rounded-[6px] transition"
+              className="w-full h-[52px] px-5 mt-6 flex items-center justify-center text-[18px] leading-[28px] font-medium text-[#FFFFFF] bg-[#636AE8] hover:bg-[#4850E4] active:bg-[#2C35E0] rounded-[6px] transition"
             >
               Create an account
             </button>
