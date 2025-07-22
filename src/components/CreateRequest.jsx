@@ -16,7 +16,6 @@ export default function CreateRequest() {
         <ul className="flex gap-6 text-gray-700 font-medium">
           <li><Link to="/GroupRequests" className={location.pathname === "/group-requests" ? "text-indigo-600 font-semibold" : "hover:text-indigo-600"}>Group Requests</Link></li>
           <li><Link to="/OneToOneRequests" className={location.pathname === "/one-to-one-requests" ? "text-indigo-600 font-semibold" : "hover:text-indigo-600"}>1-to-1 Requests</Link></li>
-          <li><Link to="/CreateRequest" className={location.pathname === "/create-request" ? "text-indigo-600 font-semibold" : "hover:text-indigo-600"}>Create Request</Link></li>
           <li><Link to="/RequestDetails" className={location.pathname === "/request-details" ? "text-indigo-600 font-semibold" : "hover:text-indigo-600"}>Request Details</Link></li>
           <li><Link to="/profile" className={location.pathname === "/profile" ? "text-indigo-600 font-semibold" : "hover:text-indigo-600"}>Profile</Link></li>
         </ul>
@@ -30,7 +29,6 @@ export default function CreateRequest() {
           <nav className="flex-1 flex flex-col gap-2">
             <Link to="/GroupRequests" className={`flex items-center gap-2 px-4 py-2 rounded-lg ${location.pathname === "/group-requests" ? "bg-indigo-100 text-indigo-600 font-semibold" : "hover:bg-gray-100 text-gray-700"}`}>📄 Group Requests</Link>
             <Link to="/OneToOneRequests" className={`flex items-center gap-2 px-4 py-2 rounded-lg ${location.pathname === "/one-to-one-requests" ? "bg-indigo-100 text-indigo-600 font-semibold" : "hover:bg-gray-100 text-gray-700"}`}>💬 1-to-1 Requests</Link>
-            <Link to="/CreateRequest" className={`flex items-center gap-2 px-4 py-2 rounded-lg ${location.pathname === "/create-request" ? "bg-indigo-100 text-indigo-600 font-semibold" : "hover:bg-gray-100 text-gray-700"}`}>➕ Create Request</Link>
             <Link to="/RequestDetails" className={`flex items-center gap-2 px-4 py-2 rounded-lg ${location.pathname === "/request-details" ? "bg-indigo-100 text-indigo-600 font-semibold" : "hover:bg-gray-100 text-gray-700"}`}>📋 Request Details</Link>
             <Link to="/profile" className={`flex items-center gap-2 px-4 py-2 rounded-lg ${location.pathname === "/profile" ? "bg-indigo-100 text-indigo-600 font-semibold" : "hover:bg-gray-100 text-gray-700"}`}>👤 Profile</Link>
           </nav>

@@ -21,8 +21,10 @@ export default function Settings() {
       {/* Top Navbar */}
       <nav className="bg-white border-b flex items-center justify-between px-8 py-3">
         <div className="flex items-center gap-2">
+          < Link to="/">
           <img src="/vite.svg" alt="Logo" className="h-7 w-7" />
           <span className="font-bold text-lg text-indigo-700">Settings App</span>
+          </Link>
         </div>
         <ul className="flex gap-6 text-gray-700 font-medium">
           <li><Link to="#" className="hover:text-indigo-600">Home</Link></li>

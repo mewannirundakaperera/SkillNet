@@ -14,10 +14,8 @@ export default function Navbar() {
       <ul className="hidden md:flex gap-6 text-gray-700 font-medium">
         <li><Link to="/" className="hover:text-indigo-600">Home</Link></li>
         <li><a href="/StudentConnect" className="hover:text-indigo-600">Request</a></li>
-        <li><a href="#" className="hover:text-indigo-600">Connections</a></li>
-        <li><a href="#" className="hover:text-indigo-600">Groups</a></li>
+        <li><a href="/GroupChat" className="hover:text-indigo-600">Groups</a></li>
         <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li>
-        <li><a href="#" className="hover:text-indigo-600">Messages</a></li>
         <li><a href="/Settings" className="hover:text-indigo-600">Settings</a></li>
       </ul>
       <div className="hidden md:flex gap-4">
@@ -43,7 +41,7 @@ export default function Navbar() {
             <li><Link to="/" className="hover:text-indigo-600 w-full block text-center" onClick={() => setMenuOpen(false)}>Home</Link></li>
             <li><a href="/StudentConnect" className="hover:text-indigo-600 w-full block text-center">Request</a></li>
             <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Connections</a></li>
-            <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Groups</a></li>
+            <li><a href="/GroupChat" className="hover:text-indigo-600 w-full block text-center">Groups</a></li>
              <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li>
             <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Messages</a></li>
             <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Settings</a></li>

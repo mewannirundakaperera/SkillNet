@@ -85,9 +85,11 @@ export default function RequestHistory() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Navbar */}
       <nav className="bg-white border-b flex items-center justify-between px-8 py-3">
+        <Link to="/">
         <div className="flex items-center gap-2">
           <span className="font-bold text-lg text-indigo-700">RequestManager</span>
         </div>
+        </Link>
         <div className="flex items-center gap-4">
           <input type="text" placeholder="Search anything..." className="border rounded px-3 py-2 text-sm w-64" />
           <img src="https://randomuser.me/api/portraits/men/15.jpg" alt="User" className="h-8 w-8 rounded-full" />

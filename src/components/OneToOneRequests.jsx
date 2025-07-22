@@ -70,8 +70,10 @@ const OneToOneRequests = () => {
       <aside className="w-[220px] bg-white border-r border-gray-200 p-6 flex flex-col justify-between min-h-screen">
         <div>
           <div className="font-bold text-[20px] mb-8 flex items-center gap-2">
+            <Link to= "/">
             <span className="text-indigo-700"> <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#6366F1"/><path d="M7 7h10v10H7z" fill="#fff"/></svg></span>
             Class Connect
+            </Link>
           </div>
           <nav className="flex flex-col gap-4">
             <Link to="/GroupRequests" className="text-gray-700 hover:text-blue-600">Group Requests</Link>

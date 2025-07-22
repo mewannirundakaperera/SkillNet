@@ -16,6 +16,10 @@ import SelectTeacher from "./pages/SelectTeacher";
 import TimeSlotSelection from "./components/TimeSlotSelection";
 import PaymentPage from "./components/PaymentPage";
 import OnlineMeeting from "./components/OnlineMeeting";
+import JoinGroup from "./pages/JoinGroup";
+import GroupChat from "./pages/GroupChat";
+
+
 
 function App() {
   return (
@@ -46,6 +50,8 @@ function App() {
       <Route path="/TimeSlotSelection" element={<TimeSlotSelection />} />
       <Route path="/PaymentPage" element={<PaymentPage />} />
       <Route path="/OnlineMeeting" element={<OnlineMeeting />} />
+      <Route path="/JoinGroup" element={<JoinGroup />} />
+      <Route path="/GroupChat" element={<GroupChat />} />
     </Routes>
   );
 }

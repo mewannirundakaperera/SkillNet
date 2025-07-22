@@ -61,15 +61,18 @@ const GroupRequests = () => {
     <div className="min-h-screen bg-[#f8f9fb] flex">
       {/* Sidebar */}
       <aside className="w-[220px] bg-white border-r border-gray-200 p-6 flex flex-col justify-between min-h-screen">
-        <div>
+        <div> 
+          
           <div className="font-bold text-[20px] mb-8 flex items-center gap-2">
+            <Link to= "/">
             <span className="text-indigo-700"> <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#6366F1"/><path d="M7 7h10v10H7z" fill="#fff"/></svg></span>
             Class Connect
+            </Link>  
           </div>
+          
           <nav className="flex flex-col gap-4">
             <Link to="/GroupRequests" className="text-gray-700 hover:text-blue-600">Group Requests</Link>
             <Link to="/OneToOneRequests" className="text-gray-700 hover:text-blue-600">1-to-1 Requests</Link>
-            <Link to="/CreateRequest" className="text-gray-700 hover:text-blue-600">Create Request</Link>
             <Link to="/RequestDetails" className="text-gray-700 hover:text-blue-600">Request Details</Link>
             <Link to="/RequestHistory" className="text-gray-700 hover:text-blue-600">Request History</Link>
             <Link to="/Profile" className="text-gray-700 hover:text-blue-600">Profile</Link>
@@ -87,16 +90,17 @@ const GroupRequests = () => {
         <div className="flex justify-between items-center mb-8">
           <div className="flex gap-8 items-center">
             <div className="flex gap-6 text-gray-500 font-medium">
-              <Link to="/group-requests" className="text-gray-700 hover:text-blue-600">Group Requests</Link>
+              <Link to="/grouprequests" className="text-gray-700 hover:text-blue-600">Group Requests</Link>
               <Link to="/OneToOneRequests" className="text-gray-700 hover:text-blue-600">1-to-1 Requests</Link>
-              <Link to="/CreateRequest" className="text-gray-700 hover:text-blue-600">Create Request</Link>
               <Link to="/RequestDetails" className="text-gray-700 hover:text-blue-600">Request Details</Link>
               <Link to="/Profile" className="text-gray-700 hover:text-blue-600">Profile</Link>
             </div>
             <input type="text" placeholder="Search requests..." className="ml-8 px-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm w-64" />
           </div>
           <div className="flex items-center gap-4">
+            <Link to="/CreateRequest" className="text-gray-700 hover:text-blue-600">
             <button className="bg-blue-600 text-white rounded-md px-6 py-2 font-semibold text-base shadow hover:bg-blue-700 transition">+ Create New Request</button>
+            </Link>
             <img src="https://randomuser.me/api/portraits/men/5.jpg" alt="profile" className="w-10 h-10 rounded-full border-2 border-blue-200" />
           </div>
         </div>
