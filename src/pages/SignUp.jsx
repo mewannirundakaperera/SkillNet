@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebookF, FaApple, FaEye, FaEyeSlash } from "react-icons/fa";
 import { HiOutlineUpload } from "react-icons/hi";
 import { FiUser, FiMail, FiLock } from "react-icons/fi";
 
@@ -19,7 +18,7 @@ export default function SignUp() {
     <div className="flex min-h-screen w-full lg:flex-row">
       {/* Left Side Image */}
 
-      <div className="w-full md:w-1/2 h-screen">
+      <div className="w-full md:w-2/5 h-auto">
         <img
           src="https://images.unsplash.com/photo-1519389950473-47ba0277781c"
           alt="Laptop on bed"
@@ -27,7 +26,7 @@ export default function SignUp() {
         />
       </div>
       {/* Right Side Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center bg-white px-8 py-12">
+      <div className="w-full md:w-3/5 flex items-center justify-center bg-white px-8 py-12">
         <div className="w-auto max-w-lg">
           {/* Top login link */}
           <div className="text-right mb-6 text-sm text-[#171A1F]">
@@ -52,21 +51,7 @@ export default function SignUp() {
               Sign up with Google
             </button>
 
-            <button
-              type="button"
-              className="w-full h-[50px] px-4 flex items-center justify-center gap-[6px] font-medium text-[#FFFFFF] bg-[#335CA6] hover:bg-[#233F72] active:bg-[#172A4C] rounded-[6px] transition"
-            >
-              <FaFacebookF className="w-5 h-5" />
-              Sign up with Facebook
-            </button>
 
-            <button
-              type="button"
-              className="w-full h-[50px] px-4 flex items-center justify-center gap-[6px] font-medium text-[#FFFFFF] bg-[#9095A1] hover:bg-[#6F7787] active:bg-[#565D6D] rounded-[6px] transition"
-            >
-              <FaApple className="w-5 h-5" />
-              Sign up with Apple
-            </button>
           </div>
 
           {/* Divider */}
