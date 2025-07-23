@@ -2,7 +2,7 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 import SignUp from "./pages/Login and Signup/SignUp";
 import Login from "./pages/Login and Signup/Login";
-import HomePage from "./pages/HomePage";
+import HomePage from "./pages/Homepages/HomePage";
 import StudentConnect from "./pages/Requests/StudentConnect";
 import GroupRequests from "./pages/Requests/GroupRequests";
 import OneToOneRequests from "./pages/Requests/OneToOneRequests";
@@ -18,6 +18,7 @@ import PaymentPage from "./pages/Teach&learn/PaymentPage";
 import OnlineMeeting from "./pages/Teach&learn/OnlineMeeting";
 import JoinGroup from "./pages/Group/JoinGroup";
 import GroupChat from "./pages/Group/GroupChat";
+import NewUserHomePage from "./pages/Homepages/NewUserHomePage";
 
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
       <Route path="/OnlineMeeting" element={<OnlineMeeting />} />
       <Route path="/JoinGroup" element={<JoinGroup />} />
       <Route path="/GroupChat" element={<GroupChat />} />
+      <Route path="/NewUserHomePage" element={<NewUserHomePage />} />
     </Routes>
   );
 }
