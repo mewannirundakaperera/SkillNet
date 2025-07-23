@@ -12,7 +12,6 @@ export default function Navbar() {
       </div>
       {/* Desktop Nav */}
       <ul className="hidden md:flex gap-6 text-gray-700 font-medium">
-        <li><Link to="/" className="hover:text-indigo-600">Home</Link></li>
         <li><a href="/StudentConnect" className="hover:text-indigo-600">Request</a></li>
         <li><a href="/GroupChat" className="hover:text-indigo-600">Groups</a></li>
         <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li>

@@ -107,11 +107,6 @@ export default function SelectTeacher() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Navbar */}
       <nav className="bg-white border-b flex items-center justify-between px-8 py-3">
-  ...  <TeachandLearnNavbar />
-
-</nav>
-
-      <nav className="bg-white border-b flex items-center justify-between px-8 py-3">
         <div className="flex items-center gap-2">
           <Link to= "/">
           <span className="font-bold text-lg text-indigo-700">Student Scheduler</span>
