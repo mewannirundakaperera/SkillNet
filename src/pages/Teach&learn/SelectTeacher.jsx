@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import TeachandLearnNavbar from "../components/TeachandLearnNavbar";
+import TeachandLearnNavbar from "../../components/TeachandLearnNavbar";
 
 
 const teachers = [

@@ -1,24 +1,23 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import SignUp from "./pages/SignUp";
-import Login from "./pages/Login";
+import SignUp from "./pages/Login and Signup/SignUp";
+import Login from "./pages/Login and Signup/Login";
 import HomePage from "./pages/HomePage";
-import StudentConnect from "./pages/StudentConnect";
-import GroupRequests from "./components/GroupRequests";
-import OneToOneRequests from "./components/OneToOneRequests";
-import CreateRequest from "./components/CreateRequest";
-import RequestDetails from "./components/RequestDetails";
-import Profile from "./components/Profile";
-import RequestHistory from "./components/RequestHistory";
-import Navbar from "./components/Navbar";
+import StudentConnect from "./pages/Requests/StudentConnect";
+import GroupRequests from "./pages/Requests/GroupRequests";
+import OneToOneRequests from "./pages/Requests/OneToOneRequests";
+import CreateRequest from "./pages/Requests/CreateRequest";
+import RequestDetails from "./pages/Requests/RequestDetails";
+import Profile from "./pages/Requests/Profile";
+import RequestHistory from "./pages/Requests/RequestHistory";
+import Navbar from "./components/Navbars/Navbar";
 import Settings from "./pages/Settings";
-import SelectTeacher from "./pages/SelectTeacher";
-import TimeSlotSelection from "./components/TimeSlotSelection";
-import PaymentPage from "./components/PaymentPage";
-import OnlineMeeting from "./components/OnlineMeeting";
-import JoinGroup from "./pages/JoinGroup";
-import GroupChat from "./pages/GroupChat";
-
+import SelectTeacher from "./pages/Teach&learn/SelectTeacher";
+import TimeSlotSelection from "./pages/Teach&learn/TimeSlotSelection";
+import PaymentPage from "./pages/Teach&learn/PaymentPage";
+import OnlineMeeting from "./pages/Teach&learn/OnlineMeeting";
+import JoinGroup from "./pages/Group/JoinGroup";
+import GroupChat from "./pages/Group/GroupChat";
 
 
 function App() {

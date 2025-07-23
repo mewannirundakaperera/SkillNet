@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
+
 const requests = [
   {
     title: "Calculus I Study Group",
@@ -87,23 +88,8 @@ const GroupRequests = () => {
       {/* Main Content */}
       <main className="flex-1 p-8">
         {/* Top Nav */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex gap-8 items-center">
-            <div className="flex gap-6 text-gray-500 font-medium">
-              <Link to="/grouprequests" className="text-gray-700 hover:text-blue-600">Group Requests</Link>
-              <Link to="/OneToOneRequests" className="text-gray-700 hover:text-blue-600">1-to-1 Requests</Link>
-              <Link to="/RequestDetails" className="text-gray-700 hover:text-blue-600">Request Details</Link>
-              <Link to="/Profile" className="text-gray-700 hover:text-blue-600">Profile</Link>
-            </div>
-            <input type="text" placeholder="Search requests..." className="ml-8 px-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm w-64" />
-          </div>
-          <div className="flex items-center gap-4">
-            <Link to="/CreateRequest" className="text-gray-700 hover:text-blue-600">
-            <button className="bg-blue-600 text-white rounded-md px-6 py-2 font-semibold text-base shadow hover:bg-blue-700 transition">+ Create New Request</button>
-            </Link>
-            <img src="https://randomuser.me/api/portraits/men/5.jpg" alt="profile" className="w-10 h-10 rounded-full border-2 border-blue-200" />
-          </div>
-        </div>
+        
+
 
         {/* Title & Stats */}
         <h1 className="text-2xl font-bold mb-6">Group Requests</h1>

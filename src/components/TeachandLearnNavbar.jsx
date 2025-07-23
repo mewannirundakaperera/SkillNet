@@ -13,10 +13,10 @@ export default function TeachandLearnNavbar() {
           </Link>
         </div>
         <ul className="flex gap-6 text-gray-700 font-medium">
-          <li><Link to="/SelectTeacher" className="hover:text-indigo-600">Select Teacher</Link></li>
-          <li><Link to="/TimeSlotSelection" className="hover:text-indigo-600">Time Slot Selection</Link></li>
-          <li><Link to="/PaymentPage" className="hover:text-indigo-600">Payment</Link></li>
-          <li><Link to="/OnlineMeeting" className="hover:text-indigo-600">Online Meeting</Link></li>
+          <li><Link to="/TeachandLearn/SelectTeacher" className="hover:text-indigo-600">Select Teacher</Link></li>
+          <li><Link to="/TeachandLearn/TimeSlotSelection" className="hover:text-indigo-600">Time Slot Selection</Link></li>
+          <li><Link to="/TeachandLearn/PaymentPage" className="hover:text-indigo-600">Payment</Link></li>
+          <li><Link to="/TeachandLearn/OnlineMeeting" className="hover:text-indigo-600">Online Meeting</Link></li>
         </ul>
         <div className="flex items-center gap-4">
           <img src="https://randomuser.me/api/portraits/men/40.jpg" alt="User" className="h-8 w-8 rounded-full" />
