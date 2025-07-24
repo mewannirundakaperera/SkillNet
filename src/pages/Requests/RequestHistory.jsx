@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import GroupRequestsNavbar from "../../components/GroupRequestsNavbar";
+import GroupRequestsNavbar from "../../components/Navbars/GroupRequestsNavbar";
 
 const requests = [
   {

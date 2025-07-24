@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 
 export default function Settings() {
@@ -13,8 +13,29 @@ export default function Settings() {
     twoFactor: false,
   });
   const [profileVisibility, setProfileVisibility] = useState("Public");
+  const privacyRef = useRef(null);
+  const securityRef = useRef(null);
+  const accountRef = useRef(null);
 
   const handleToggle = (key) => setToggles((t) => ({ ...t, [key]: !t[key] }));
+  const handlePrivacyClick = (e) => {
+    e.preventDefault();
+    if (privacyRef.current) {
+      privacyRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+  const handleSecurityClick = (e) => {
+    e.preventDefault();
+    if (securityRef.current) {
+      securityRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+  const handleAccountClick = (e) => {
+    e.preventDefault();
+    if (accountRef.current) {
+      accountRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -41,11 +62,9 @@ export default function Settings() {
         <aside className="w-64 bg-white border-r flex flex-col py-6 px-4 gap-2 min-h-full">
           <nav className="flex-1 flex flex-col gap-2">
             <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-100 text-indigo-600 font-semibold">Profile Settings</Link>
-            <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">Notification Settings</Link>
-            <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">Privacy Settings</Link>
-            <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">Security Settings</Link>
-            <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">Data & Storage</Link>
-            <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">Account Management</Link>
+            <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700" onClick={handlePrivacyClick}>Privacy Settings</Link>
+            <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700" onClick={handleSecurityClick}>Security Settings</Link>
+            <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700" onClick={handleAccountClick}>Account Management</Link>
           </nav>
           <div className="mt-auto flex flex-col gap-2">
             <Link to="#" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">Legal & Policies</Link>
@@ -83,34 +102,8 @@ export default function Settings() {
               <button className="bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700">Save Changes</button>
             </div>
           </section>
-          {/* Notification Preferences */}
-          <section className="bg-white rounded-xl shadow p-6 mb-2">
-            <h2 className="font-semibold mb-4">Notification Preferences</h2>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={toggles.email} onChange={() => handleToggle('email')} className="accent-indigo-500" />
-                Email Notifications <span className="text-xs text-gray-400">Receive updates via email.</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={toggles.sms} onChange={() => handleToggle('sms')} className="accent-indigo-500" />
-                SMS Notifications <span className="text-xs text-gray-400">Get important alerts on your phone.</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={toggles.desktop} onChange={() => handleToggle('desktop')} className="accent-indigo-500" />
-                Desktop Notifications <span className="text-xs text-gray-400">Show notifications directly on your desktop.</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={toggles.marketing} onChange={() => handleToggle('marketing')} className="accent-indigo-500" />
-                Marketing Emails <span className="text-xs text-gray-400">Receive promotional offers and updates.</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={toggles.newsletter} onChange={() => handleToggle('newsletter')} className="accent-indigo-500" />
-                Newsletter Subscription <span className="text-xs text-gray-400">Subscribe to our monthly newsletter.</span>
-              </label>
-            </div>
-          </section>
           {/* Privacy Controls */}
-          <section className="bg-white rounded-xl shadow p-6 mb-2">
+          <section ref={privacyRef} className="bg-white rounded-xl shadow p-6 mb-2">
             <h2 className="font-semibold mb-4">Privacy Controls</h2>
             <div className="flex flex-col gap-2 mb-2">
               <div className="font-semibold text-sm mb-1">Profile Visibility</div>
@@ -136,7 +129,7 @@ export default function Settings() {
             </div>
           </section>
           {/* Account Security */}
-          <section className="bg-white rounded-xl shadow p-6 mb-2">
+          <section ref={securityRef} className="bg-white rounded-xl shadow p-6 mb-2">
             <h2 className="font-semibold mb-4">Account Security</h2>
             <div className="flex flex-col gap-2 mb-2">
               <div className="flex items-center gap-2 mb-2">
@@ -153,29 +146,8 @@ export default function Settings() {
               </div>
             </div>
           </section>
-          {/* Data & Storage */}
-          <section className="bg-white rounded-xl shadow p-6 mb-2">
-            <h2 className="font-semibold mb-4">Data & Storage</h2>
-            <div className="flex flex-col gap-2 mb-2">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-semibold">Export User Data</span>
-                <button className="ml-auto border rounded px-3 py-1 text-xs font-semibold hover:bg-gray-100">Export Data</button>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-semibold">Clear Cache</span>
-                <button className="ml-auto border rounded px-3 py-1 text-xs font-semibold hover:bg-gray-100">Clear Cache</button>
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-semibold">Storage Usage</span>
-                <div className="flex-1 h-2 bg-gray-200 rounded mx-2">
-                  <div className="h-2 bg-indigo-400 rounded" style={{ width: "30%" }}></div>
-                </div>
-                <span className="text-xs text-gray-400">30%</span>
-              </div>
-            </div>
-          </section>
           {/* Account Management */}
-          <section className="bg-white rounded-xl shadow p-6 mb-2">
+          <section ref={accountRef} className="bg-white rounded-xl shadow p-6 mb-2">
             <h2 className="font-semibold mb-4">Account Management</h2>
             <div className="flex items-center gap-2 mb-2">
               <span className="font-semibold text-red-500">Delete Account</span>

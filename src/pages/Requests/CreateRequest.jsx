@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import GroupRequestsNavbar from "../../components/GroupRequestsNavbar";
+import GroupRequestsNavbar from "../../components/Navbars/GroupRequestsNavbar";
 import RequestNavbar from "../../components/Navbars/RequestNavbar";
 
 export default function CreateRequest() {

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import RequestNavbar from "../../components/Navbars/RequestNavbar";
-import GroupRequestsNavbar from "../../components/GroupRequestsNavbar";
+import GroupRequestsNavbar2 from "../../components/Navbars/GroupRequestNavbar2";
 
 const friends = [
   { name: "Alice Smith", avatar: "https://randomuser.me/api/portraits/women/10.jpg" },
@@ -18,7 +18,7 @@ const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export default function Profile() {
   return (
     <>
-      <GroupRequestsNavbar />
+      <GroupRequestsNavbar2 />
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Top Navbar */}
        

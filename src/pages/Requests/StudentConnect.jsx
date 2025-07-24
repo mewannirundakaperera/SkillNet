@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import RequestNavbar from "../../components/Navbars/RequestNavbar";
-import GroupRequestsNavbar from "../../components/GroupRequestsNavbar";
+import GroupRequestsNavbar from "../../components/Navbars/GroupRequestsNavbar";
 
 const StudentConnect = () => {
   return (
@@ -19,7 +19,6 @@ const StudentConnect = () => {
               <h1 className="text-[28px] font-bold">Welcome, Amelia <span role="img" aria-label="wave">👋</span></h1>
               <div className="text-gray-500 text-base">Manage your student-to-student class scheduling requests efficiently.</div>
             </div>
-            <button className="bg-blue-600 text-white rounded-md px-6 py-3 font-semibold text-lg shadow hover:bg-blue-700 transition">+ Create New Request</button>
           </div>
 
           {/* Stats */}
