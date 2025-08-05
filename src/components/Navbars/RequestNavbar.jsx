@@ -3,9 +3,7 @@ import { NavLink } from "react-router-dom";
 
 const navItems = [
   { to: "/StudentConnect", label: "Dashboard" },
-  { to: "/GroupRequests", label: "Group Requests" },
   { to: "/OneToOneRequests", label: "1-to-1 Requests" },
-  { to: "/CreateRequest", label: "Create Request" },
   { to: "/RequestHistory", label: "Request History" },
   { to: "/MyRequests", label: "My Requests" },
   { to: "/Profile", label: "Profile" },

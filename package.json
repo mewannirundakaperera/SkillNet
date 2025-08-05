@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
     "@tailwindcss/vite": "^4.1.11",
+    "axios": "^1.11.0",
+    "firebase": "^12.0.0",
+    "genkit": "^1.15.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-dropzone": "^14.3.8",

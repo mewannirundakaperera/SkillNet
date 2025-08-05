@@ -71,7 +71,7 @@ const GroupRequests = () => {
         {/* Main Content */}
         <main className="flex-1 p-8">
           {/* Top Nav */}
-          
+
 
 
           {/* Title & Stats */}
