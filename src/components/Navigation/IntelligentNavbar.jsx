@@ -1,7 +1,7 @@
 // Updated IntelligentNavbar.jsx - Now searches userProfiles collection
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/services/authService";
 import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "@/config/firebase";

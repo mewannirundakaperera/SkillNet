@@ -1,17 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/App';
+import { useAuth } from '@/hooks/useAuth';
 import { GroupsService, GROUP_CATEGORIES } from '@/firebase/collections';
 
-// Try to import the upload function, with fallback
-let uploadGroupImageToCloudinary;
-try {
-  const uploadModule = require('@/utils/uploadGroupImage');
-  uploadGroupImageToCloudinary = uploadModule.uploadGroupImageToCloudinary;
-} catch (error) {
-  console.warn('Group image upload utility not found, groups will be created without images');
-  uploadGroupImageToCloudinary = null;
-}
+// Import the upload function
+import { uploadGroupImageToCloudinary } from '@/utils/uploadGroupImage';
 
 export default function CreateGroup() {
   const { user } = useAuth();

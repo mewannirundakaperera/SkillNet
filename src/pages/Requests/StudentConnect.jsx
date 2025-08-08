@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/services/authService";
 import {
   collection,

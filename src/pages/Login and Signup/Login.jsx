@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '@/App'; // Updated import path
+import { useAuth } from '@/hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/config/firebase.js'; // Import your existing Firebase config

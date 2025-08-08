@@ -1,7 +1,7 @@
 // Updated GroupsList.jsx - Removed "Create New Group" button from right sidebar
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/App';
+import { useAuth } from '@/hooks/useAuth';
 import { GroupsService, GROUP_CATEGORIES } from '@/firebase/collections';
 import {
   doc,
@@ -15,6 +15,7 @@ import {
   addDoc,
   updateDoc,
   arrayUnion,
+  increment,
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -767,7 +768,7 @@ export default function GroupsList() {
         </div>
 
         {/* Debug section for development */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
             <p><strong>Debug Info:</strong></p>
             <p>User Groups: {userGroups.length}</p>

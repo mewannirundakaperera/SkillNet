@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/App";
+import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/services/authService";
 import { UserCollectionService } from "@/services/user.js";
 import { uploadToCloudinary } from "@/utils/uploadToCloudinary";
