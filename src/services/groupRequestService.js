@@ -13,28 +13,121 @@ import {
     where,
     orderBy,
     getDocs,
-    serverTimestamp
+    serverTimestamp,
+    deleteDoc,
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
 export const groupRequestService = {
     /**
+     * Get all groups the user belongs to (including hidden members)
+     * @param {string} userId
+     * @returns {Promise<string[]>} Array of group IDs
+     */
+    async getUserGroups(userId) {
+        try {
+            const groupsRef = collection(db, 'groups');
+
+            const qMembers = query(groupsRef, where('members', 'array-contains', userId));
+            const qHiddenMembers = query(groupsRef, where('hiddenMembers', 'array-contains', userId));
+
+            const [snapMembers, snapHiddenMembers] = await Promise.all([getDocs(qMembers), getDocs(qHiddenMembers)]);
+            const groupIdsSet = new Set();
+
+            snapMembers.forEach(doc => groupIdsSet.add(doc.id));
+            snapHiddenMembers.forEach(doc => groupIdsSet.add(doc.id));
+
+            return Array.from(groupIdsSet);
+        } catch (error) {
+            console.error('Error fetching user groups:', error);
+            return [];
+        }
+    },
+
+    /**
+     * Get all group requests accessible to a user, handling Firestore rule restrictions
+     * @param {Object} params
+     * @param {string} params.userId - Current user ID
+     * @param {boolean} params.isAdmin - Is current user admin
+     * @returns {Promise<Array>} Array of group request documents
+     */
+    async getAllGroupRequests({ userId, isAdmin = false }) {
+        try {
+            const requestsRef = collection(db, 'grouprequests');
+
+            if (isAdmin) {
+                // Admin: fetch all requests unrestricted
+                const snapshot = await getDocs(query(requestsRef, orderBy('updatedAt', 'desc')));
+                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            }
+
+            // For non-admins, get groups user belongs to
+            const userGroups = await this.getUserGroups(userId);
+
+            const batchSize = 10; // Firestore 'in' queries accept max 10 values
+            const groupRequests = [];
+
+            // Query by batches for targetGroupId and groupId fields
+            for (let i = 0; i < userGroups.length; i += batchSize) {
+                const batch = userGroups.slice(i, i + batchSize);
+
+                // Query requests where targetGroupId in batch
+                const qTargetGroup = query(requestsRef, where('targetGroupId', 'in', batch));
+                const snapTargetGroup = await getDocs(qTargetGroup);
+                snapTargetGroup.forEach(doc => groupRequests.push({ id: doc.id, ...doc.data() }));
+
+                // Query requests where groupId in batch
+                const qGroup = query(requestsRef, where('groupId', 'in', batch));
+                const snapGroup = await getDocs(qGroup);
+                snapGroup.forEach(doc => groupRequests.push({ id: doc.id, ...doc.data() }));
+            }
+
+            // Query requests owned by the user (userId)
+            const qUserId = query(requestsRef, where('userId', '==', userId));
+            const snapUserId = await getDocs(qUserId);
+
+            // Query requests created by the user (createdBy)
+            const qCreatedBy = query(requestsRef, where('createdBy', '==', userId));
+            const snapCreatedBy = await getDocs(qCreatedBy);
+
+            const ownedRequests = [];
+            snapUserId.forEach(doc => ownedRequests.push({ id: doc.id, ...doc.data() }));
+            snapCreatedBy.forEach(doc => ownedRequests.push({ id: doc.id, ...doc.data() }));
+
+            // Combine results and remove duplicates by id
+            const allRequestsMap = new Map();
+
+            [...groupRequests, ...ownedRequests].forEach(req => {
+                allRequestsMap.set(req.id, req);
+            });
+
+            const allRequests = Array.from(allRequestsMap.values());
+
+            // Sort by updatedAt descending (handle timestamp conversion safely)
+            allRequests.sort((a, b) => {
+                const aTime = a.updatedAt?.toMillis ? a.updatedAt.toMillis() : new Date(a.updatedAt).getTime() || 0;
+                const bTime = b.updatedAt?.toMillis ? b.updatedAt.toMillis() : new Date(b.updatedAt).getTime() || 0;
+                return bTime - aTime;
+            });
+
+            return allRequests;
+        } catch (error) {
+            console.error('Error fetching accessible group requests:', error);
+            return [];
+        }
+    },
+
+    /**
      * Create a new group request
-     * @param {Object} requestData - The request data
-     * @param {string} userId - The ID of the user creating the request
-     * @returns {Promise<{success: boolean, message: string, requestId?: string}>}
      */
     async createGroupRequest(requestData, userId) {
         try {
-            // Validate required fields
             if (!requestData.title || !requestData.description || !requestData.targetGroupId) {
                 return { success: false, message: 'Missing required fields' };
             }
 
-            // Check if user is member of target group
             const groupRef = doc(db, 'groups', requestData.targetGroupId);
             const groupSnap = await getDoc(groupRef);
-
             if (!groupSnap.exists()) {
                 return { success: false, message: 'Target group not found' };
             }
@@ -44,7 +137,6 @@ export const groupRequestService = {
                 return { success: false, message: 'You must be a member of the group to create requests' };
             }
 
-            // Prepare the complete request data
             const completeRequestData = {
                 ...requestData,
                 userId,
@@ -63,13 +155,11 @@ export const groupRequestService = {
                 minParticipants: requestData.sessionType === 'group-session' ? 3 : 1,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
-                type: 'group-request'
+                type: 'group-request',
             };
 
-            // Create the request
             const docRef = await addDoc(collection(db, 'grouprequests'), completeRequestData);
 
-            // Optional: Add activity log
             try {
                 await addDoc(collection(db, 'activities'), {
                     type: 'group_request_created',
@@ -78,111 +168,24 @@ export const groupRequestService = {
                     requestId: docRef.id,
                     actorName: requestData.createdByName,
                     action: `created a new request "${requestData.title}" in ${groupData.name}`,
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
                 });
             } catch (activityError) {
                 console.warn('Failed to log activity:', activityError);
-                // Don't fail the entire operation for activity logging
             }
 
-            return {
-                success: true,
-                message: 'Group request created successfully!',
-                requestId: docRef.id
-            };
-
+            return { success: true, message: 'Group request created successfully!', requestId: docRef.id };
         } catch (error) {
             console.error('Error creating group request:', error);
-
             if (error.code === 'permission-denied') {
                 return { success: false, message: 'Permission denied. You may not have access to create requests in this group.' };
             }
-
             return { success: false, message: `Failed to create request: ${error.message}` };
         }
     },
 
     /**
-     * Get group requests for a specific group
-     * @param {string} groupId - The ID of the group
-     * @param {string} status - Optional status filter
-     * @returns {Promise<Array>} - Array of group requests
-     */
-    async getGroupRequests(groupId, status = null) {
-        try {
-            const requestsRef = collection(db, 'grouprequests');
-            let requestsQuery;
-
-            if (status) {
-                requestsQuery = query(
-                    requestsRef,
-                    where('targetGroupId', '==', groupId),
-                    where('status', '==', status),
-                    orderBy('updatedAt', 'desc')
-                );
-            } else {
-                requestsQuery = query(
-                    requestsRef,
-                    where('targetGroupId', '==', groupId),
-                    orderBy('updatedAt', 'desc')
-                );
-            }
-
-            const snapshot = await getDocs(requestsQuery);
-            const requests = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            return requests;
-
-        } catch (error) {
-            console.error('Error fetching group requests:', error);
-            return [];
-        }
-    },
-
-    /**
-     * Get all group requests (for AllGroupRequests page)
-     * @param {Object} filters - Optional filters {category, status, userId}
-     * @returns {Promise<Array>} - Array of all group requests
-     */
-    async getAllGroupRequests(filters = {}) {
-        try {
-            const requestsRef = collection(db, 'grouprequests');
-            let requestsQuery = query(requestsRef, orderBy('updatedAt', 'desc'));
-
-            // Apply filters if provided
-            if (filters.category) {
-                requestsQuery = query(requestsQuery, where('category', '==', filters.category));
-            }
-            if (filters.status) {
-                requestsQuery = query(requestsQuery, where('status', '==', filters.status));
-            }
-            if (filters.userId) {
-                requestsQuery = query(requestsQuery, where('userId', '==', filters.userId));
-            }
-
-            const snapshot = await getDocs(requestsQuery);
-            const requests = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
-            return requests;
-
-        } catch (error) {
-            console.error('Error fetching all group requests:', error);
-            return [];
-        }
-    },
-
-    /**
      * Update a group request
-     * @param {string} requestId - The ID of the request
-     * @param {Object} updateData - The data to update
-     * @param {string} userId - The ID of the user updating
-     * @returns {Promise<{success: boolean, message: string}>}
      */
     async updateGroupRequest(requestId, updateData, userId) {
         try {
@@ -194,37 +197,27 @@ export const groupRequestService = {
             }
 
             const requestData = requestSnap.data();
-
-            // Check if user owns the request
             if (requestData.userId !== userId && requestData.createdBy !== userId) {
                 return { success: false, message: 'You can only update your own requests' };
             }
 
-            // Update the request
             await updateDoc(requestRef, {
                 ...updateData,
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
             });
 
             return { success: true, message: 'Request updated successfully!' };
-
         } catch (error) {
             console.error('Error updating group request:', error);
-
             if (error.code === 'permission-denied') {
                 return { success: false, message: 'Permission denied. You cannot update this request.' };
             }
-
             return { success: false, message: `Failed to update request: ${error.message}` };
         }
     },
 
     /**
      * Respond to a group request
-     * @param {string} requestId - The ID of the request
-     * @param {Object} responseData - The response data
-     * @param {string} userId - The ID of the user responding
-     * @returns {Promise<{success: boolean, message: string}>}
      */
     async respondToGroupRequest(requestId, responseData, userId) {
         try {
@@ -237,31 +230,26 @@ export const groupRequestService = {
 
             const requestData = requestSnap.data();
 
-            // Check if user is trying to respond to their own request
             if (requestData.userId === userId || requestData.createdBy === userId) {
                 return { success: false, message: 'You cannot respond to your own request' };
             }
 
-            // Check if user already responded
             const existingResponse = requestData.responses?.find(r => r.userId === userId);
             if (existingResponse) {
                 return { success: false, message: 'You have already responded to this request' };
             }
 
-            // Prepare response data
             const response = {
                 userId,
                 ...responseData,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
             };
 
-            // Add response to the request
             await updateDoc(requestRef, {
                 responses: arrayUnion(response),
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
             });
 
-            // Optional: Create notification for request owner
             try {
                 await addDoc(collection(db, 'notifications'), {
                     userId: requestData.userId,
@@ -271,18 +259,16 @@ export const groupRequestService = {
                     data: {
                         requestId,
                         responderId: userId,
-                        responderName: responseData.responderName
+                        responderName: responseData.responderName,
                     },
                     read: false,
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
                 });
             } catch (notificationError) {
                 console.warn('Failed to create notification:', notificationError);
-                // Don't fail the response for notification issues
             }
 
             return { success: true, message: 'Response submitted successfully!' };
-
         } catch (error) {
             console.error('Error responding to group request:', error);
             return { success: false, message: `Failed to respond: ${error.message}` };
@@ -291,8 +277,6 @@ export const groupRequestService = {
 
     /**
      * Handle automatic status transitions based on conditions
-     * @param {string} requestId - The ID of the request
-     * @returns {Promise<{success: boolean, message: string, newStatus?: string}>}
      */
     async handleStatusTransition(requestId) {
         try {
@@ -307,7 +291,6 @@ export const groupRequestService = {
             let newStatus = request.status;
             const updateData = { updatedAt: serverTimestamp() };
 
-            // Transition logic based on current status and conditions
             switch (request.status) {
                 case 'pending':
                     if ((request.voteCount || 0) >= 5) {
@@ -316,7 +299,6 @@ export const groupRequestService = {
                         updateData.votingOpenedAt = serverTimestamp();
                     }
                     break;
-
                 case 'voting_open':
                     const minParticipants = request.minParticipants || 3;
                     if ((request.participantCount || 0) >= minParticipants) {
@@ -325,30 +307,24 @@ export const groupRequestService = {
                         updateData.approvedAt = serverTimestamp();
                     }
                     break;
-
                 case 'accepted':
                     const requiredPayments = request.participantCount || 1;
                     if ((request.paidParticipants?.length || 0) >= requiredPayments) {
                         newStatus = 'payment_complete';
                         updateData.status = newStatus;
                         updateData.paymentCompletedAt = serverTimestamp();
-                        // Schedule session (for demo, 1 hour from now)
                         updateData.scheduledDateTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
                     }
                     break;
-
                 case 'payment_complete':
-                    // Check if session time has started
                     if (request.scheduledDateTime && new Date(request.scheduledDateTime) <= new Date()) {
                         newStatus = 'in_progress';
                         updateData.status = newStatus;
                         updateData.sessionStartedAt = serverTimestamp();
                     }
                     break;
-
                 case 'in_progress':
-                    // Sessions can be marked as completed manually or after a certain duration
-                    // This would typically be handled by a separate process or manually
+                    // Completion handled manually or via another process
                     break;
             }
 
@@ -358,7 +334,6 @@ export const groupRequestService = {
             }
 
             return { success: true, message: 'No status change needed' };
-
         } catch (error) {
             console.error('Error handling status transition:', error);
             return { success: false, message: `Failed to handle status transition: ${error.message}` };
@@ -367,10 +342,6 @@ export const groupRequestService = {
 
     /**
      * Cancel a group request with reason
-     * @param {string} requestId - The ID of the request
-     * @param {string} reason - Cancellation reason
-     * @param {string} userId - The ID of the user cancelling (must be owner or admin)
-     * @returns {Promise<{success: boolean, message: string}>}
      */
     async cancelGroupRequest(requestId, reason, userId) {
         try {
@@ -383,31 +354,25 @@ export const groupRequestService = {
 
             const requestData = requestSnap.data();
 
-            // Check permissions
             if (requestData.userId !== userId && requestData.createdBy !== userId) {
-                // Could add admin check here
                 return { success: false, message: 'You can only cancel your own requests' };
             }
 
-            // Update to cancelled status
             await updateDoc(requestRef, {
                 status: 'cancelled',
                 cancellationReason: reason,
                 cancelledAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
             });
 
-            // Handle refunds if payments were made
             if (requestData.paidParticipants && requestData.paidParticipants.length > 0) {
-                // In a real app, trigger refund process
                 await updateDoc(requestRef, {
                     refundStatus: 'pending',
-                    refundInitiatedAt: serverTimestamp()
+                    refundInitiatedAt: serverTimestamp(),
                 });
             }
 
             return { success: true, message: 'Request cancelled successfully' };
-
         } catch (error) {
             console.error('Error cancelling group request:', error);
             return { success: false, message: `Failed to cancel request: ${error.message}` };
@@ -416,9 +381,6 @@ export const groupRequestService = {
 
     /**
      * Complete a session
-     * @param {string} requestId - The ID of the request
-     * @param {string} userId - The ID of the user completing (must be owner)
-     * @returns {Promise<{success: boolean, message: string}>}
      */
     async completeSession(requestId, userId) {
         try {
@@ -431,20 +393,17 @@ export const groupRequestService = {
 
             const requestData = requestSnap.data();
 
-            // Check if user can complete (owner or participant)
             if (requestData.userId !== userId && !requestData.participants?.includes(userId)) {
                 return { success: false, message: 'You can only complete sessions you own or participate in' };
             }
 
-            // Update to completed status
             await updateDoc(requestRef, {
                 status: 'completed',
                 completedAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
             });
 
             return { success: true, message: 'Session completed successfully' };
-
         } catch (error) {
             console.error('Error completing session:', error);
             return { success: false, message: `Failed to complete session: ${error.message}` };
@@ -452,10 +411,7 @@ export const groupRequestService = {
     },
 
     /**
-     * Get user's group requests
-     * @param {string} userId - The user ID
-     * @param {string} status - Optional status filter
-     * @returns {Promise<Array>} - Array of user's group requests
+     * Get user's group requests optionally filtered by status
      */
     async getUserGroupRequests(userId, status = null) {
         try {
@@ -478,13 +434,8 @@ export const groupRequestService = {
             }
 
             const snapshot = await getDocs(requestsQuery);
-            const requests = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-
+            const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             return requests;
-
         } catch (error) {
             console.error('Error fetching user group requests:', error);
             return [];
@@ -493,10 +444,6 @@ export const groupRequestService = {
 
     /**
      * Change request status
-     * @param {string} requestId - The ID of the request
-     * @param {string} newStatus - The new status
-     * @param {string} userId - The ID of the user changing status
-     * @returns {Promise<{success: boolean, message: string}>}
      */
     async changeRequestStatus(requestId, newStatus, userId) {
         try {
@@ -509,25 +456,21 @@ export const groupRequestService = {
 
             const requestData = requestSnap.data();
 
-            // Only request owner can change status
             if (requestData.userId !== userId && requestData.createdBy !== userId) {
                 return { success: false, message: 'You can only change the status of your own requests' };
             }
 
-            // Valid statuses
             const validStatuses = ['active', 'pending', 'accepted', 'completed', 'cancelled'];
             if (!validStatuses.includes(newStatus)) {
                 return { success: false, message: 'Invalid status' };
             }
 
-            // Update status
             await updateDoc(requestRef, {
                 status: newStatus,
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
             });
 
             return { success: true, message: `Request status changed to ${newStatus}` };
-
         } catch (error) {
             console.error('Error changing request status:', error);
             return { success: false, message: `Failed to change status: ${error.message}` };
@@ -535,10 +478,7 @@ export const groupRequestService = {
     },
 
     /**
-     * Delete a group request
-     * @param {string} requestId - The ID of the request
-     * @param {string} userId - The ID of the user deleting
-     * @returns {Promise<{success: boolean, message: string}>}
+     * Soft delete a group request
      */
     async deleteGroupRequest(requestId, userId) {
         try {
@@ -551,20 +491,17 @@ export const groupRequestService = {
 
             const requestData = requestSnap.data();
 
-            // Only request owner can delete
             if (requestData.userId !== userId && requestData.createdBy !== userId) {
                 return { success: false, message: 'You can only delete your own requests' };
             }
 
-            // Soft delete by changing status
             await updateDoc(requestRef, {
                 status: 'deleted',
                 deletedAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
+                updatedAt: serverTimestamp(),
             });
 
             return { success: true, message: 'Request deleted successfully!' };
-
         } catch (error) {
             console.error('Error deleting group request:', error);
             return { success: false, message: `Failed to delete request: ${error.message}` };
@@ -572,16 +509,14 @@ export const groupRequestService = {
     },
 
     /**
-     * Increment view count for a request
-     * @param {string} requestId - The ID of the request
-     * @returns {Promise<void>}
+     * Increment view count
      */
     async incrementViewCount(requestId) {
         try {
             const requestRef = doc(db, 'grouprequests', requestId);
             await updateDoc(requestRef, {
                 viewCount: increment(1),
-                lastViewedAt: serverTimestamp()
+                lastViewedAt: serverTimestamp(),
             });
         } catch (error) {
             console.warn('Failed to increment view count:', error);
@@ -589,45 +524,29 @@ export const groupRequestService = {
     },
 
     /**
-     * Check if user can vote on a request
-     * @param {Object} request - The request data
-     * @param {string} userId - The user ID
-     * @returns {boolean}
+     * Check if user can vote
      */
     canUserVote(request, userId) {
-        // Can't vote on own request
         if (request.userId === userId || request.createdBy === userId) {
             return false;
         }
-
-        // Can only vote on pending or voting_open requests
         return ['pending', 'voting_open'].includes(request.status);
     },
 
     /**
-     * Check if user can participate in a request
-     * @param {Object} request - The request data
-     * @param {string} userId - The user ID
-     * @returns {boolean}
+     * Check if user can participate
      */
     canUserParticipate(request, userId) {
-        // Can't participate in own request
         if (request.userId === userId || request.createdBy === userId) {
             return false;
         }
-
-        // Can only participate in voting_open or accepted requests
         return ['voting_open', 'accepted'].includes(request.status);
     },
 
     /**
      * Check if user needs to pay
-     * @param {Object} request - The request data
-     * @param {string} userId - The user ID
-     * @returns {boolean}
      */
     userNeedsToPay(request, userId) {
-        // Must be participating and not already paid
         return request.participants?.includes(userId) &&
             !request.paidParticipants?.includes(userId) &&
             request.status === 'accepted';
@@ -635,52 +554,50 @@ export const groupRequestService = {
 
     /**
      * Get request status display info
-     * @param {string} status - The request status
-     * @returns {Object} Display information
      */
     getStatusDisplay(status) {
         const statusMap = {
             pending: {
                 label: 'Pending Approval',
                 color: 'yellow',
-                description: 'Waiting for community votes to approve this session'
+                description: 'Waiting for community votes to approve this session',
             },
             voting_open: {
                 label: 'Voting Open',
                 color: 'orange',
-                description: 'Approved! Members can now join this session'
+                description: 'Approved! Members can now join this session',
             },
             accepted: {
                 label: 'Accepted',
                 color: 'green',
-                description: 'Session confirmed, waiting for payments'
+                description: 'Session confirmed, waiting for payments',
             },
             payment_complete: {
                 label: 'Ready to Start',
                 color: 'golden',
-                description: 'All payments completed, session will start soon'
+                description: 'All payments completed, session will start soon',
             },
             in_progress: {
                 label: 'In Progress',
                 color: 'blue',
-                description: 'Session is currently active'
+                description: 'Session is currently active',
             },
             completed: {
                 label: 'Completed',
                 color: 'black',
-                description: 'Session has ended successfully'
+                description: 'Session has ended successfully',
             },
             cancelled: {
                 label: 'Cancelled',
                 color: 'red',
-                description: 'Session was cancelled'
-            }
+                description: 'Session was cancelled',
+            },
         };
 
         return statusMap[status] || {
             label: status,
             color: 'gray',
-            description: 'Unknown status'
+            description: 'Unknown status',
         };
-    }
+    },
 };

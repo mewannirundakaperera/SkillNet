@@ -180,16 +180,6 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
               <h3 className="font-semibold text-lg mb-1">Recent Group Requests</h3>
               <p className="text-xs text-gray-500">Latest learning requests from groups</p>
             </div>
-            <Link
-                to={`/group/create-group-request${currentGroupId ? `?groupId=${currentGroupId}` : ''}`}
-                className="bg-blue-600 text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1 flex-shrink-0"
-                title="Create new group request"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Create
-            </Link>
           </div>
         </div>
 
@@ -267,10 +257,14 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
             </Link>
 
             <Link
-                to="/groups"
-                className="text-center py-2 px-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+                to={`/group/create-group-request${currentGroupId ? `?groupId=${currentGroupId}` : ''}`}
+                className="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                title="Create new group request"
             >
-              Explore Groups
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Create Group Request
             </Link>
           </div>
 
