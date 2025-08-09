@@ -19,7 +19,7 @@ import RequestHistory from "./pages/Requests/RequestHistory";
 // FIXED: Import the individual request components with correct names
 import AcceptedRequests from "@pages/Requests/recived/acceptedRequests.jsx";
 import PendingRequests from "@pages/Requests/recived/PendingRequests.jsx";
-import ArchiveRequests from "@pages/Requests/recived/ArchiveRequests.jsx"; // FIXED: Correct name
+import ArchiveRequests from "@pages/Requests/recived/ArchiveRequests.jsx";
 import DraftRequests from "@pages/Requests/create/draftRequest.jsx";
 import ActiveRequests from "@pages/Requests/create/activeRequest.jsx";
 import CompletedRequests from "@pages/Requests/create/completedRequest.jsx";
@@ -34,6 +34,7 @@ import GroupChat from "./pages/Group/GroupChat";
 import CreateGroup from "./pages/Group/CreateGroup";
 import GroupsList from "./pages/Group/GroupsList";
 import AllGroupRequests from "./pages/Group/AllGroupRequests";
+import JitsiMeeting from '@/components/Meeting/JitsiMeeting';
 
 // Import the updated layout system
 import RequestLayout, { SimpleLayout, FullWidthLayout, ProfileLayout } from "@/components/Layouts/RequestLayout";
@@ -503,6 +504,30 @@ const AppRoutes = () => {
                 }
             />
 
+            <Route
+                path="/OnlineMeeting"
+                element={
+                    <ProtectedRoute>
+                        <FullWidthLayout>
+                            <OnlineMeeting />
+                        </FullWidthLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* ===== JITSI MEETING ROUTES ===== */}
+            <Route
+                path="/meeting/:requestId?"
+                element={
+                    <ProtectedRoute>
+                        <FullWidthLayout>
+                            <JitsiMeeting />
+                        </FullWidthLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Updated OnlineMeeting route */}
             <Route
                 path="/OnlineMeeting"
                 element={
