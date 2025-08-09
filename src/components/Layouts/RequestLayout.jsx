@@ -8,6 +8,7 @@ export default function RequestLayout({ children, title, subtitle }) {
   const navigate = useNavigate();
   const [createRequestsExpanded, setCreateRequestsExpanded] = useState(false);
   const [receivedRequestsExpanded, setReceivedRequestsExpanded] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Main sidebar navigation items
   const sidebarNavItems = [
@@ -158,12 +159,28 @@ export default function RequestLayout({ children, title, subtitle }) {
       {/* Main Navbar */}
       <IntelligentNavbar />
 
+      {/* Mobile Menu Toggle */}
+      <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div>
+          {title && <h1 className="font-bold text-lg text-gray-800">{title}</h1>}
+          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 text-gray-600 hover:text-gray-900 focus:outline-none"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
       {/* Main Content Area */}
       <div className="flex">
-        {/* Sidebar Navigation */}
+        {/* Desktop Sidebar Navigation */}
         <aside
           ref={sidebarRef}
-          className="w-[280px] bg-white border-r border-gray-200 min-h-[calc(100vh-4rem)] py-6 px-4 flex flex-col gap-2"
+          className="hidden lg:flex w-[280px] bg-white border-r border-gray-200 min-h-[calc(100vh-4rem)] py-6 px-4 flex-col gap-2"
         >
           {/* Page Title */}
           {title && (
@@ -283,6 +300,100 @@ export default function RequestLayout({ children, title, subtitle }) {
             </Link>
           </div>
         </aside>
+
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" onClick={() => setMobileMenuOpen(false)}>
+            <div className="bg-white w-80 h-full overflow-y-auto p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-bold">Navigation</h2>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-gray-600 hover:text-gray-900">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Mobile Navigation */}
+              <nav className="flex flex-col gap-1">
+                {sidebarNavItems.map((item, index) => (
+                  <div key={index}>
+                    {item.type === "link" ? (
+                      <Link
+                        to={item.to}
+                        className={getSidebarLinkClass(item.to)}
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          setCreateRequestsExpanded(false);
+                          setReceivedRequestsExpanded(false);
+                        }}
+                      >
+                        <span className="text-lg">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </Link>
+                    ) : (
+                      <div>
+                        <button
+                          onClick={() => {
+                            handleExpandableClick(item);
+                          }}
+                          className={`w-full ${getSidebarLinkClass(item.to)} justify-between`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg">{item.icon}</span>
+                            <span>{item.label}</span>
+                          </div>
+                          <span className={`transform transition-transform ${item.expanded ? 'rotate-180' : ''}`}>
+                            ↓
+                          </span>
+                        </button>
+
+                        {/* Mobile Sub-items */}
+                        {item.expanded && (
+                          <div className="mt-1 ml-4 space-y-1">
+                            {item.subItems.map((subItem, subIndex) => (
+                              <Link
+                                key={subIndex}
+                                to={subItem.to}
+                                className={getSidebarLinkClass(subItem.to, true)}
+                                onClick={() => {
+                                  handleSubItemClick(item.setExpanded);
+                                  setMobileMenuOpen(false);
+                                }}
+                              >
+                                <span>{subItem.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </nav>
+
+              {/* Mobile Bottom Actions */}
+              <div className="mt-auto pt-4 border-t border-gray-100 flex flex-col gap-1">
+                <Link
+                  to="/help-support"
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span>❓</span>
+                  <span>Help & Support</span>
+                </Link>
+                <Link
+                  to="/settings"
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span>⚙️</span>
+                  <span>Settings</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">

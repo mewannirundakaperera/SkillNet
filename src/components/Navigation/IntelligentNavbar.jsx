@@ -3,6 +3,88 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/services/authService";
+
+// Dropdown menu data for navigation matching the design images
+const navigationData = {
+  explora: {
+    sections: [
+      {
+        title: "Subjects & Communities",
+        items: [
+          { icon: "📚", title: "All Subjects", description: "" },
+          { icon: "👥", title: "Course-Based Communities", description: "" },
+          { icon: "🌐", title: "Common Community", description: "" },
+          { icon: "🔥", title: "Popular Topics", badge: "NEW", description: "" },
+          { icon: "⭐", title: "Browse Tutors", description: "" }
+        ]
+      },
+      {
+        title: "Skill Exchange",
+        items: [
+          { icon: "🎯", title: "Free Sessions", description: "" },
+          { icon: "💼", title: "Paid Sessions", description: "" },
+          { icon: "📅", title: "Upcoming Sessions", badge: "NEW", description: "" },
+          { icon: "⭐", title: "Most Requested", description: "" },
+          { icon: "👨‍🎓", title: "Tutor Reviews", description: "" }
+        ]
+      },
+      {
+        title: "Knowledge Boards",
+        items: [
+          { icon: "❓", title: "Latest Questions", description: "" },
+          { icon: "💰", title: "Paid Sessions", description: "" },
+          { icon: "🔥", title: "Trending Topics", badge: "NEW", description: "" },
+          { icon: "👁️", title: "Most Viewed Answers", description: "" },
+          { icon: "👨‍🏫", title: "New Teachers", description: "" }
+        ]
+      }
+    ]
+  },
+  teach: {
+    sections: [
+      {
+        title: "Become a Tutor",
+        items: [
+          { icon: "👨‍🏫", title: "Register as Tutor", description: "" },
+          { icon: "🎯", title: "Set Available Subjects", description: "" },
+          { icon: "⏰", title: "Add Time Slots", description: "" },
+          { icon: "💰", title: "Set Price (Optional)", description: "" }
+        ]
+      },
+      {
+        title: "Manage Teaching",
+        items: [
+          { icon: "📊", title: "Your Sessions", description: "" },
+          { icon: "💵", title: "Earnings", description: "" },
+          { icon: "⭐", title: "Student Feedback", badge: "NEW", description: "" },
+          { icon: "✏️", title: "Edit Tutor Profile", description: "" }
+        ]
+      }
+    ]
+  },
+  learn: {
+    sections: [
+      {
+        title: "Request Knowledge",
+        items: [
+          { icon: "🎯", title: "Request Helper", description: "" },
+          { icon: "👥", title: "One-on-One Learning", description: "" },
+          { icon: "👨‍👩‍👧‍👦", title: "Group Sessions", badge: "NEW", description: "" },
+          { icon: "📅", title: "Join Upcoming Session", description: "" }
+        ]
+      },
+      {
+        title: "My Learning",
+        items: [
+          { icon: "📚", title: "Enrolled Sessions", description: "" },
+          { icon: "📖", title: "Learning History", description: "" },
+          { icon: "📝", title: "Notes", description: "" },
+          { icon: "❓", title: "Ask a Tutor", description: "" }
+        ]
+      }
+    ]
+  }
+};
 import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "@/config/firebase";
 
@@ -21,6 +103,8 @@ export default function IntelligentNavbar() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [dropdownTimeout, setDropdownTimeout] = useState(null);
 
   const searchRef = useRef(null);
   const profileMenuRef = useRef(null);
@@ -199,15 +283,15 @@ export default function IntelligentNavbar() {
           <div className="flex items-center space-x-4">
             <Link
               to="/login"
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="modern-btn modern-btn-ghost px-4 py-2 text-sm"
             >
               Sign In
             </Link>
             <Link
               to="/signup"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="modern-btn modern-btn-primary px-6 py-2 text-sm"
             >
-              Get Started
+              Sign up/Login
             </Link>
           </div>
         ),
@@ -225,7 +309,6 @@ export default function IntelligentNavbar() {
         navItems: [
           { to: "/", label: "Home" },
           { to: "/groups", label: "Groups" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
         ]
       };
     }
@@ -246,29 +329,7 @@ export default function IntelligentNavbar() {
       };
     }
 
-    // Teach & Learn pages
-    if (currentPath.includes('/teach') || currentPath.includes('/SelectTeacher')) {
-      return {
-        showSearch: true,
-        showNotifications: true,
-        showProfile: true,
-        searchPlaceholder: "Search teachers, subjects...",
-        rightSection: (
-          <Link
-            to="/teach/become-teacher"
-            className="bg-purple-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-purple-700 transition-colors text-sm"
-          >
-            Become a Teacher
-          </Link>
-        ),
-        navItems: [
-          { to: "/", label: "Home" },
-          { to: "/SelectTeacher", label: "Find Teachers" },
-          { to: "/teach/my-sessions", label: "My Sessions" },
-          { to: "/teach/earnings", label: "Earnings" }
-        ]
-      };
-    }
+
 
     // Profile/Settings pages
     if (currentPath.includes('/profile')) {
@@ -282,7 +343,6 @@ export default function IntelligentNavbar() {
           { to: "/profile", label: "Profile" },
           { to: "/StudentConnect", label: "Requests" },
           { to: "/groups", label: "Groups" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
         ]
       };
     }
@@ -298,7 +358,6 @@ export default function IntelligentNavbar() {
           { to: "/settings", label: "Settings" },
           { to: "/StudentConnect", label: "Requests" },
           { to: "/groups", label: "Groups" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
         ]
       };
     }
@@ -315,7 +374,6 @@ export default function IntelligentNavbar() {
           { to: "/", label: "Home" },
           { to: "/StudentConnect", label: "Requests" },
           { to: "/groups", label: "Groups" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
         ]
       };
     }
@@ -330,7 +388,6 @@ export default function IntelligentNavbar() {
         { to: "/", label: "Home" },
         { to: "/StudentConnect", label: "Requests" },
         { to: "/groups", label: "Groups" },
-        { to: "/SelectTeacher", label: "Teach & Learn" },
       ]
     };
   };
@@ -357,30 +414,32 @@ export default function IntelligentNavbar() {
   const navConfig = getNavConfig();
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <nav className="modern-nav sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/vite.svg" alt="Logo" className="h-8 w-8" />
-            <span className="font-bold text-xl text-indigo-700">Skill-Net</span>
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <img src="src/assets/skillnet-logo.svg" alt="SkillNet" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden md:flex items-center space-x-8">
             {navConfig.navItems.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
-                className={getLinkClass(item.to)}
+                className="modern-nav-item px-3 py-2 text-sm font-medium"
               >
                 {item.label}
+                <svg className="ml-1 h-4 w-4 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                </svg>
               </Link>
             ))}
           </div>
 
           {/* Right Section */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
             {/* Search Bar (conditional) */}
             {navConfig.showSearch && (
               <div className="relative" ref={searchRef}>
@@ -390,7 +449,7 @@ export default function IntelligentNavbar() {
                     placeholder={navConfig.searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    className="border border-gray-200 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-gray-600 w-64"
+                    className="modern-input px-4 py-2 pl-10 w-56 text-sm"
                   />
                   <svg
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
@@ -404,7 +463,7 @@ export default function IntelligentNavbar() {
 
                 {/* Search Results Dropdown */}
                 {showSearchResults && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-80 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 modern-dropdown mt-1 max-h-80 overflow-y-auto modern-scrollbar">
                     {searchLoading ? (
                       <div className="p-4 text-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
@@ -419,7 +478,7 @@ export default function IntelligentNavbar() {
                               result.type === 'group' ? `/chat/${result.id}` :
                               `/requests/details/${result.id}`
                             }
-                            className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                            className="modern-dropdown-item"
                             onClick={() => {
                               setShowSearchResults(false);
                               setSearchQuery("");
@@ -446,7 +505,7 @@ export default function IntelligentNavbar() {
                                  result.subject || 'Request'}
                               </div>
                             </div>
-                            <span className="ml-auto text-xs bg-gray-100 px-2 py-1 rounded">
+                            <span className="ml-auto modern-dropdown-badge">
                               {result.type === 'user' ? 'Person' :
                                result.type === 'group' ? 'Group' : 'Request'}
                             </span>
@@ -466,21 +525,7 @@ export default function IntelligentNavbar() {
             {/* Page-specific Right Section */}
             {navConfig.rightSection}
 
-            {/* Notifications (conditional) */}
-            {navConfig.showNotifications && (
-              <div className="relative">
-                <button className="relative p-2 text-gray-600 hover:text-indigo-600 transition-colors">
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-3.5-3.5a8.38 8.38 0 010-6L20 4h-5M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-            )}
+            
 
             {/* User Profile (conditional) */}
             {navConfig.showProfile && userProfile && (
@@ -568,11 +613,11 @@ export default function IntelligentNavbar() {
 
           {/* Mobile Hamburger */}
           <button
-            className="md:hidden flex items-center p-2 text-indigo-700 focus:outline-none"
+            className="md:hidden flex items-center p-2 text-gray-600 hover:text-indigo-700 focus:outline-none transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
-            <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
@@ -580,17 +625,71 @@ export default function IntelligentNavbar() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
+          <div className="md:hidden border-t border-slate-700 py-4 modern-nav">
             {/* Mobile Search */}
             {navConfig.showSearch && (
               <div className="px-4 mb-4">
-                <input
-                  type="text"
-                  placeholder={navConfig.searchPlaceholder}
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-gray-600"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder={navConfig.searchPlaceholder}
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="modern-input w-full px-4 py-2 pl-10"
+                  />
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+
+                {/* Mobile Search Results */}
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {searchResults.map((result, index) => (
+                      <Link
+                        key={`mobile-${result.type}-${result.id}-${index}`}
+                        to={
+                          result.type === 'user' ? `/profile/${result.id}` :
+                          result.type === 'group' ? `/chat/${result.id}` :
+                          `/requests/details/${result.id}`
+                        }
+                        className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                        onClick={() => {
+                          setShowSearchResults(false);
+                          setSearchQuery("");
+                          setMenuOpen(false);
+                        }}
+                      >
+                        <img
+                          src={
+                            result.avatar ||
+                            result.image ||
+                            "https://randomuser.me/api/portraits/men/14.jpg"
+                          }
+                          alt={result.displayName || result.name || result.title}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">
+                            {result.displayName || result.name || result.title}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {result.type === 'user' ?
+                              result.bio?.substring(0, 30) + (result.bio?.length > 30 ? '...' : '') ||
+                              result.location || 'Skill-Net Member' :
+                             result.type === 'group' ? `${result.memberCount || 0} members` :
+                             result.subject || 'Request'}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -610,37 +709,77 @@ export default function IntelligentNavbar() {
             )}
 
             {/* Mobile Navigation Links */}
-            <div className="px-4 space-y-1">
+            <div className="px-4 space-y-2">
               {navConfig.navItems.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`block px-3 py-2 rounded-md text-sm font-medium ${
+                  className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     location.pathname === item.to ||
                     (item.to === "/groups" && (location.pathname.startsWith("/chat/") || location.pathname === "/GroupChat" || location.pathname.startsWith("/groups/")))
-                      ? 'text-indigo-600 bg-indigo-50'
+                      ? 'text-indigo-600 bg-indigo-50 border border-indigo-200'
                       : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
-                  } transition-colors`}
+                  }`}
                   onClick={() => setMenuOpen(false)}
                 >
+                  {/* Add icons for better mobile UX */}
+                  <span className="text-lg mr-3">
+                    {item.to === "/" ? "🏠" : 
+                     item.to.includes("StudentConnect") || item.to.includes("request") ? "📋" :
+                     item.to.includes("groups") || item.to.includes("Groups") ? "👥" :
+                     item.to.includes("profile") ? "👤" :
+                     item.to.includes("settings") ? "⚙️" : "📍"}
+                  </span>
                   {item.label}
                 </Link>
               ))}
             </div>
 
             {/* Mobile Action Buttons */}
-            <div className="px-4 mt-4 space-y-2">
+            <div className="px-4 mt-6 space-y-3 border-t border-gray-200 pt-4">
               {isAuthenticated ? (
                 <>
+                  {/* Profile Actions */}
+                  <div className="space-y-2 mb-4">
+                    <Link
+                      to="/profile"
+                      className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="text-lg mr-3">👤</span>
+                      <span className="text-sm font-medium">View Profile</span>
+                    </Link>
+                    <Link
+                      to="/settings"
+                      className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="text-lg mr-3">⚙️</span>
+                      <span className="text-sm font-medium">Settings</span>
+                    </Link>
+                    <Link
+                      to="/help-support"
+                      className="flex items-center w-full px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <span className="text-lg mr-3">❓</span>
+                      <span className="text-sm font-medium">Help & Support</span>
+                    </Link>
+                  </div>
+
+                  {/* Additional right section content */}
                   {navConfig.rightSection && (
                     <div className="pb-4 border-b border-gray-200">
                       {navConfig.rightSection}
                     </div>
                   )}
+
+                  {/* Sign out */}
                   <button
                     onClick={handleLogout}
-                    className="w-full px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 font-semibold text-sm"
+                    className="flex items-center justify-center w-full px-4 py-3 border border-red-600 text-red-600 rounded-lg hover:bg-red-50 font-semibold text-sm transition-colors"
                   >
+                    <span className="text-lg mr-3">🚪</span>
                     Sign Out
                   </button>
                 </>
@@ -648,14 +787,14 @@ export default function IntelligentNavbar() {
                 <>
                   <Link
                     to="/login"
-                    className="block w-full px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 font-semibold text-sm text-center"
+                    className="block w-full px-4 py-3 border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 font-semibold text-sm text-center transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/signup"
-                    className="block w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-semibold text-sm text-center"
+                    className="block w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-sm text-center transition-colors"
                     onClick={() => setMenuOpen(false)}
                   >
                     Get Started

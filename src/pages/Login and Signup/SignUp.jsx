@@ -178,9 +178,9 @@ export default function SignUp() {
   };
 
   return (
-    <div className="flex min-h-screen w-full lg:flex-row">
+    <div className="flex min-h-screen w-full flex-col lg:flex-row modern-dark-theme">
       {/* Left Side Image */}
-      <div className="w-full md:w-2/5 h-auto">
+      <div className="hidden md:block w-full md:w-2/5 h-64 lg:h-auto">
         <img
           src="https://images.unsplash.com/photo-1519389950473-47ba0277781c"
           alt="Laptop on bed"
@@ -189,18 +189,18 @@ export default function SignUp() {
       </div>
 
       {/* Right Side Form */}
-      <div className="w-full md:w-3/5 flex items-center justify-center bg-white px-8 py-12">
-        <div className="w-auto max-w-lg">
+      <div className="w-full md:w-3/5 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="w-full max-w-lg">
           {/* Top login link */}
-          <div className="text-right mb-6 text-sm text-[#171A1F]">
+          <div className="text-center sm:text-right mb-4 sm:mb-6 modern-body">
             Already have an account?{" "}
-            <a href="/login" className="underline hover:text-[#636AE8]">
+            <a href="/login" className="text-blue-400 hover:text-blue-300 transition-colors">
               Log in
             </a>
           </div>
 
           {/* Heading */}
-          <h2 className="text-[32px] leading-[48px] font-bold text-[#2e349a] mb-8">
+          <h2 className="modern-heading-1 modern-gradient-text mb-6 sm:mb-8 text-center sm:text-left">
             Sign up
           </h2>
 

@@ -17,16 +17,14 @@ import Profile from "./pages/Requests/Profile";
 import RequestHistory from "./pages/Requests/RequestHistory";
 import MyRequests from "./pages/Requests/MyRequests";
 import Settings from "./pages/Settings";
-import SelectTeacher from "./pages/Teach&learn/SelectTeacher";
-import TimeSlotSelection from "./pages/Teach&learn/TimeSlotSelection";
-import PaymentPage from "./pages/Teach&learn/PaymentPage";
-import OnlineMeeting from "./pages/Teach&learn/OnlineMeeting";
+
 import JoinGroup from "./pages/Group/JoinGroup";
 import GroupChat from "./pages/Group/GroupChat";
 import CreateGroup from "./pages/Group/CreateGroup";
 import GroupsList from "./pages/Group/GroupsList";
 // import NewUserHomePage from "./pages/Homepages/NewUserHomePage";
 import AllGroupRequests from "./pages/Group/AllGroupRequests";
+import HelpSupport from "./pages/Support/HelpSupport";
 
 // Import the updated layout system
 import RequestLayout, { SimpleLayout, FullWidthLayout, ProfileLayout } from "@/components/Layouts/RequestLayout";
@@ -495,52 +493,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===========================================
-          TEACHING/LEARNING ROUTES
-          =========================================== */}
-            <Route
-                path="/SelectTeacher"
-                element={
-                    <ProtectedRoute>
-                        <SimpleLayout>
-                            <SelectTeacher />
-                        </SimpleLayout>
-                    </ProtectedRoute>
-                }
-            />
 
-            <Route
-                path="/TimeSlotSelection"
-                element={
-                    <ProtectedRoute>
-                        <SimpleLayout>
-                            <TimeSlotSelection />
-                        </SimpleLayout>
-                    </ProtectedRoute>
-                }
-            />
-
-            <Route
-                path="/PaymentPage"
-                element={
-                    <ProtectedRoute>
-                        <SimpleLayout>
-                            <PaymentPage />
-                        </SimpleLayout>
-                    </ProtectedRoute>
-                }
-            />
-
-            <Route
-                path="/OnlineMeeting"
-                element={
-                    <ProtectedRoute>
-                        <FullWidthLayout>
-                            <OnlineMeeting />
-                        </FullWidthLayout>
-                    </ProtectedRoute>
-                }
-            />
 
             {/* ===========================================
           LEGACY ROUTES (for backward compatibility)
@@ -556,6 +509,16 @@ const AppRoutes = () => {
             {/* Chat legacy redirects */}
             <Route path="/groups/list" element={<Navigate to="/groups" replace />} />
             <Route path="/groups/browse" element={<Navigate to="/groups/discover" replace />} />
+
+            {/* Help & Support Route */}
+            <Route
+                path="/help-support"
+                element={
+                    <SimpleLayout>
+                        <HelpSupport />
+                    </SimpleLayout>
+                }
+            />
 
             {/* 404 Route - must be last */}
             <Route path="*" element={<NotFound />} />

@@ -429,52 +429,57 @@ export default function HomePage() {
   // ======================================
   if (!isAuthenticated) {
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen modern-dark-theme">
           {/* Hero Section */}
-          <section className="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 text-white">
-            <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-              <h1 className="text-5xl md:text-6xl font-bold mb-6">
-                Connect. Learn. <span className="text-yellow-300">Grow.</span>
+          <section className="modern-hero text-white relative">
+            <div className="modern-hero-content max-w-7xl mx-auto px-4 py-12 md:py-20 text-center">
+              <div className="mb-6">
+                <span className="text-sm font-semibold tracking-wider text-blue-300 uppercase">MORE THAN A WEBSITE BUILDER</span>
+              </div>
+              <h1 className="modern-hero-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 md:mb-8">
+                YOUR SITE SHOULD DO<br />
+                <span className="modern-gradient-text">MORE THAN LOOK GOOD</span>
               </h1>
-              <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
-                Join the professional network that empowers peer-to-peer learning and meaningful connections
+              <p className="text-lg sm:text-xl md:text-2xl mb-8 md:mb-12 text-slate-300 max-w-4xl mx-auto px-4 leading-relaxed">
+                Learn how to build stunning, fully responsive websites using the power of<br className="hidden md:block" />
+                React 19 and Tailwind CSS v4 — from start to finish.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center px-4">
                 <Link
                     to="/signup"
-                    className="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
+                    className="modern-btn modern-btn-primary px-8 md:px-10 py-4 md:py-5 text-base md:text-lg font-bold"
                 >
-                  Get Started Free
+                  Login
                 </Link>
                 <Link
-                    to="/login"
-                    className="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-blue-600 transition-colors"
+                    to="/help-support"
+                    className="modern-btn modern-btn-secondary px-8 md:px-10 py-4 md:py-5 text-base md:text-lg font-bold"
                 >
-                  Sign In
+                  Help
                 </Link>
               </div>
             </div>
           </section>
 
           {/* Platform Stats */}
-          <section className="py-16 bg-white">
+          <section className="py-12 md:py-16 bg-slate-900">
             <div className="max-w-7xl mx-auto px-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                <div>
-                  <div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">{stats_public.users}</div>
-                  <div className="text-gray-600">Active Users</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 text-center">
+                <div className="modern-stat-card">
+                  <div className="modern-stat-number">{stats_public.users}</div>
+                  <div className="modern-stat-label">Active Users</div>
                 </div>
-                <div>
-                  <div className="text-3xl md:text-4xl font-bold text-purple-600 mb-2">{stats_public.groups}</div>
-                  <div className="text-gray-600">Learning Groups</div>
+                <div className="modern-stat-card">
+                  <div className="modern-stat-number text-purple-400">{stats_public.groups}</div>
+                  <div className="modern-stat-label">Learning Groups</div>
                 </div>
-                <div>
-                  <div className="text-3xl md:text-4xl font-bold text-green-600 mb-2">{stats_public.sessions}</div>
-                  <div className="text-gray-600">Sessions Completed</div>
+                <div className="modern-stat-card">
+                  <div className="modern-stat-number text-green-400">{stats_public.sessions}</div>
+                  <div className="modern-stat-label">Sessions Completed</div>
                 </div>
-                <div>
-                  <div className="text-3xl md:text-4xl font-bold text-orange-600 mb-2">{stats_public.countries}</div>
-                  <div className="text-gray-600">Countries</div>
+                <div className="modern-stat-card">
+                  <div className="modern-stat-number text-orange-400">{stats_public.countries}</div>
+                  <div className="modern-stat-label">Countries</div>
                 </div>
               </div>
             </div>
@@ -548,7 +553,18 @@ export default function HomePage() {
           </section>
 
           {/* Footer */}
-          <footer className="py-8 px-6 bg-gray-100 text-center text-sm text-gray-500 flex flex-col items-center gap-2">
+          <footer className="py-8 px-6 bg-gray-100 text-center text-sm text-gray-500 flex flex-col items-center gap-4">
+            <div className="flex gap-6 text-sm">
+              <Link to="/help-support" className="text-blue-600 hover:text-blue-700 font-medium">
+                Help & Support
+              </Link>
+              <Link to="/privacy-policy" className="text-gray-600 hover:text-gray-700">
+                Privacy Policy
+              </Link>
+              <Link to="/terms-of-service" className="text-gray-600 hover:text-gray-700">
+                Terms of Service
+              </Link>
+            </div>
             <span>© 2025 Skill-Net. All rights reserved.</span>
             <span className="flex items-center gap-1 text-xs">
             Made with <span className="text-blue-600 font-bold">Visily</span>
@@ -562,38 +578,40 @@ export default function HomePage() {
   // AUTHENTICATED USER VIEW
   // ======================================
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen modern-dark-theme">
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col lg:flex-row gap-8">
+        <main className="max-w-7xl mx-auto py-4 md:py-8 px-4 flex flex-col lg:flex-row gap-4 md:gap-8">
           <div className="flex-1 flex flex-col gap-8">
             {/* Welcome Banner with Dynamic User Data */}
-            <section className="bg-white rounded-xl shadow p-8 flex flex-col items-center text-center mb-2">
-              <div className="flex items-center gap-4 mb-4">
+            <section className="modern-card p-4 md:p-8 flex flex-col items-center text-center mb-2 modern-fade-in">
+              <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
                 <img
                     src={userProfile?.avatar}
                     alt={userProfile?.displayName}
-                    className="w-16 h-16 rounded-full object-cover border-4 border-blue-100"
+                    className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border-4 border-blue-400 flex-shrink-0 modern-glow"
                 />
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                    Welcome Back, {userProfile?.displayName || 'User'}!
+                <div className="text-center sm:text-left">
+                  <h1 className="modern-heading-2 mb-2">
+                    Welcome Back, <span className="modern-gradient-text">{userProfile?.displayName || 'User'}</span>!
                   </h1>
-                  <p className="text-gray-500 text-sm">
+                  <p className="modern-small">
                     {userProfile?.email}
                   </p>
                 </div>
               </div>
-              <p className="text-gray-500 mb-6">Connect. Collaborate. Grow. Your professional journey continues here.</p>
-              <div className="flex gap-4">
+              <p className="modern-body mb-6 max-w-2xl">
+                Connect. Collaborate. Grow. Your professional journey continues here.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto">
                 <Link
-                    to="/network"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-blue-700 transition-colors"
+                    to="/help-support"
+                    className="modern-btn modern-btn-primary px-4 sm:px-6 py-3 text-center text-sm md:text-base"
                 >
-                  Explore Your Network
+                  Help & Support
                 </Link>
                 <Link
                     to="/profile"
-                    className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+                    className="modern-btn modern-btn-secondary px-4 sm:px-6 py-3 text-center text-sm md:text-base"
                 >
                   View Profile
                 </Link>
@@ -601,10 +619,10 @@ export default function HomePage() {
             </section>
 
             {/* Recent Activities with Real Data */}
-            <section className="bg-white rounded-xl shadow p-6 mb-2">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Recent Activities</h2>
-                <Link to="/activities" className="text-blue-600 text-sm font-medium hover:underline">
+            <section className="modern-card p-4 md:p-6 mb-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-4">
+                <h2 className="modern-heading-3">Recent Activities</h2>
+                <Link to="/activities" className="text-blue-400 text-sm font-medium hover:text-blue-300 transition-colors self-start sm:self-auto">
                   View All
                 </Link>
               </div>
@@ -656,69 +674,52 @@ export default function HomePage() {
               )}
             </section>
 
-            {/* Enhanced Trending Topics */}
-            <section className="bg-white rounded-xl shadow p-6 mb-2">
-              <h2 className="text-xl font-bold mb-4">Trending Topics</h2>
-              <ul className="flex flex-col gap-3">
-                {trendingTopics.map((topic) => (
-                    <li key={topic.id} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <span className="text-orange-500 text-xl">{topic.icon}</span>
-                        <div>
-                          <span className="font-medium">{topic.name}</span>
-                          <div className="text-xs text-green-600">{topic.trend} this week</div>
-                        </div>
-                      </div>
-                      <span className="text-gray-400 text-sm">{topic.posts.toLocaleString()} Posts</span>
-                    </li>
-                ))}
-              </ul>
-            </section>
+            
           </div>
 
           {/* Right Sidebar */}
-          <aside className="w-full lg:w-96 flex flex-col gap-8">
+          <aside className="w-full lg:w-96 flex flex-col gap-4 md:gap-8">
             {/* Enhanced Dashboard with Real Stats */}
-            <section className="bg-white rounded-xl shadow p-6 flex flex-col items-center mb-2">
-              <h3 className="text-base font-bold mb-4">My Dashboard</h3>
-              <div className="grid grid-cols-2 gap-4 w-full text-center">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-700">{stats.connections.toLocaleString()}</div>
-                  <div className="text-gray-500 text-sm">Connections</div>
+            <section className="modern-card p-4 md:p-6 flex flex-col items-center mb-2">
+              <h3 className="modern-heading-3 mb-4">My Dashboard</h3>
+              <div className="grid grid-cols-2 gap-3 md:gap-4 w-full text-center">
+                <div className="modern-stat-card">
+                  <div className="modern-stat-number">{stats.connections.toLocaleString()}</div>
+                  <div className="modern-stat-label">Connections</div>
                 </div>
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-700">{stats.groupsJoined}</div>
-                  <div className="text-gray-500 text-sm">Groups</div>
+                <div className="modern-stat-card">
+                  <div className="modern-stat-number text-green-400">{stats.groupsJoined}</div>
+                  <div className="modern-stat-label">Groups</div>
                 </div>
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-700">{stats.postsLiked}</div>
-                  <div className="text-gray-500 text-sm">Posts Liked</div>
+                <div className="modern-stat-card">
+                  <div className="modern-stat-number text-purple-400">{stats.postsLiked}</div>
+                  <div className="modern-stat-label">Posts Liked</div>
                 </div>
-                <div className="p-3 bg-orange-50 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-700">{stats.profileViews}</div>
-                  <div className="text-gray-500 text-sm">Profile Views</div>
+                <div className="modern-stat-card">
+                  <div className="modern-stat-number text-orange-400">{stats.profileViews}</div>
+                  <div className="modern-stat-label">Profile Views</div>
                 </div>
               </div>
             </section>
 
             {/* Interactive Suggested Groups */}
-            <section className="bg-white rounded-xl shadow p-6 mb-2">
-              <h3 className="text-base font-bold mb-4">Suggested Groups</h3>
+            <section className="modern-card p-4 md:p-6 mb-2">
+              <h3 className="modern-heading-3 mb-4">Suggested Groups</h3>
               {suggestedGroups.length > 0 ? (
                   <div className="flex flex-col gap-4">
                     {suggestedGroups.slice(0, 4).map((group) => (
-                        <div key={group.id} className="flex gap-4 items-center">
+                        <div key={group.id} className="modern-list-item flex gap-3 md:gap-4 items-center">
                           <img
                               src={group.image}
                               alt={group.name}
-                              className="w-16 h-16 rounded object-cover"
+                              className="w-12 h-12 md:w-16 md:h-16 rounded object-cover flex-shrink-0"
                           />
-                          <div className="flex-1">
-                            <div className="font-semibold text-sm">{group.name}</div>
-                            <div className="text-xs text-gray-500 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm md:text-base truncate">{group.name}</div>
+                            <div className="text-xs md:text-sm text-gray-500 mb-1">
                               {group.members?.toLocaleString() || 0} Members
                             </div>
-                            <div className="text-xs text-gray-500 line-clamp-2">
+                            <div className="text-xs text-gray-500 line-clamp-2 hidden sm:block">
                               {group.description}
                             </div>
                             {group.category && (
@@ -730,9 +731,14 @@ export default function HomePage() {
                           <button
                               onClick={() => handleJoinGroup(group.id, group.name)}
                               disabled={joiningGroups.has(group.id)}
-                              className="bg-blue-600 text-white rounded px-4 py-2 font-medium text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="modern-btn modern-btn-primary px-3 md:px-4 py-2 text-xs flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {joiningGroups.has(group.id) ? 'Joining...' : 'Join Group'}
+                            <span className="hidden sm:inline">
+                              {joiningGroups.has(group.id) ? 'Joining...' : 'Join Group'}
+                            </span>
+                            <span className="sm:hidden">
+                              {joiningGroups.has(group.id) ? '...' : 'Join'}
+                            </span>
                           </button>
                         </div>
                     ))}
@@ -748,33 +754,12 @@ export default function HomePage() {
             </section>
 
             {/* Premium Features Card */}
-            <section className="bg-gradient-to-r from-orange-400 to-pink-500 rounded-xl shadow p-6 flex flex-col items-center text-white">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">★</span>
-                <span className="font-bold text-lg">Unlock Premium Features</span>
-              </div>
-              <p className="text-sm mb-4 text-center">
-                Access advanced analytics, exclusive groups, and boosted visibility to accelerate your career.
-              </p>
-              <div className="flex flex-col gap-2 w-full">
-                <button className="bg-white text-orange-500 font-bold rounded px-6 py-2 text-sm shadow hover:bg-orange-50 transition-colors">
-                  Upgrade Now
-                </button>
-                <button className="border border-white text-white font-medium rounded px-6 py-2 text-sm hover:bg-white hover:text-orange-500 transition-colors">
-                  Learn More
-                </button>
-              </div>
-            </section>
+            
           </aside>
         </main>
 
-        {/* Footer */}
-        <footer className="py-8 px-6 bg-gray-100 text-center text-sm text-gray-500 flex flex-col items-center gap-2">
-          <span>© 2025 Skill-Net. All rights reserved.</span>
-          <span className="flex items-center gap-1 text-xs">
-          Made with <span className="text-blue-600 font-bold">Visily</span>
-        </span>
-        </footer>
+        
+        
       </div>
   );
 }

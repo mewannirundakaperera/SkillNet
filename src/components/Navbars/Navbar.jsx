@@ -257,29 +257,7 @@ export default function IntelligentNavbar() {
       };
     }
 
-    // Teach & Learn pages
-    if (currentPath.includes('/teach') || currentPath.includes('/SelectTeacher')) {
-      return {
-        showSearch: true,
-        showNotifications: true,
-        showProfile: true,
-        searchPlaceholder: "Search teachers, subjects...",
-        rightSection: (
-          <Link
-            to="/teach/become-teacher"
-            className="bg-purple-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-purple-700 transition-colors text-sm"
-          >
-            Become a Teacher
-          </Link>
-        ),
-        navItems: [
-          { to: "/", label: "Home" },
-          { to: "/SelectTeacher", label: "Find Teachers" },
-          { to: "/teach/my-sessions", label: "My Sessions" },
-          { to: "/teach/earnings", label: "Earnings" }
-        ]
-      };
-    }
+
 
     // Profile/Settings pages
     if (currentPath.includes('/profile') || currentPath.includes('/settings')) {
@@ -322,7 +300,6 @@ export default function IntelligentNavbar() {
         { to: "/", label: "Home" },
         { to: "/StudentConnect", label: "Requests" },
         { to: "/GroupChat", label: "Groups" },
-        { to: "/SelectTeacher", label: "Teach & Learn" },
         { to: "/Settings", label: "Settings" }
       ]
     };
@@ -343,13 +320,12 @@ export default function IntelligentNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/vite.svg" alt="Logo" className="h-8 w-8" />
-            <span className="font-bold text-xl text-indigo-700">NetworkPro</span>
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <img src="src/assets/skillnet-logo.svg" alt="SkillNet" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden md:flex items-center space-x-2">
             {navConfig.navItems.map((item) => (
               <Link
                 key={item.to}

@@ -1,0 +1,136 @@
+/* Responsive Utilities for SkillNet */
+
+/* Container Utilities */
+.container-responsive {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.container-narrow {
+  @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.container-wide {
+  @apply max-w-none mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Spacing Utilities */
+.spacing-y-responsive {
+  @apply py-4 md:py-8;
+}
+
+.spacing-x-responsive {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+/* Grid Utilities */
+.grid-responsive-2 {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6;
+}
+
+.grid-responsive-3 {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6;
+}
+
+.grid-responsive-4 {
+  @apply grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6;
+}
+
+/* Typography Utilities */
+.text-responsive-xs {
+  @apply text-xs sm:text-sm;
+}
+
+.text-responsive-sm {
+  @apply text-sm md:text-base;
+}
+
+.text-responsive-base {
+  @apply text-base md:text-lg;
+}
+
+.text-responsive-lg {
+  @apply text-lg md:text-xl;
+}
+
+.text-responsive-xl {
+  @apply text-xl md:text-2xl;
+}
+
+.text-responsive-2xl {
+  @apply text-2xl md:text-3xl lg:text-4xl;
+}
+
+.text-responsive-3xl {
+  @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl;
+}
+
+/* Button Utilities */
+.btn-responsive {
+  @apply px-4 sm:px-6 py-3 text-sm md:text-base font-semibold rounded-lg transition-colors;
+}
+
+.btn-responsive-sm {
+  @apply px-3 md:px-4 py-2 text-xs md:text-sm font-medium rounded-lg transition-colors;
+}
+
+/* Card Utilities */
+.card-responsive {
+  @apply bg-white rounded-xl shadow p-4 md:p-6;
+}
+
+.card-responsive-sm {
+  @apply bg-white rounded-lg shadow p-3 md:p-4;
+}
+
+/* Form Utilities */
+.form-input-responsive {
+  @apply w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+.form-label-responsive {
+  @apply block text-sm md:text-base font-medium text-gray-700 mb-1 md:mb-2;
+}
+
+/* Navigation Utilities */
+.nav-item-responsive {
+  @apply px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-medium rounded-lg transition-colors;
+}
+
+/* Image Utilities */
+.avatar-responsive-sm {
+  @apply w-8 h-8 md:w-10 md:h-10 rounded-full object-cover;
+}
+
+.avatar-responsive {
+  @apply w-12 h-12 md:w-16 md:h-16 rounded-full object-cover;
+}
+
+.avatar-responsive-lg {
+  @apply w-16 h-16 md:w-20 md:h-20 rounded-full object-cover;
+}
+
+/* Layout Utilities */
+.flex-responsive {
+  @apply flex flex-col sm:flex-row gap-3 sm:gap-4;
+}
+
+.flex-responsive-reverse {
+  @apply flex flex-col-reverse sm:flex-row gap-3 sm:gap-4;
+}
+
+/* Touch-friendly utilities for mobile devices */
+@media (max-width: 1023px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .touch-spacing {
+    padding: 12px;
+  }
+  
+  .touch-text {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+}
