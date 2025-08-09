@@ -2,6 +2,42 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import IntelligentNavbar from "@components/Navigation/IntelligentNavbar.jsx";
 
+// Simple Layout Component (basic navbar + content)
+export function SimpleLayout({ children }) {
+  return (
+      <div className="min-h-screen bg-gray-50">
+        <IntelligentNavbar />
+        <main className="pt-4">
+          {children}
+        </main>
+      </div>
+  );
+}
+
+// Full Width Layout Component (navbar + full width content)
+export function FullWidthLayout({ children }) {
+  return (
+      <div className="min-h-screen bg-gray-50">
+        <IntelligentNavbar />
+        <main className="w-full">
+          {children}
+        </main>
+      </div>
+  );
+}
+
+// Profile Layout Component (navbar + content with profile styling)
+export function ProfileLayout({ children }) {
+  return (
+      <div className="min-h-screen bg-gray-50">
+        <IntelligentNavbar />
+        <main className="container mx-auto px-4 py-8 max-w-6xl">
+          {children}
+        </main>
+      </div>
+  );
+}
+
 // Request Layout with Expandable Sidebar Navigation
 export default function RequestLayout({ children, title, subtitle }) {
   const location = useLocation();

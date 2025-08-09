@@ -256,7 +256,7 @@ const AppRoutes = () => {
 
             {/* FIXED: Correct paths for received requests sub-pages */}
             <Route
-                path="pending"
+                path="/OneToOneRequests/pending"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Pending Offers" subtitle="Requests waiting for your response">
@@ -267,7 +267,7 @@ const AppRoutes = () => {
             />
 
             <Route
-                path="accepted"
+                path="/OneToOneRequests/accepted"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Accepted Requests" subtitle="Requests you have accepted">
@@ -278,7 +278,7 @@ const AppRoutes = () => {
             />
 
             <Route
-                path="archived"
+                path="/OneToOneRequests/archived"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Archived Requests" subtitle="Completed and archived requests">
