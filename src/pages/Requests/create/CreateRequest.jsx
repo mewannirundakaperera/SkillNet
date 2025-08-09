@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { getCurrentUserData } from "@/services/authService";
+import { useAuth } from "@hooks/useAuth.js";
+import { getCurrentUserData } from "@services/authService.js";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { db } from "@config/firebase.js";
 
 export default function CreateRequest() {
   const { user } = useAuth();

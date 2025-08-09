@@ -60,7 +60,7 @@ export default function Profile() {
             ...user,
             ...result.userData,
             displayName: result.userData.displayName || result.userData.name || user.name || "User",
-            bio: result.userData.bio || "Welcome to NetworkPro! Connect with like-minded professionals and grow your network.",
+            bio: result.userData.bio || "Welcome to Skill-Net! Connect with like-minded professionals and grow your network.",
             location: result.userData.location || "Location not set",
             skills: result.userData.skills || ["React.js", "TypeScript", "Tailwind CSS", "Next.js", "Python", "Data Analysis", "Problem Solving", "Teamwork"],
             interests: result.userData.interests || ["Machine Learning", "Web Development", "UI/UX Design", "Artificial Intelligence", "Cybersecurity", "Gaming"],

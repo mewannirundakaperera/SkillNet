@@ -9,13 +9,21 @@ import Login from "./pages/Login and Signup/Login";
 import HomePage from "./pages/Homepages/HomePage";
 import StudentConnect from "./pages/Requests/StudentConnect";
 import GroupRequests from "./pages/Requests/GroupRequests";
-import OneToOneRequests from "./pages/Requests/OneToOneRequests";
-import CreateRequest from "./pages/Requests/CreateRequest";
+import OneToOneRequests from "@pages/Requests/recived/OneToOneRequests.jsx";
+import CreateRequest from "@pages/Requests/create/CreateRequest.jsx";
 import CreateGroupRequest from "@pages/Group/CreateGroupRequest.jsx";
 import RequestDetails from "./pages/Requests/RequestDetails";
 import Profile from "./pages/Requests/Profile";
 import RequestHistory from "./pages/Requests/RequestHistory";
-import MyRequests from "./pages/Requests/MyRequests";
+
+// FIXED: Import the individual request components with correct names
+import AcceptedRequests from "@pages/Requests/recived/acceptedRequests.jsx";
+import PendingRequests from "@pages/Requests/recived/PendingRequests.jsx";
+import ArchiveRequests from "@pages/Requests/recived/ArchiveRequests.jsx"; // FIXED: Correct name
+import DraftRequests from "@pages/Requests/create/draftRequest.jsx";
+import ActiveRequests from "@pages/Requests/create/activeRequest.jsx";
+import CompletedRequests from "@pages/Requests/create/completedRequest.jsx";
+import MyRequests from "@pages/Requests/create/MyRequests.jsx";
 import Settings from "./pages/Settings";
 import SelectTeacher from "./pages/Teach&learn/SelectTeacher";
 import TimeSlotSelection from "./pages/Teach&learn/TimeSlotSelection";
@@ -25,7 +33,6 @@ import JoinGroup from "./pages/Group/JoinGroup";
 import GroupChat from "./pages/Group/GroupChat";
 import CreateGroup from "./pages/Group/CreateGroup";
 import GroupsList from "./pages/Group/GroupsList";
-// import NewUserHomePage from "./pages/Homepages/NewUserHomePage";
 import AllGroupRequests from "./pages/Group/AllGroupRequests";
 
 // Import the updated layout system
@@ -99,7 +106,7 @@ function App() {
 
 // Routes Component
 const AppRoutes = () => {
-    const { loading } = useAuth(); // ✅ Now useAuth is properly imported
+    const { loading } = useAuth();
 
     // Show loading screen while checking authentication
     if (loading) {
@@ -155,17 +162,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/*<Route*/}
-            {/*    path="/new-user"*/}
-            {/*    element={*/}
-            {/*        <ProtectedRoute>*/}
-            {/*            <SimpleLayout>*/}
-            {/*                <NewUserHomePage />*/}
-            {/*            </SimpleLayout>*/}
-            {/*        </ProtectedRoute>*/}
-            {/*    }*/}
-            {/*/>*/}
-
             {/* Request Routes with RequestLayout (includes sidebar) */}
             <Route
                 path="/StudentConnect"
@@ -201,31 +197,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* NEW: Create Group Request Route */}
-            <Route
-                path="/group/create-group-request"
-                element={
-                    <ProtectedRoute>
-                        <RequestLayout title="Create Group Request" subtitle="Request help or collaboration from your group members">
-                            <CreateGroupRequest />
-                        </RequestLayout>
-                    </ProtectedRoute>
-                }
-            />
-
-            {/* NEW: Create Group Request with pre-selected group */}
-            <Route
-                path="/group/create-group-request/:groupId"
-                element={
-                    <ProtectedRoute>
-                        <RequestLayout title="Create Group Request" subtitle="Request help or collaboration from your group members">
-                            <CreateGroupRequest />
-                        </RequestLayout>
-                    </ProtectedRoute>
-                }
-            />
-
-            {/* My Requests - All */}
+            {/* ===== MY REQUESTS SECTION ===== */}
             <Route
                 path="/requests/my-requests"
                 element={
@@ -237,44 +209,40 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* My Requests - Draft */}
             <Route
-                path="/requests/my-requests/draft"
+                path="/requests/draft"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Draft Requests" subtitle="Requests you've started but haven't published yet">
-                            <MyRequests />
+                            <DraftRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* My Requests - Active */}
             <Route
-                path="/requests/my-requests/active"
+                path="/requests/active"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Active Requests" subtitle="Your currently published and ongoing requests">
-                            <MyRequests />
+                            <ActiveRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* My Requests - Completed */}
             <Route
-                path="/requests/my-requests/completed"
+                path="/requests/completed"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Completed Requests" subtitle="Successfully completed learning sessions">
-                            <MyRequests />
+                            <CompletedRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* ===== RECEIVED REQUESTS SECTION ===== */}
-            {/* Received Requests - All */}
+            {/* ===== RECEIVED REQUESTS SECTION - FIXED PATHS ===== */}
             <Route
                 path="/OneToOneRequests"
                 element={
@@ -286,45 +254,66 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Received Requests - Pending */}
+            {/* FIXED: Correct paths for received requests sub-pages */}
             <Route
-                path="/OneToOneRequests/pending"
+                path="pending"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Pending Offers" subtitle="Requests waiting for your response">
-                            <OneToOneRequests />
+                            <PendingRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* Received Requests - Accepted */}
             <Route
-                path="/OneToOneRequests/accepted"
+                path="accepted"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Accepted Requests" subtitle="Requests you have accepted">
-                            <OneToOneRequests />
+                            <AcceptedRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* Received Requests - Archived */}
             <Route
-                path="/OneToOneRequests/archived"
+                path="archived"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Archived Requests" subtitle="Completed and archived requests">
-                            <OneToOneRequests />
+                            <ArchiveRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* Request Details */}
+            {/* ===== GROUP REQUEST ROUTES ===== */}
             <Route
-                path="/requests/details/:id?"
+                path="/group/create-group-request"
+                element={
+                    <ProtectedRoute>
+                        <RequestLayout title="Create Group Request" subtitle="Request help or collaboration from your group members">
+                            <CreateGroupRequest />
+                        </RequestLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/group/create-group-request/:groupId"
+                element={
+                    <ProtectedRoute>
+                        <RequestLayout title="Create Group Request" subtitle="Request help or collaboration from your group members">
+                            <CreateGroupRequest />
+                        </RequestLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* ===== REQUEST DETAILS AND HISTORY ===== */}
+            <Route
+                path="/requests/details/:id"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Request Details" subtitle="View and manage request information">
@@ -334,7 +323,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Request History */}
             <Route
                 path="/RequestHistory"
                 element={
@@ -346,7 +334,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Profile Routes with ProfileLayout */}
+            {/* ===== PROFILE ROUTES ===== */}
             <Route
                 path="/Profile"
                 element={
@@ -359,7 +347,7 @@ const AppRoutes = () => {
             />
 
             <Route
-                path="/profile/:id?"
+                path="/profile/:id"
                 element={
                     <ProtectedRoute>
                         <ProfileLayout>
@@ -380,11 +368,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===========================================
-          GROUP CHAT ROUTES - UPDATED
-          =========================================== */}
-
-            {/* Groups List Page - SIDEBAR LAYOUT */}
+            {/* ===== GROUP CHAT ROUTES ===== */}
             <Route
                 path="/groups"
                 element={
@@ -396,7 +380,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* NEW: All Group Requests Page */}
             <Route
                 path="/groups/requests"
                 element={
@@ -408,7 +391,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Create Group Page */}
             <Route
                 path="/groups/create"
                 element={
@@ -420,7 +402,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Group Discovery/Browse - SIDEBAR LAYOUT */}
             <Route
                 path="/groups/discover"
                 element={
@@ -432,7 +413,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Main Group Chat Route - Dynamic groupId - FULL WIDTH */}
             <Route
                 path="/chat/:groupId"
                 element={
@@ -444,11 +424,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===========================================
-          LEGACY GROUP ROUTES (for compatibility)
-          =========================================== */}
-
-            {/* Your existing JoinGroup page */}
+            {/* ===== LEGACY GROUP ROUTES ===== */}
             <Route
                 path="/JoinGroup"
                 element={
@@ -460,7 +436,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Your existing GroupChat (without dynamic routing) */}
             <Route
                 path="/GroupChat"
                 element={
@@ -472,9 +447,8 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Legacy group routes */}
             <Route
-                path="/group/join/:id?"
+                path="/group/join/:id"
                 element={
                     <ProtectedRoute>
                         <SimpleLayout>
@@ -485,7 +459,7 @@ const AppRoutes = () => {
             />
 
             <Route
-                path="/group/chat/:id?"
+                path="/group/chat/:id"
                 element={
                     <ProtectedRoute>
                         <FullWidthLayout>
@@ -495,9 +469,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===========================================
-          TEACHING/LEARNING ROUTES
-          =========================================== */}
+            {/* ===== TEACHING/LEARNING ROUTES ===== */}
             <Route
                 path="/SelectTeacher"
                 element={
@@ -542,18 +514,15 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===========================================
-          LEGACY ROUTES (for backward compatibility)
-          =========================================== */}
+            {/* ===== LEGACY ROUTES (for backward compatibility) ===== */}
             <Route path="/studentconnect" element={<Navigate to="/StudentConnect" replace />} />
             <Route path="/GroupRequests" element={<Navigate to="/requests/group" replace />} />
             <Route path="/CreateRequest" element={<Navigate to="/requests/create" replace />} />
             <Route path="/RequestDetails" element={<Navigate to="/requests/details" replace />} />
             <Route path="/profile" element={<Navigate to="/Profile" replace />} />
             <Route path="/settings" element={<Navigate to="/Settings" replace />} />
-            {/*<Route path="/NewUserHomePage" element={<Navigate to="/new-user" replace />} />*/}
 
-            {/* Chat legacy redirects */}
+            {/* FIXED: Remove conflicting redirects */}
             <Route path="/groups/list" element={<Navigate to="/groups" replace />} />
             <Route path="/groups/browse" element={<Navigate to="/groups/discover" replace />} />
 
