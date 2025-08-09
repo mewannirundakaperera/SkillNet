@@ -1,171 +1,155 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@hooks/useAuth.js';
-import {
-    collection,
-    query,
-    where,
-    orderBy,
-    getDocs,
-    deleteDoc,
-    doc,
-    updateDoc,
-    onSnapshot,
-    serverTimestamp
-} from 'firebase/firestore';
-import { db } from '@config/firebase.js';
+import { useAuth } from '@/hooks/useAuth';
+import { requestService } from '@/services/requestService';
+import { groupRequestService } from '@/services/groupRequestService';
 
 const MyRequests = () => {
     const { user } = useAuth();
     const [requests, setRequests] = useState([]);
+    const [groupRequests, setGroupRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState({});
+    const [selectedTab, setSelectedTab] = useState('all'); // all, one-to-one, group
+    const [selectedStatus, setSelectedStatus] = useState('all'); // all, draft, active, completed, etc.
 
-    // Load all requests from Firestore with real-time updates
+    // Load all user's requests
     useEffect(() => {
         if (!user?.id) return;
 
-        const fetchRequests = async () => {
+        setLoading(true);
+
+        // Load one-to-one requests
+        const unsubscribeOneToOne = requestService.getAllUserRequests(user.id, (oneToOneRequests) => {
+            console.log('📝 Loaded one-to-one requests:', oneToOneRequests.length);
+            setRequests(oneToOneRequests);
+            setLoading(false);
+        });
+
+        // Load group requests
+        const loadGroupRequests = async () => {
             try {
-                setLoading(true);
-
-                // Query for user's requests
-                const requestsRef = collection(db, 'requests');
-                const requestsQuery = query(
-                    requestsRef,
-                    where('userId', '==', user.id),
-                    orderBy('createdAt', 'desc')
-                );
-
-                // Set up real-time listener
-                const unsubscribe = onSnapshot(requestsQuery, (snapshot) => {
-                    const fetchedRequests = snapshot.docs.map(doc => {
-                        const data = doc.data();
-                        return {
-                            id: doc.id,
-                            title: data.topic || data.title || 'Untitled Request',
-                            description: data.description || '',
-                            subject: data.subject || 'General',
-                            preferredDate: data.preferredDate || data.scheduledDate,
-                            preferredTime: data.preferredTime || data.scheduledTime,
-                            paymentAmount: data.paymentAmount || '0.00',
-                            status: data.status || 'draft',
-                            visibility: data.visibility || 'public',
-                            createdAt: data.createdAt?.toDate() || new Date(),
-                            updatedAt: data.updatedAt?.toDate() || new Date(),
-                            completedAt: data.completedAt?.toDate() || null,
-                            archivedAt: data.archivedAt?.toDate() || null,
-                            tags: data.tags || [],
-                            participants: data.participants || [],
-                            maxParticipants: data.maxParticipants || 5,
-                            duration: data.duration || '60',
-                            views: data.views || 0,
-                            likes: data.likes || 0,
-                            featured: data.featured || false
-                        };
-                    });
-
-                    setRequests(fetchedRequests);
-                    setLoading(false);
-                }, (error) => {
-                    console.error('Error fetching requests:', error);
-                    setLoading(false);
-                });
-
-                return () => unsubscribe();
+                const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id);
+                console.log('👥 Loaded group requests:', userGroupRequests.length);
+                setGroupRequests(userGroupRequests);
             } catch (error) {
-                console.error('Error setting up requests listener:', error);
-                setLoading(false);
+                console.error('❌ Error loading group requests:', error);
+                setGroupRequests([]);
             }
         };
 
-        fetchRequests();
+        loadGroupRequests();
+
+        return () => {
+            if (unsubscribeOneToOne) {
+                unsubscribeOneToOne();
+            }
+        };
     }, [user]);
 
     // Handle request actions
-    const handleDeleteRequest = async (requestId) => {
-        if (!window.confirm('Are you sure you want to delete this request? This action cannot be undone.')) {
-            return;
-        }
-
-        setActionLoading(prev => ({ ...prev, [requestId]: 'deleting' }));
+    const handleRequestAction = async (requestId, action, requestType = 'one-to-one') => {
+        setActionLoading(prev => ({ ...prev, [requestId]: action }));
 
         try {
-            await deleteDoc(doc(db, 'requests', requestId));
-            alert('Request deleted successfully');
+            let result;
+
+            if (requestType === 'group') {
+                switch (action) {
+                    case 'publish':
+                        result = await groupRequestService.changeRequestStatus(requestId, 'active', user.id);
+                        break;
+                    case 'complete':
+                        result = await groupRequestService.completeSession(requestId, user.id);
+                        break;
+                    case 'cancel':
+                        result = await groupRequestService.cancelGroupRequest(requestId, 'Cancelled by user', user.id);
+                        break;
+                    case 'delete':
+                        result = await groupRequestService.deleteGroupRequest(requestId, user.id);
+                        break;
+                    default:
+                        result = { success: false, message: 'Unknown action' };
+                }
+            } else {
+                switch (action) {
+                    case 'publish':
+                        result = await requestService.publishDraft(requestId, user.id);
+                        break;
+                    case 'complete':
+                        result = await requestService.changeRequestStatus(requestId, 'completed', user.id);
+                        break;
+                    case 'archive':
+                        result = await requestService.changeRequestStatus(requestId, 'archived', user.id);
+                        break;
+                    case 'delete':
+                        result = await requestService.deleteRequest(requestId, user.id);
+                        break;
+                    default:
+                        result = { success: false, message: 'Unknown action' };
+                }
+            }
+
+            if (result.success) {
+                alert(result.message);
+            } else {
+                alert(result.message);
+            }
         } catch (error) {
-            console.error('Error deleting request:', error);
-            alert('Failed to delete request. Please try again.');
+            console.error(`❌ Error ${action}ing request:`, error);
+            alert(`Failed to ${action} request. Please try again.`);
         } finally {
             setActionLoading(prev => ({ ...prev, [requestId]: null }));
         }
     };
 
-    const handlePublishDraft = async (requestId) => {
-        setActionLoading(prev => ({ ...prev, [requestId]: 'publishing' }));
+    // Combine and filter requests
+    const getCombinedRequests = () => {
+        let combined = [];
 
-        try {
-            await updateDoc(doc(db, 'requests', requestId), {
-                status: 'active',
-                updatedAt: serverTimestamp()
-            });
-            alert('Request published successfully');
-        } catch (error) {
-            console.error('Error publishing request:', error);
-            alert('Failed to publish request. Please try again.');
-        } finally {
-            setActionLoading(prev => ({ ...prev, [requestId]: null }));
+        // Add one-to-one requests
+        if (selectedTab === 'all' || selectedTab === 'one-to-one') {
+            const oneToOneFormatted = requests.map(req => ({
+                ...req,
+                type: 'one-to-one',
+                title: req.topic || req.title || 'Untitled Request'
+            }));
+            combined = [...combined, ...oneToOneFormatted];
         }
+
+        // Add group requests
+        if (selectedTab === 'all' || selectedTab === 'group') {
+            const groupFormatted = groupRequests.map(req => ({
+                ...req,
+                type: 'group',
+                title: req.title || 'Untitled Group Request',
+                topic: req.title // For consistency
+            }));
+            combined = [...combined, ...groupFormatted];
+        }
+
+        // Filter by status
+        if (selectedStatus !== 'all') {
+            combined = combined.filter(req => req.status === selectedStatus);
+        }
+
+        // Sort by updated date
+        combined.sort((a, b) => {
+            const aTime = a.updatedAt || a.createdAt || new Date(0);
+            const bTime = b.updatedAt || b.createdAt || new Date(0);
+            return bTime - aTime;
+        });
+
+        return combined;
     };
 
-    const handleMarkCompleted = async (requestId) => {
-        if (!window.confirm('Mark this request as completed?')) {
-            return;
-        }
-
-        setActionLoading(prev => ({ ...prev, [requestId]: 'completing' }));
-
-        try {
-            await updateDoc(doc(db, 'requests', requestId), {
-                status: 'completed',
-                completedAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            });
-            alert('Request marked as completed');
-        } catch (error) {
-            console.error('Error marking request as completed:', error);
-            alert('Failed to update request status. Please try again.');
-        } finally {
-            setActionLoading(prev => ({ ...prev, [requestId]: null }));
-        }
-    };
-
-    const handleArchiveRequest = async (requestId) => {
-        if (!window.confirm('Archive this request?')) {
-            return;
-        }
-
-        setActionLoading(prev => ({ ...prev, [requestId]: 'archiving' }));
-
-        try {
-            await updateDoc(doc(db, 'requests', requestId), {
-                status: 'archived',
-                archivedAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            });
-            alert('Request archived successfully');
-        } catch (error) {
-            console.error('Error archiving request:', error);
-            alert('Failed to archive request. Please try again.');
-        } finally {
-            setActionLoading(prev => ({ ...prev, [requestId]: null }));
-        }
-    };
+    const combinedRequests = getCombinedRequests();
 
     // Utility functions
     const formatDate = (date) => {
         if (!date) return 'Not set';
-        return new Date(date).toLocaleDateString('en-US', {
+        const dateObj = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+        return dateObj.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
@@ -174,8 +158,9 @@ const MyRequests = () => {
 
     const formatTimeAgo = (date) => {
         if (!date) return 'Unknown';
+        const dateObj = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
         const now = new Date();
-        const diffMs = now - date;
+        const diffMs = now - dateObj;
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
         if (diffDays === 0) return 'Today';
@@ -188,10 +173,14 @@ const MyRequests = () => {
     const getStatusColor = (status) => {
         const colors = {
             draft: 'bg-gray-100 text-gray-700',
-            active: 'bg-green-100 text-green-700',
-            completed: 'bg-blue-100 text-blue-700',
+            open: 'bg-green-100 text-green-700',
+            active: 'bg-blue-100 text-blue-700',
+            pending: 'bg-yellow-100 text-yellow-700',
+            accepted: 'bg-green-100 text-green-700',
+            completed: 'bg-gray-100 text-gray-700',
             cancelled: 'bg-red-100 text-red-700',
-            archived: 'bg-purple-100 text-purple-700'
+            archived: 'bg-purple-100 text-purple-700',
+            voting_open: 'bg-orange-100 text-orange-700'
         };
         return colors[status] || colors.draft;
     };
@@ -199,21 +188,27 @@ const MyRequests = () => {
     const getStatusIcon = (status) => {
         const icons = {
             draft: '📝',
-            active: '🟢',
+            open: '🟢',
+            active: '🔵',
+            pending: '⏳',
+            accepted: '✅',
             completed: '✅',
             cancelled: '❌',
-            archived: '📁'
+            archived: '📁',
+            voting_open: '🗳️'
         };
         return icons[status] || '📄';
     };
 
     // Calculate stats
     const statsData = {
-        total: requests.length,
-        draft: requests.filter(r => r.status === 'draft').length,
-        active: requests.filter(r => r.status === 'active').length,
-        completed: requests.filter(r => r.status === 'completed').length,
-        archived: requests.filter(r => r.status === 'archived').length
+        total: combinedRequests.length,
+        oneToOne: requests.length,
+        group: groupRequests.length,
+        draft: combinedRequests.filter(r => r.status === 'draft').length,
+        active: combinedRequests.filter(r => ['open', 'active', 'pending', 'voting_open'].includes(r.status)).length,
+        completed: combinedRequests.filter(r => r.status === 'completed').length,
+        archived: combinedRequests.filter(r => ['archived', 'cancelled'].includes(r.status)).length
     };
 
     if (loading) {
@@ -237,19 +232,35 @@ const MyRequests = () => {
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">My Requests</h1>
                     <p className="text-gray-600">Manage all your created requests</p>
                 </div>
-                <Link
-                    to="/requests/create"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                    + Create New Request
-                </Link>
+                <div className="flex gap-3">
+                    <Link
+                        to="/requests/create"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                        + Create 1:1 Request
+                    </Link>
+                    <Link
+                        to="/requests/create-group"
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                    >
+                        + Create Group Request
+                    </Link>
+                </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-6 gap-4 mb-8">
                 <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-gray-400">
                     <div className="text-lg font-bold text-gray-700">{statsData.total}</div>
-                    <div className="text-gray-500 text-sm">Total Requests</div>
+                    <div className="text-gray-500 text-sm">Total</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+                    <div className="text-lg font-bold text-blue-600">{statsData.oneToOne}</div>
+                    <div className="text-gray-500 text-sm">One-to-One</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+                    <div className="text-lg font-bold text-purple-600">{statsData.group}</div>
+                    <div className="text-gray-500 text-sm">Group</div>
                 </div>
                 <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
                     <div className="text-lg font-bold text-gray-600">{statsData.draft}</div>
@@ -259,62 +270,108 @@ const MyRequests = () => {
                     <div className="text-lg font-bold text-green-600">{statsData.active}</div>
                     <div className="text-gray-500 text-sm">Active</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <div className="text-lg font-bold text-blue-600">{statsData.completed}</div>
+                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
+                    <div className="text-lg font-bold text-orange-600">{statsData.completed}</div>
                     <div className="text-gray-500 text-sm">Completed</div>
-                </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-600">{statsData.archived}</div>
-                    <div className="text-gray-500 text-sm">Archived</div>
                 </div>
             </div>
 
-            {/* All Requests List */}
-            {requests.length > 0 ? (
+            {/* Filters */}
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div className="flex flex-wrap gap-4 items-center">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Request Type</label>
+                        <select
+                            value={selectedTab}
+                            onChange={(e) => setSelectedTab(e.target.value)}
+                            className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="all">All Types</option>
+                            <option value="one-to-one">One-to-One</option>
+                            <option value="group">Group</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <select
+                            value={selectedStatus}
+                            onChange={(e) => setSelectedStatus(e.target.value)}
+                            className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="all">All Statuses</option>
+                            <option value="draft">Draft</option>
+                            <option value="open">Open</option>
+                            <option value="active">Active</option>
+                            <option value="pending">Pending</option>
+                            <option value="accepted">Accepted</option>
+                            <option value="completed">Completed</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                    </div>
+                    <div className="ml-auto">
+                        <p className="text-sm text-gray-600">
+                            Showing {combinedRequests.length} of {statsData.total} requests
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Requests List */}
+            {combinedRequests.length > 0 ? (
                 <div className="bg-white rounded-lg shadow-sm">
                     <div className="p-6 border-b border-gray-200">
                         <h2 className="text-lg font-semibold">
-                            All Requests ({requests.length})
+                            All Requests ({combinedRequests.length})
                         </h2>
                     </div>
 
                     <div className="divide-y divide-gray-200">
-                        {requests.map((request) => (
-                            <div key={request.id} className="p-6 hover:bg-gray-50 transition-colors">
+                        {combinedRequests.map((request) => (
+                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-gray-50 transition-colors">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="text-xl">{getStatusIcon(request.status)}</span>
                                             <h3 className="text-lg font-semibold text-gray-900">{request.title}</h3>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(request.status)}`}>
-                        {request.status}
-                      </span>
+                                                {request.status}
+                                            </span>
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                request.type === 'group' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                            }`}>
+                                                {request.type === 'group' ? '👥 Group' : '👤 1:1'}
+                                            </span>
                                             {request.featured && (
                                                 <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
-                          ⭐ Featured
-                        </span>
+                                                    ⭐ Featured
+                                                </span>
                                             )}
                                         </div>
 
                                         <p className="text-gray-600 mb-3 line-clamp-2">{request.description}</p>
 
                                         <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                                            <span>📚 {request.subject}</span>
-                                            <span>📅 {formatDate(request.preferredDate)}</span>
-                                            <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                            <span>💰 Rs.{request.paymentAmount}</span>
-                                            <span>⏱️ {request.duration} min</span>
-                                            {request.status === 'active' && (
-                                                <span>👥 {request.participants?.length || 0}/{request.maxParticipants} participants</span>
+                                            {request.type === 'one-to-one' && (
+                                                <>
+                                                    <span>📚 {request.subject}</span>
+                                                    <span>📅 {formatDate(request.preferredDate)}</span>
+                                                    <span>⏰ {request.preferredTime || 'Not set'}</span>
+                                                    <span>💰 Rs.{request.paymentAmount || '0'}</span>
+                                                    <span>⏱️ {request.duration || '60'} min</span>
+                                                    <span>👥 {request.participants?.length || 0} participants</span>
+                                                </>
+                                            )}
+                                            {request.type === 'group' && (
+                                                <>
+                                                    <span>🏷️ {request.category}</span>
+                                                    <span>👍 {request.voteCount || 0} votes</span>
+                                                    <span>👥 {request.participantCount || 0} participants</span>
+                                                    {request.rate && <span>💰 {request.rate}</span>}
+                                                    {request.deadline && <span>📅 {formatDate(request.deadline)}</span>}
+                                                </>
                                             )}
                                             {request.views > 0 && (
                                                 <span>👀 {request.views} views</span>
-                                            )}
-                                            {request.completedAt && (
-                                                <span>✅ Completed {formatTimeAgo(request.completedAt)}</span>
-                                            )}
-                                            {request.archivedAt && (
-                                                <span>📁 Archived {formatTimeAgo(request.archivedAt)}</span>
                                             )}
                                         </div>
 
@@ -322,8 +379,18 @@ const MyRequests = () => {
                                             <div className="flex gap-2 mb-3">
                                                 {request.tags.map((tag, index) => (
                                                     <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                            {tag}
-                          </span>
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {request.skills && request.skills.length > 0 && (
+                                            <div className="flex gap-2 mb-3">
+                                                {request.skills.map((skill, index) => (
+                                                    <span key={index} className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">
+                                                        {skill}
+                                                    </span>
                                                 ))}
                                             </div>
                                         )}
@@ -338,7 +405,7 @@ const MyRequests = () => {
 
                                     <div className="flex flex-col gap-2 ml-4">
                                         <Link
-                                            to={`/requests/details/${request.id}`}
+                                            to={`/requests/details/${request.id}?type=${request.type}`}
                                             className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm font-medium hover:bg-gray-200 transition-colors text-center"
                                         >
                                             View Details
@@ -347,14 +414,14 @@ const MyRequests = () => {
                                         {request.status === 'draft' && (
                                             <>
                                                 <button
-                                                    onClick={() => handlePublishDraft(request.id)}
-                                                    disabled={actionLoading[request.id] === 'publishing'}
+                                                    onClick={() => handleRequestAction(request.id, 'publish', request.type)}
+                                                    disabled={actionLoading[request.id] === 'publish'}
                                                     className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
                                                 >
-                                                    {actionLoading[request.id] === 'publishing' ? 'Publishing...' : 'Publish'}
+                                                    {actionLoading[request.id] === 'publish' ? 'Publishing...' : 'Publish'}
                                                 </button>
                                                 <Link
-                                                    to={`/requests/edit/${request.id}`}
+                                                    to={`/requests/edit/${request.id}?type=${request.type}`}
                                                     className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
                                                 >
                                                     Edit
@@ -362,38 +429,31 @@ const MyRequests = () => {
                                             </>
                                         )}
 
-                                        {request.status === 'active' && (
+                                        {['open', 'active', 'pending', 'voting_open', 'accepted'].includes(request.status) && (
                                             <>
                                                 <Link
-                                                    to={`/requests/edit/${request.id}`}
+                                                    to={`/requests/edit/${request.id}?type=${request.type}`}
                                                     className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
                                                 >
                                                     Edit
                                                 </Link>
                                                 <button
-                                                    onClick={() => handleMarkCompleted(request.id)}
-                                                    disabled={actionLoading[request.id] === 'completing'}
+                                                    onClick={() => handleRequestAction(request.id, 'complete', request.type)}
+                                                    disabled={actionLoading[request.id] === 'complete'}
                                                     className="bg-purple-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
                                                 >
-                                                    {actionLoading[request.id] === 'completing' ? 'Completing...' : 'Mark Complete'}
-                                                </button>
-                                                <button
-                                                    onClick={() => handleArchiveRequest(request.id)}
-                                                    disabled={actionLoading[request.id] === 'archiving'}
-                                                    className="bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
-                                                >
-                                                    {actionLoading[request.id] === 'archiving' ? 'Archiving...' : 'Archive'}
+                                                    {actionLoading[request.id] === 'complete' ? 'Completing...' : 'Complete'}
                                                 </button>
                                             </>
                                         )}
 
-                                        {(request.status === 'draft' || request.status === 'completed' || request.status === 'archived') && (
+                                        {['draft', 'completed', 'archived', 'cancelled'].includes(request.status) && (
                                             <button
-                                                onClick={() => handleDeleteRequest(request.id)}
-                                                disabled={actionLoading[request.id] === 'deleting'}
+                                                onClick={() => handleRequestAction(request.id, 'delete', request.type)}
+                                                disabled={actionLoading[request.id] === 'delete'}
                                                 className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
                                             >
-                                                {actionLoading[request.id] === 'deleting' ? 'Deleting...' : 'Delete'}
+                                                {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete'}
                                             </button>
                                         )}
                                     </div>
@@ -406,17 +466,33 @@ const MyRequests = () => {
                 <div className="bg-white rounded-lg shadow-sm p-12 text-center">
                     <div className="text-gray-400 text-4xl mb-4">📝</div>
                     <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                        No requests found
+                        {statsData.total === 0 ? 'No requests found' : 'No requests match your filters'}
                     </h3>
                     <p className="text-gray-500 mb-6">
-                        You haven't created any requests yet.
+                        {statsData.total === 0
+                            ? "You haven't created any requests yet."
+                            : "Try adjusting your filters to see more requests."
+                        }
                     </p>
-                    <Link
-                        to="/requests/create"
-                        className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                        Create Your First Request
-                    </Link>
+                    <div className="flex gap-3 justify-center">
+                        {statsData.total > 0 && (
+                            <button
+                                onClick={() => {
+                                    setSelectedTab('all');
+                                    setSelectedStatus('all');
+                                }}
+                                className="text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
+                        <Link
+                            to="/requests/create"
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                        >
+                            Create Your First Request
+                        </Link>
+                    </div>
                 </div>
             )}
         </div>

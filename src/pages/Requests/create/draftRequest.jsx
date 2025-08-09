@@ -1,29 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@hooks/useAuth.js';
-
-import {
-    collection,
-    query,
-    where,
-    orderBy,
-    getDocs,
-    deleteDoc,
-    doc,
-    updateDoc,
-    onSnapshot,
-    serverTimestamp
-} from 'firebase/firestore';
-import { db } from '@config/firebase.js';
+import { useAuth } from '@/hooks/useAuth';
+import { requestService } from '@/services/requestService';
+import { groupRequestService } from '@/services/groupRequestService';
 
 const DraftRequests = () => {
     const { user } = useAuth();
     const [requests, setRequests] = useState([]);
+    const [groupRequests, setGroupRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState({});
 
-    // Load draft requests from Firestore with real-time updates
+    // Load draft requests from both collections
     useEffect(() => {
         if (!user?.id) return;
 
@@ -31,51 +19,34 @@ const DraftRequests = () => {
             try {
                 setLoading(true);
 
-                // Query for user's draft requests
-                const requestsRef = collection(db, 'requests');
-                const requestsQuery = query(
-                    requestsRef,
-                    where('userId', '==', user.id),
-                    where('status', '==', 'draft'),
-                    orderBy('createdAt', 'desc')
-                );
-
-                // Set up real-time listener
-                const unsubscribe = onSnapshot(requestsQuery, (snapshot) => {
-                    const fetchedRequests = snapshot.docs.map(doc => {
-                        const data = doc.data();
-                        return {
-                            id: doc.id,
-                            title: data.topic || data.title || 'Untitled Request',
-                            description: data.description || '',
-                            subject: data.subject || 'General',
-                            preferredDate: data.preferredDate || data.scheduledDate,
-                            preferredTime: data.preferredTime || data.scheduledTime,
-                            paymentAmount: data.paymentAmount || '0.00',
-                            status: data.status || 'draft',
-                            visibility: data.visibility || 'public',
-                            createdAt: data.createdAt?.toDate() || new Date(),
-                            updatedAt: data.updatedAt?.toDate() || new Date(),
-                            tags: data.tags || [],
-                            participants: data.participants || [],
-                            maxParticipants: data.maxParticipants || 5,
-                            duration: data.duration || '60',
-                            views: data.views || 0,
-                            likes: data.likes || 0,
-                            featured: data.featured || false
-                        };
-                    });
-
-                    setRequests(fetchedRequests);
-                    setLoading(false);
-                }, (error) => {
-                    console.error('Error fetching draft requests:', error);
-                    setLoading(false);
+                // Load one-to-one draft requests
+                const unsubscribeOneToOne = requestService.getUserRequestsByStatus(user.id, 'draft', (draftRequests) => {
+                    console.log('📝 Loaded one-to-one drafts:', draftRequests.length);
+                    setRequests(draftRequests);
                 });
 
-                return () => unsubscribe();
+                // Load group draft requests
+                const loadGroupDrafts = async () => {
+                    try {
+                        const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id, 'draft');
+                        console.log('👥 Loaded group drafts:', userGroupRequests.length);
+                        setGroupRequests(userGroupRequests);
+                    } catch (error) {
+                        console.error('❌ Error loading group drafts:', error);
+                        setGroupRequests([]);
+                    }
+                };
+
+                await loadGroupDrafts();
+                setLoading(false);
+
+                return () => {
+                    if (unsubscribeOneToOne) {
+                        unsubscribeOneToOne();
+                    }
+                };
             } catch (error) {
-                console.error('Error setting up draft requests listener:', error);
+                console.error('❌ Error setting up draft requests listener:', error);
                 setLoading(false);
             }
         };
@@ -84,45 +55,87 @@ const DraftRequests = () => {
     }, [user]);
 
     // Handle request actions
-    const handleDeleteRequest = async (requestId) => {
-        if (!window.confirm('Are you sure you want to delete this request? This action cannot be undone.')) {
-            return;
-        }
-
-        setActionLoading(prev => ({ ...prev, [requestId]: 'deleting' }));
+    const handleRequestAction = async (requestId, action, requestType = 'one-to-one') => {
+        setActionLoading(prev => ({ ...prev, [requestId]: action }));
 
         try {
-            await deleteDoc(doc(db, 'requests', requestId));
-            alert('Request deleted successfully');
+            let result;
+
+            if (requestType === 'group') {
+                switch (action) {
+                    case 'publish':
+                        result = await groupRequestService.changeRequestStatus(requestId, 'pending', user.id);
+                        break;
+                    case 'delete':
+                        result = await groupRequestService.deleteGroupRequest(requestId, user.id);
+                        break;
+                    default:
+                        result = { success: false, message: 'Unknown action' };
+                }
+            } else {
+                switch (action) {
+                    case 'publish':
+                        result = await requestService.publishDraft(requestId, user.id);
+                        break;
+                    case 'delete':
+                        result = await requestService.deleteRequest(requestId, user.id);
+                        break;
+                    default:
+                        result = { success: false, message: 'Unknown action' };
+                }
+            }
+
+            if (result.success) {
+                alert(result.message);
+            } else {
+                alert(result.message);
+            }
         } catch (error) {
-            console.error('Error deleting request:', error);
-            alert('Failed to delete request. Please try again.');
+            console.error(`❌ Error ${action}ing request:`, error);
+            alert(`Failed to ${action} request. Please try again.`);
         } finally {
             setActionLoading(prev => ({ ...prev, [requestId]: null }));
         }
     };
 
-    const handlePublishDraft = async (requestId) => {
-        setActionLoading(prev => ({ ...prev, [requestId]: 'publishing' }));
+    // Combine and format requests
+    const getCombinedDrafts = () => {
+        let combined = [];
 
-        try {
-            await updateDoc(doc(db, 'requests', requestId), {
-                status: 'active',
-                updatedAt: serverTimestamp()
-            });
-            alert('Request published successfully');
-        } catch (error) {
-            console.error('Error publishing request:', error);
-            alert('Failed to publish request. Please try again.');
-        } finally {
-            setActionLoading(prev => ({ ...prev, [requestId]: null }));
-        }
+        // Add one-to-one requests
+        const oneToOneFormatted = requests.map(req => ({
+            ...req,
+            type: 'one-to-one',
+            title: req.topic || req.title || 'Untitled Request'
+        }));
+        combined = [...combined, ...oneToOneFormatted];
+
+        // Add group requests
+        const groupFormatted = groupRequests.map(req => ({
+            ...req,
+            type: 'group',
+            title: req.title || 'Untitled Group Request',
+            topic: req.title // For consistency
+        }));
+        combined = [...combined, ...groupFormatted];
+
+        // Sort by updated date
+        combined.sort((a, b) => {
+            const aTime = a.updatedAt || a.createdAt || new Date(0);
+            const bTime = b.updatedAt || b.createdAt || new Date(0);
+            return bTime - aTime;
+        });
+
+        return combined;
     };
+
+    const allDrafts = getCombinedDrafts();
 
     // Utility functions
     const formatDate = (date) => {
         if (!date) return 'Not set';
-        return new Date(date).toLocaleDateString('en-US', {
+        const dateObj = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+        return dateObj.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
@@ -131,8 +144,9 @@ const DraftRequests = () => {
 
     const formatTimeAgo = (date) => {
         if (!date) return 'Unknown';
+        const dateObj = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
         const now = new Date();
-        const diffMs = now - date;
+        const diffMs = now - dateObj;
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
         if (diffDays === 0) return 'Today';
@@ -142,43 +156,23 @@ const DraftRequests = () => {
         return `${Math.floor(diffDays / 30)} months ago`;
     };
 
-    const getStatusColor = (status) => {
+    const getStatusColor = () => {
         return 'bg-gray-100 text-gray-700';
     };
 
-    const getStatusIcon = (status) => {
+    const getStatusIcon = () => {
         return '📝';
     };
 
-    // Calculate stats (all user's requests for the mini dashboard)
-    const [allRequests, setAllRequests] = useState([]);
-
-    useEffect(() => {
-        if (!user?.id) return;
-
-        const requestsRef = collection(db, 'requests');
-        const allRequestsQuery = query(
-            requestsRef,
-            where('userId', '==', user.id)
-        );
-
-        const unsubscribe = onSnapshot(allRequestsQuery, (snapshot) => {
-            const fetchedRequests = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setAllRequests(fetchedRequests);
-        });
-
-        return () => unsubscribe();
-    }, [user]);
-
+    // Calculate stats
     const statsData = {
-        total: allRequests.length,
-        draft: allRequests.filter(r => r.status === 'draft').length,
-        active: allRequests.filter(r => r.status === 'active').length,
-        completed: allRequests.filter(r => r.status === 'completed').length,
-        archived: allRequests.filter(r => r.status === 'archived').length
+        total: requests.length + groupRequests.length,
+        oneToOne: requests.length,
+        group: groupRequests.length,
+        draft: allDrafts.length,
+        active: 0,
+        completed: 0,
+        archived: 0
     };
 
     if (loading) {
@@ -202,81 +196,107 @@ const DraftRequests = () => {
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">Draft Requests</h1>
                     <p className="text-gray-600">Requests you've started but haven't published yet</p>
                 </div>
-                <Link
-                    to="/requests/create"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                    + Create New Request
-                </Link>
+                <div className="flex gap-3">
+                    <Link
+                        to="/requests/create"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                        + New 1:1 Request
+                    </Link>
+                    <Link
+                        to="/requests/create-group"
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                    >
+                        + New Group Request
+                    </Link>
+                </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-5 gap-4 mb-8">
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-gray-400">
-                    <div className="text-lg font-bold text-gray-700">{statsData.total}</div>
-                    <div className="text-gray-500 text-sm">Total Requests</div>
-                </div>
+            <div className="grid grid-cols-4 gap-4 mb-8">
                 <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
-                    <div className="text-lg font-bold text-gray-600">{statsData.draft}</div>
-                    <div className="text-gray-500 text-sm">Draft</div>
-                </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-600">{statsData.active}</div>
-                    <div className="text-gray-500 text-sm">Active</div>
+                    <div className="text-lg font-bold text-gray-600">{statsData.total}</div>
+                    <div className="text-gray-500 text-sm">Total Drafts</div>
                 </div>
                 <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <div className="text-lg font-bold text-blue-600">{statsData.completed}</div>
-                    <div className="text-gray-500 text-sm">Completed</div>
+                    <div className="text-lg font-bold text-blue-600">{statsData.oneToOne}</div>
+                    <div className="text-gray-500 text-sm">One-to-One</div>
                 </div>
                 <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-600">{statsData.archived}</div>
-                    <div className="text-gray-500 text-sm">Archived</div>
+                    <div className="text-lg font-bold text-purple-600">{statsData.group}</div>
+                    <div className="text-gray-500 text-sm">Group</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+                    <div className="text-lg font-bold text-green-600">0</div>
+                    <div className="text-gray-500 text-sm">Ready to Publish</div>
                 </div>
             </div>
 
             {/* Draft Requests List */}
-            {requests.length > 0 ? (
+            {allDrafts.length > 0 ? (
                 <div className="bg-white rounded-lg shadow-sm">
                     <div className="p-6 border-b border-gray-200">
                         <h2 className="text-lg font-semibold">
-                            Draft Requests ({requests.length})
+                            Draft Requests ({allDrafts.length})
                         </h2>
                     </div>
 
                     <div className="divide-y divide-gray-200">
-                        {requests.map((request) => (
-                            <div key={request.id} className="p-6 hover:bg-gray-50 transition-colors">
+                        {allDrafts.map((request) => (
+                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-gray-50 transition-colors">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
-                                            <span className="text-xl">{getStatusIcon(request.status)}</span>
+                                            <span className="text-xl">{getStatusIcon()}</span>
                                             <h3 className="text-lg font-semibold text-gray-900">{request.title}</h3>
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(request.status)}`}>
-                        {request.status}
-                      </span>
-                                            {request.featured && (
-                                                <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
-                          ⭐ Featured
-                        </span>
-                                            )}
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor()}`}>
+                                                draft
+                                            </span>
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                request.type === 'group' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                            }`}>
+                                                {request.type === 'group' ? '👥 Group' : '👤 1:1'}
+                                            </span>
                                         </div>
 
-                                        <p className="text-gray-600 mb-3 line-clamp-2">{request.description}</p>
+                                        <p className="text-gray-600 mb-3 line-clamp-2">{request.description || 'No description yet...'}</p>
 
                                         <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                                            <span>📚 {request.subject}</span>
-                                            <span>📅 {formatDate(request.preferredDate)}</span>
-                                            <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                            <span>💰 Rs.{request.paymentAmount}</span>
-                                            <span>⏱️ {request.duration} min</span>
+                                            {request.type === 'one-to-one' && (
+                                                <>
+                                                    <span>📚 {request.subject || 'No subject'}</span>
+                                                    <span>📅 {formatDate(request.preferredDate)}</span>
+                                                    <span>⏰ {request.preferredTime || 'Not set'}</span>
+                                                    <span>💰 Rs.{request.paymentAmount || '0'}</span>
+                                                    <span>⏱️ {request.duration || '60'} min</span>
+                                                </>
+                                            )}
+                                            {request.type === 'group' && (
+                                                <>
+                                                    <span>🏷️ {request.category || 'No category'}</span>
+                                                    {request.maxParticipants && <span>👥 Max: {request.maxParticipants}</span>}
+                                                    {request.rate && <span>💰 {request.rate}</span>}
+                                                    {request.deadline && <span>📅 Due: {formatDate(request.deadline)}</span>}
+                                                </>
+                                            )}
                                         </div>
 
                                         {request.tags && request.tags.length > 0 && (
                                             <div className="flex gap-2 mb-3">
                                                 {request.tags.map((tag, index) => (
                                                     <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                            {tag}
-                          </span>
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {request.skills && request.skills.length > 0 && (
+                                            <div className="flex gap-2 mb-3">
+                                                {request.skills.map((skill, index) => (
+                                                    <span key={index} className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">
+                                                        {skill}
+                                                    </span>
                                                 ))}
                                             </div>
                                         )}
@@ -291,33 +311,33 @@ const DraftRequests = () => {
 
                                     <div className="flex flex-col gap-2 ml-4">
                                         <Link
-                                            to={`/requests/details/${request.id}`}
+                                            to={`/requests/details/${request.id}?type=${request.type}`}
                                             className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm font-medium hover:bg-gray-200 transition-colors text-center"
                                         >
-                                            View Details
+                                            Preview
                                         </Link>
-
-                                        <button
-                                            onClick={() => handlePublishDraft(request.id)}
-                                            disabled={actionLoading[request.id] === 'publishing'}
-                                            className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                                        >
-                                            {actionLoading[request.id] === 'publishing' ? 'Publishing...' : 'Publish'}
-                                        </button>
 
                                         <Link
-                                            to={`/requests/edit/${request.id}`}
+                                            to={`/requests/edit/${request.id}?type=${request.type}`}
                                             className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
                                         >
-                                            Edit
+                                            Continue Editing
                                         </Link>
 
                                         <button
-                                            onClick={() => handleDeleteRequest(request.id)}
-                                            disabled={actionLoading[request.id] === 'deleting'}
+                                            onClick={() => handleRequestAction(request.id, 'publish', request.type)}
+                                            disabled={actionLoading[request.id] === 'publish'}
+                                            className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                                        >
+                                            {actionLoading[request.id] === 'publish' ? 'Publishing...' : 'Publish Now'}
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleRequestAction(request.id, 'delete', request.type)}
+                                            disabled={actionLoading[request.id] === 'delete'}
                                             className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
                                         >
-                                            {actionLoading[request.id] === 'deleting' ? 'Deleting...' : 'Delete'}
+                                            {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete Draft'}
                                         </button>
                                     </div>
                                 </div>
@@ -332,14 +352,36 @@ const DraftRequests = () => {
                         No draft requests found
                     </h3>
                     <p className="text-gray-500 mb-6">
-                        You don't have any draft requests.
+                        You don't have any draft requests. Start creating a request and save it as a draft to work on it later.
                     </p>
-                    <Link
-                        to="/requests/create"
-                        className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                        Create Your First Request
-                    </Link>
+                    <div className="flex gap-3 justify-center">
+                        <Link
+                            to="/requests/create"
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                        >
+                            Create 1:1 Request
+                        </Link>
+                        <Link
+                            to="/requests/create-group"
+                            className="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                        >
+                            Create Group Request
+                        </Link>
+                    </div>
+                </div>
+            )}
+
+            {/* Tips for Draft Management */}
+            {allDrafts.length > 0 && (
+                <div className="mt-8 bg-blue-50 rounded-lg p-6">
+                    <h3 className="font-semibold text-blue-900 mb-3">💡 Tips for Managing Drafts</h3>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                        <li>• Complete all required fields before publishing</li>
+                        <li>• Use clear, descriptive titles to help others find your request</li>
+                        <li>• Set realistic deadlines and payment amounts</li>
+                        <li>• Add relevant tags to improve discoverability</li>
+                        <li>• Review your draft carefully before publishing</li>
+                    </ul>
                 </div>
             )}
         </div>

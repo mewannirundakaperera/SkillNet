@@ -381,13 +381,37 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* NEW - Using RequestLayout (with sidebar) */}
             <Route
                 path="/groups/requests"
                 element={
                     <ProtectedRoute>
-                        <SimpleLayout>
+                        <RequestLayout title="All Group Requests" subtitle="Browse and participate in group learning sessions">
                             <AllGroupRequests />
-                        </SimpleLayout>
+                        </RequestLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            // Also add any missing routes for AllGroupRequests with different paths:
+            <Route
+                path="/requests/group"
+                element={
+                    <ProtectedRoute>
+                        <RequestLayout title="Group Requests" subtitle="Discover and join collaborative learning opportunities">
+                            <AllGroupRequests />
+                        </RequestLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/AllGroupRequests"
+                element={
+                    <ProtectedRoute>
+                        <RequestLayout title="All Group Requests" subtitle="Browse and participate in group learning sessions">
+                            <AllGroupRequests />
+                        </RequestLayout>
                     </ProtectedRoute>
                 }
             />
