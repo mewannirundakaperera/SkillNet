@@ -25,7 +25,7 @@ import JoinGroup from "./pages/Group/JoinGroup";
 import GroupChat from "./pages/Group/GroupChat";
 import CreateGroup from "./pages/Group/CreateGroup";
 import GroupsList from "./pages/Group/GroupsList";
-import NewUserHomePage from "./pages/Homepages/NewUserHomePage";
+// import NewUserHomePage from "./pages/Homepages/NewUserHomePage";
 import AllGroupRequests from "./pages/Group/AllGroupRequests";
 
 // Import the updated layout system
@@ -155,16 +155,16 @@ const AppRoutes = () => {
                 }
             />
 
-            <Route
-                path="/new-user"
-                element={
-                    <ProtectedRoute>
-                        <SimpleLayout>
-                            <NewUserHomePage />
-                        </SimpleLayout>
-                    </ProtectedRoute>
-                }
-            />
+            {/*<Route*/}
+            {/*    path="/new-user"*/}
+            {/*    element={*/}
+            {/*        <ProtectedRoute>*/}
+            {/*            <SimpleLayout>*/}
+            {/*                <NewUserHomePage />*/}
+            {/*            </SimpleLayout>*/}
+            {/*        </ProtectedRoute>*/}
+            {/*    }*/}
+            {/*/>*/}
 
             {/* Request Routes with RequestLayout (includes sidebar) */}
             <Route
@@ -551,7 +551,7 @@ const AppRoutes = () => {
             <Route path="/RequestDetails" element={<Navigate to="/requests/details" replace />} />
             <Route path="/profile" element={<Navigate to="/Profile" replace />} />
             <Route path="/settings" element={<Navigate to="/Settings" replace />} />
-            <Route path="/NewUserHomePage" element={<Navigate to="/new-user" replace />} />
+            {/*<Route path="/NewUserHomePage" element={<Navigate to="/new-user" replace />} />*/}
 
             {/* Chat legacy redirects */}
             <Route path="/groups/list" element={<Navigate to="/groups" replace />} />

@@ -161,10 +161,12 @@ export default function IntelligentNavbar() {
   // Handle logout
   const handleLogout = async () => {
     try {
+      setProfileMenuOpen(false);
       await logout();
-      navigate("/", { replace: true });
+      navigate("/login", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
+      navigate("/login", { replace: true });
     }
   };
 

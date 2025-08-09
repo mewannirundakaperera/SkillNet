@@ -112,14 +112,14 @@ export default function Profile() {
   }, [user]);
 
   const handleSignOut = async () => {
-    if (window.confirm("Are you sure you want to sign out?")) {
-      try {
-        await logout();
-        navigate("/login", { replace: true });
-      } catch (error) {
-        console.error("Sign out error:", error);
-        alert("Failed to sign out. Please try again.");
-      }
+    if (!window.confirm("Are you sure you want to sign out?")) return;
+
+    try {
+      await logout();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Sign out error:", error);
+      navigate("/login", { replace: true });
     }
   };
 
