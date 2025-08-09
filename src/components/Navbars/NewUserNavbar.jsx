@@ -6,10 +6,9 @@ export default function NewUserNavbar() {
 
   return (
     <nav className="bg-white shadow px-4 py-4 md:px-8 flex items-center justify-between relative">
-      <div className="flex items-center gap-2">
-        <img src="/vite.svg" alt="Logo" className="h-8 w-8" />
-        <span className="font-bold text-xl text-indigo-700">Skillnet</span>
-      </div>
+      <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <img src="src/assets/skillnet-logo.svg" alt="SkillNet" className="h-8 w-auto" />
+      </Link>
     
       <div className="hidden md:flex gap-4">
         <Link to="/login">
