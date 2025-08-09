@@ -175,17 +175,6 @@ const AppRoutes = () => {
                 }
             />
 
-            <Route
-                path="/requests/group"
-                element={
-                    <ProtectedRoute>
-                        <RequestLayout title="Group Requests" subtitle="Discover and join collaborative learning opportunities">
-                            <GroupRequests />
-                        </RequestLayout>
-                    </ProtectedRoute>
-                }
-            />
-
             {/* ===== CREATE REQUESTS SECTION ===== */}
             <Route
                 path="/requests/create"
@@ -243,7 +232,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===== RECEIVED REQUESTS SECTION - FIXED PATHS ===== */}
+            {/* ===== RECEIVED REQUESTS SECTION ===== */}
             <Route
                 path="/OneToOneRequests"
                 element={
@@ -255,7 +244,6 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* FIXED: Correct paths for received requests sub-pages */}
             <Route
                 path="/OneToOneRequests/pending"
                 element={
@@ -289,7 +277,20 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===== GROUP REQUEST ROUTES ===== */}
+            {/* ===== GROUP REQUEST ROUTES - FIXED ===== */}
+            {/* User's Own Group Requests (accessible through request sidebar) */}
+            <Route
+                path="/requests/group"
+                element={
+                    <ProtectedRoute>
+                        <RequestLayout title="My Group Requests" subtitle="Manage your own group learning requests">
+                            <GroupRequests />
+                        </RequestLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* Create Group Request */}
             <Route
                 path="/group/create-group-request"
                 element={
@@ -369,7 +370,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===== GROUP CHAT ROUTES ===== */}
+            {/* ===== GROUP MANAGEMENT ROUTES ===== */}
             <Route
                 path="/groups"
                 element={
@@ -381,37 +382,26 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* NEW - Using RequestLayout (with sidebar) */}
+            {/* All Group Requests (Only accessible through groups - NO SIDEBAR) */}
             <Route
                 path="/groups/requests"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="All Group Requests" subtitle="Browse and participate in group learning sessions">
+                        <FullWidthLayout>
                             <AllGroupRequests />
-                        </RequestLayout>
+                        </FullWidthLayout>
                     </ProtectedRoute>
                 }
             />
 
-            // Also add any missing routes for AllGroupRequests with different paths:
-            <Route
-                path="/requests/group"
-                element={
-                    <ProtectedRoute>
-                        <RequestLayout title="Group Requests" subtitle="Discover and join collaborative learning opportunities">
-                            <AllGroupRequests />
-                        </RequestLayout>
-                    </ProtectedRoute>
-                }
-            />
-
+            {/* Alternative path for direct access - NO SIDEBAR */}
             <Route
                 path="/AllGroupRequests"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="All Group Requests" subtitle="Browse and participate in group learning sessions">
+                        <FullWidthLayout>
                             <AllGroupRequests />
-                        </RequestLayout>
+                        </FullWidthLayout>
                     </ProtectedRoute>
                 }
             />
@@ -551,29 +541,17 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* Updated OnlineMeeting route */}
-            <Route
-                path="/OnlineMeeting"
-                element={
-                    <ProtectedRoute>
-                        <FullWidthLayout>
-                            <OnlineMeeting />
-                        </FullWidthLayout>
-                    </ProtectedRoute>
-                }
-            />
-
             {/* ===== LEGACY ROUTES (for backward compatibility) ===== */}
             <Route path="/studentconnect" element={<Navigate to="/StudentConnect" replace />} />
-            <Route path="/GroupRequests" element={<Navigate to="/requests/group" replace />} />
             <Route path="/CreateRequest" element={<Navigate to="/requests/create" replace />} />
             <Route path="/RequestDetails" element={<Navigate to="/requests/details" replace />} />
             <Route path="/profile" element={<Navigate to="/Profile" replace />} />
             <Route path="/settings" element={<Navigate to="/Settings" replace />} />
-
-            {/* FIXED: Remove conflicting redirects */}
             <Route path="/groups/list" element={<Navigate to="/groups" replace />} />
             <Route path="/groups/browse" element={<Navigate to="/groups/discover" replace />} />
+
+            {/* REMOVED: Conflicting/duplicate routes */}
+            {/* These were causing conflicts with the main routes above */}
 
             {/* 404 Route - must be last */}
             <Route path="*" element={<NotFound />} />

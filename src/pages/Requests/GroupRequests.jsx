@@ -1,448 +1,802 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import GroupRequestsNavbar from "../../components/Navbars/GroupRequestsNavbar";
-import RequestNavbar from "../../components/Navbars/RequestNavbar";
+import { useAuth } from "@/hooks/useAuth";
+import { groupRequestService } from "@/services/groupRequestService";
+import { collection, getDocs, limit, query, doc, getDoc } from "firebase/firestore";
+import { db } from "@/config/firebase";
 
-const initialRequests = [
-  {
-    id: 1,
-    title: "Calculus I Study Group",
-    user: "Alice Johnson",
-    desc: "Reviewing derivatives and integrals for midterm exam.",
-    date: "2024-05-15",
-    time: "14:00 - 16:00",
-    participants: "3/5",
-    status: "Open",
-    avatar: "https://randomuser.me/api/portraits/women/1.jpg",
-    subject: "Math",
-  },
-  {
-    id: 2,
-    title: "React Native Project Session",
-    user: "Bob Williams",
-    desc: "Collaborative coding session for the final project.",
-    date: "2024-05-16",
-    time: "10:00 - 12:00",
-    participants: "5/5",
-    status: "Full",
-    avatar: "https://randomuser.me/api/portraits/men/2.jpg",
-    subject: "CS",
-  },
-  {
-    id: 3,
-    title: "Philosophy Discussion: Ethics",
-    user: "Charlie Brown",
-    desc: "Deep dive into utilitarianism vs. deontology.",
-    date: "2024-05-17",
-    time: "18:00 - 19:30",
-    participants: "2/4",
-    status: "Open",
-    avatar: "https://randomuser.me/api/portraits/men/3.jpg",
-    subject: "Philosophy",
-  },
-  {
-    id: 4,
-    title: "Data Structures & Algorithms",
-    user: "Diana Prince",
-    desc: "Solving LeetCode problems: Trees and Graphs.",
-    date: "2024-05-18",
-    time: "09:00 - 11:00",
-    participants: "4/6",
-    status: "Open",
-    avatar: "https://randomuser.me/api/portraits/women/4.jpg",
-    subject: "CS",
-  },
-  {
-    id: 5,
-    title: "Advanced Chemistry Lab",
-    user: "Emily Davis",
-    desc: "Organic chemistry synthesis experiments.",
-    date: "2024-05-19",
-    time: "15:00 - 17:00",
-    participants: "2/4",
-    status: "Open",
-    avatar: "https://randomuser.me/api/portraits/women/5.jpg",
-    subject: "Chemistry",
-  },
-  {
-    id: 6,
-    title: "History Exam Prep",
-    user: "Frank Miller",
-    desc: "World War II timeline and events review.",
-    date: "2024-05-20",
-    time: "11:00 - 13:00",
-    participants: "6/6",
-    status: "Full",
-    avatar: "https://randomuser.me/api/portraits/men/6.jpg",
-    subject: "History",
-  },
-  {
-    id: 7,
-    title: "Machine Learning Workshop",
-    user: "Grace Lee",
-    desc: "Introduction to neural networks and deep learning.",
-    date: "2024-05-21",
-    time: "16:00 - 18:00",
-    participants: "3/5",
-    status: "Open",
-    avatar: "https://randomuser.me/api/portraits/women/7.jpg",
-    subject: "CS",
-  },
-  {
-    id: 8,
-    title: "Statistics Study Session",
-    user: "Henry Wilson",
-    desc: "Probability distributions and hypothesis testing.",
-    date: "2024-05-22",
-    time: "13:00 - 15:00",
-    participants: "1/4",
-    status: "Open",
-    avatar: "https://randomuser.me/api/portraits/men/8.jpg",
-    subject: "Math",
-  }
-];
+// Enhanced Group Request Card Component (Same as before)
+const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) => {
+  const [loading, setLoading] = useState(false);
+  const [timeUntilSession, setTimeUntilSession] = useState(null);
+  const [conferenceLink, setConferenceLink] = useState(null);
 
-const featured = [
-  { title: "Advanced Chemistry", desc: "Reviewing reaction mechanisms and organic synthesis.", joined: 4 },
-  { title: "Microeconomics Principles", desc: "Supply and demand, market equilibrium, and elasticity.", joined: 3 },
-  { title: "Introduction to Statistics", desc: "Understanding probability, distributions, and hypothesis testing.", joined: 5 },
-  { title: "Art History: Renaissance", desc: "Analyzing key artists and movements of the Italian Renaissance.", joined: 2 },
-];
-
-const GroupRequests = () => {
-  const [requests, setRequests] = useState(initialRequests);
-  const [filteredRequests, setFilteredRequests] = useState(initialRequests);
-
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("All Subjects");
-  const [selectedStatus, setSelectedStatus] = useState("All Statuses");
-  const [selectedTime, setSelectedTime] = useState("Any Time");
-
-  // Get unique subjects for filter dropdown
-  const subjects = ["All Subjects", ...new Set(initialRequests.map(req => req.subject))];
-
-  // Get unique statuses for filter dropdown
-  const statuses = ["All Statuses", ...new Set(initialRequests.map(req => req.status))];
-
-  // Filter function
+  // Calculate time until session starts
   useEffect(() => {
-    let filtered = requests;
+    if (request.scheduledDateTime && (request.status === 'payment_complete' || request.status === 'in_progress')) {
+      const interval = setInterval(() => {
+        const now = new Date();
+        const sessionTime = new Date(request.scheduledDateTime);
+        const diffMs = sessionTime - now;
 
-    // Search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(req =>
-          req.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          req.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          req.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          req.user.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+        if (diffMs > 0) {
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          setTimeUntilSession({ hours, minutes, total: diffMs });
+
+          // Create conference link 10 minutes before
+          if (diffMs <= 10 * 60 * 1000 && !conferenceLink) {
+            generateConferenceLink();
+          }
+        } else {
+          setTimeUntilSession(null);
+          if (request.status === 'payment_complete') {
+            updateRequestStatus('in_progress');
+          }
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
     }
+  }, [request.scheduledDateTime, request.status, conferenceLink]);
 
-    // Subject filter
-    if (selectedSubject !== "All Subjects") {
-      filtered = filtered.filter(req => req.subject === selectedSubject);
+  // Generate conference link
+  const generateConferenceLink = async () => {
+    try {
+      const mockLink = `https://meet.skillnet.com/session/${request.id}`;
+      setConferenceLink(mockLink);
+
+      await groupRequestService.updateGroupRequest(request.id, {
+        conferenceLink: mockLink
+      }, currentUserId);
+    } catch (error) {
+      console.error('Error generating conference link:', error);
     }
+  };
 
-    // Status filter
-    if (selectedStatus !== "All Statuses") {
-      filtered = filtered.filter(req => req.status === selectedStatus);
-    }
-
-    // Time filter (simplified - you can enhance this based on your needs)
-    if (selectedTime !== "Any Time") {
-      const today = new Date();
-      const requestDate = new Date();
-
-      switch (selectedTime) {
-        case "Today":
-          filtered = filtered.filter(req => {
-            const reqDate = new Date(req.date);
-            return reqDate.toDateString() === today.toDateString();
-          });
-          break;
-        case "This Week":
-          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          filtered = filtered.filter(req => {
-            const reqDate = new Date(req.date);
-            return reqDate >= today && reqDate <= weekFromNow;
-          });
-          break;
-        case "Next Week":
-          const nextWeekStart = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          const nextWeekEnd = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
-          filtered = filtered.filter(req => {
-            const reqDate = new Date(req.date);
-            return reqDate >= nextWeekStart && reqDate <= nextWeekEnd;
-          });
-          break;
-        default:
-          break;
+  // Update request status using service
+  const updateRequestStatus = async (newStatus, reason = null) => {
+    try {
+      setLoading(true);
+      const updateData = { status: newStatus };
+      if (reason) {
+        updateData.cancellationReason = reason;
       }
+
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      if (result.success) {
+        onRequestUpdate?.(request.id, { ...request, status: newStatus });
+      }
+    } catch (error) {
+      console.error('Error updating request status:', error);
+    } finally {
+      setLoading(false);
     }
-
-    setFilteredRequests(filtered);
-  }, [searchQuery, selectedSubject, selectedStatus, selectedTime, requests]);
-
-  // Clear all filters
-  const clearFilters = () => {
-    setSearchQuery("");
-    setSelectedSubject("All Subjects");
-    setSelectedStatus("All Statuses");
-    setSelectedTime("Any Time");
   };
 
-  // Calculate stats based on filtered results
-  const calculateStats = () => {
-    const total = filteredRequests.length;
-    const pending = filteredRequests.filter(req => req.status === "Open").length;
-    const completed = filteredRequests.filter(req => req.status === "Full").length;
-    const joined = filteredRequests.reduce((acc, req) => {
-      const [current, max] = req.participants.split('/').map(Number);
-      return acc + current;
-    }, 0);
+  // Handle voting using service
+  const handleVote = async () => {
+    if (!currentUserId || loading) return;
 
-    return { total, pending, completed, joined };
+    try {
+      setLoading(true);
+      const hasVoted = request.votes?.includes(currentUserId);
+
+      let newVotes;
+      if (hasVoted) {
+        newVotes = request.votes?.filter(id => id !== currentUserId) || [];
+      } else {
+        newVotes = [...(request.votes || []), currentUserId];
+      }
+
+      const updateData = {
+        votes: newVotes,
+        voteCount: newVotes.length
+      };
+
+      // Auto-transition to voting_open if enough votes
+      if (newVotes.length >= 5 && request.status === 'pending') {
+        updateData.status = 'voting_open';
+      }
+
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      if (result.success) {
+        onRequestUpdate?.(request.id, {
+          ...request,
+          votes: newVotes,
+          voteCount: newVotes.length,
+          status: updateData.status || request.status
+        });
+      }
+    } catch (error) {
+      console.error('Error handling vote:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const stats = calculateStats();
+  // Handle participation using service
+  const handleParticipation = async () => {
+    if (!currentUserId || loading) return;
+
+    try {
+      setLoading(true);
+      const isParticipating = request.participants?.includes(currentUserId);
+
+      let newParticipants;
+      if (isParticipating) {
+        newParticipants = request.participants?.filter(id => id !== currentUserId) || [];
+      } else {
+        newParticipants = [...(request.participants || []), currentUserId];
+      }
+
+      const updateData = {
+        participants: newParticipants,
+        participantCount: newParticipants.length
+      };
+
+      // Auto-approve if enough participants
+      if (newParticipants.length >= (request.minParticipants || 3) && request.status === 'voting_open') {
+        updateData.status = 'accepted';
+      }
+
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      if (result.success) {
+        onRequestUpdate?.(request.id, {
+          ...request,
+          participants: newParticipants,
+          participantCount: newParticipants.length,
+          status: updateData.status || request.status
+        });
+      }
+    } catch (error) {
+      console.error('Error handling participation:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle payment (mock implementation)
+  const handlePayment = async () => {
+    if (!currentUserId || loading) return;
+
+    try {
+      setLoading(true);
+      const paymentAmount = parseFloat(request.rate?.replace(/[^0-9.-]+/g,"") || "25");
+
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const newPaidParticipants = [...(request.paidParticipants || []), currentUserId];
+      const updateData = {
+        paidParticipants: newPaidParticipants,
+        totalPaid: (request.totalPaid || 0) + paymentAmount
+      };
+
+      // Check if payment is complete
+      if (newPaidParticipants.length >= (request.participantCount || 1)) {
+        updateData.status = 'payment_complete';
+        // Schedule session for 1 hour from now (for demo)
+        updateData.scheduledDateTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      }
+
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      if (result.success) {
+        onRequestUpdate?.(request.id, {
+          ...request,
+          paidParticipants: newPaidParticipants,
+          totalPaid: updateData.totalPaid,
+          status: updateData.status || request.status,
+          scheduledDateTime: updateData.scheduledDateTime || request.scheduledDateTime
+        });
+        alert('Payment successful!');
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      alert('Payment failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get card styling based on status
+  const getCardStyling = () => {
+    switch (request.status) {
+      case 'pending':
+        return {
+          borderColor: 'border-yellow-300',
+          bgColor: 'bg-yellow-50',
+          statusColor: 'bg-yellow-100 text-yellow-800'
+        };
+      case 'voting_open':
+        return {
+          borderColor: 'border-orange-300',
+          bgColor: 'bg-orange-50',
+          statusColor: 'bg-orange-100 text-orange-800'
+        };
+      case 'accepted':
+        return {
+          borderColor: 'border-green-300',
+          bgColor: 'bg-green-50',
+          statusColor: 'bg-green-100 text-green-800'
+        };
+      case 'payment_complete':
+        return {
+          borderColor: 'border-yellow-400',
+          bgColor: 'bg-gradient-to-br from-yellow-100 to-yellow-200',
+          statusColor: 'bg-yellow-200 text-yellow-900'
+        };
+      case 'in_progress':
+        return {
+          borderColor: 'border-blue-400',
+          bgColor: 'bg-blue-50',
+          statusColor: 'bg-blue-100 text-blue-800'
+        };
+      case 'completed':
+        return {
+          borderColor: 'border-gray-600',
+          bgColor: 'bg-gray-900 text-white',
+          statusColor: 'bg-gray-700 text-gray-200'
+        };
+      case 'cancelled':
+        return {
+          borderColor: 'border-red-400',
+          bgColor: 'bg-red-50',
+          statusColor: 'bg-red-100 text-red-800'
+        };
+      default:
+        return {
+          borderColor: 'border-gray-200',
+          bgColor: 'bg-white',
+          statusColor: 'bg-gray-100 text-gray-700'
+        };
+    }
+  };
+
+  const styling = getCardStyling();
+  const voteCount = request.voteCount || request.votes?.length || 0;
+  const participantCount = request.participantCount || request.participants?.length || 0;
+  const paidCount = request.paidParticipants?.length || 0;
+  const hasVoted = request.votes?.includes(currentUserId);
+  const isParticipating = request.participants?.includes(currentUserId);
+  const hasPaid = request.paidParticipants?.includes(currentUserId);
+  const isOwner = request.createdBy === currentUserId || request.userId === currentUserId;
 
   return (
-      <>
-        <GroupRequestsNavbar />
-        <div className="min-h-screen bg-[#f8f9fb] flex">
-          {/* Sidebar */}
-          <RequestNavbar />
+      <div className={`rounded-lg shadow-sm border-2 p-6 hover:shadow-md transition-all ${styling.borderColor} ${styling.bgColor}`}>
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start gap-3">
+            <img
+                src={request.createdByAvatar || request.avatar}
+                alt={request.createdByName || request.name}
+                className="w-12 h-12 rounded-full object-cover"
+            />
+            <div>
+              <h3 className={`font-semibold text-lg ${request.status === 'completed' ? 'text-white' : 'text-gray-900'}`}>
+                {request.title}
+              </h3>
+              <p className={`text-sm ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-600'}`}>
+                {isOwner ? '👑 Your Request' : request.createdByName || request.name} •
+                {request.sessionType === 'group-session' ? ' Group Session' : ' One-on-One'}
+              </p>
+              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
+                in {request.groupName}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            {request.rate && (
+                <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium">
+              {request.rate}
+            </span>
+            )}
+            <span className={`text-xs px-2 py-1 rounded-full font-medium ${styling.statusColor}`}>
+            {groupRequestService.getStatusDisplay(request.status).label}
+          </span>
+            {isOwner && (
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+              Owner
+            </span>
+            )}
+          </div>
+        </div>
 
-          {/* Main Content */}
-          <main className="flex-1 p-8">
-            {/* Title & Stats */}
-            <h1 className="text-2xl font-bold mb-6">Group Requests</h1>
-            <div className="flex gap-6 mb-8">
-              <div className="bg-white rounded-lg p-6 flex-1 shadow-sm">
-                <div className="text-2xl font-bold">{stats.total}</div>
-                <div className="text-gray-500 flex items-center gap-2">
-                  Total Requests
-                  <span className="text-blue-400">
-                  <svg width="16" height="16" fill="currentColor">
-                    <circle cx="8" cy="8" r="8"/>
-                  </svg>
+        {/* Description */}
+        <p className={`text-sm mb-4 line-clamp-3 ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-700'}`}>
+          {request.description}
+        </p>
+
+        {/* Skills */}
+        {request.skills && request.skills.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {request.skills.map((skill, index) => (
+                  <span
+                      key={index}
+                      className={`text-xs px-2 py-1 rounded-full border ${
+                          request.status === 'completed'
+                              ? 'bg-gray-800 text-gray-300 border-gray-600'
+                              : 'bg-white text-gray-700 border-gray-200'
+                      }`}
+                  >
+              {skill}
+            </span>
+              ))}
+            </div>
+        )}
+
+        {/* State-specific content based on status and ownership */}
+        {request.status === 'pending' && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {isOwner ? 'Awaiting approval votes' : 'Needs approval votes'}
                 </span>
-                </div>
+                <span className="text-sm text-gray-600">{voteCount}/5 votes</span>
               </div>
-              <div className="bg-white rounded-lg p-6 flex-1 shadow-sm">
-                <div className="text-2xl font-bold">{stats.pending}</div>
-                <div className="text-gray-500 flex items-center gap-2">
-                  Open Requests
-                  <span className="text-yellow-400">
-                  <svg width="16" height="16" fill="currentColor">
-                    <circle cx="8" cy="8" r="8"/>
-                  </svg>
-                </span>
-                </div>
+              <div className="w-full bg-yellow-200 rounded-full h-2 mb-3">
+                <div
+                    className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min((voteCount / 5) * 100, 100)}%` }}
+                />
               </div>
-              <div className="bg-white rounded-lg p-6 flex-1 shadow-sm">
-                <div className="text-2xl font-bold">{stats.completed}</div>
-                <div className="text-gray-500 flex items-center gap-2">
-                  Full Requests
-                  <span className="text-green-400">
-                  <svg width="16" height="16" fill="currentColor">
-                    <circle cx="8" cy="8" r="8"/>
-                  </svg>
+              {!isOwner && groupRequestService.canUserVote(request, currentUserId) && (
+                  <button
+                      onClick={handleVote}
+                      disabled={loading}
+                      className={`w-full py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                          hasVoted
+                              ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
+                              : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                      } disabled:opacity-50`}
+                  >
+                    {loading ? 'Processing...' : hasVoted ? '✓ Voted' : 'Vote to Approve'}
+                  </button>
+              )}
+              {isOwner && (
+                  <div className="bg-yellow-100 text-yellow-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
+                    ⏳ Waiting for community approval ({voteCount}/5 votes)
+                  </div>
+              )}
+            </div>
+        )}
+
+        {request.status === 'voting_open' && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {isOwner ? 'Participants joining' : 'Join this session'}
                 </span>
-                </div>
+                <span className="text-sm text-gray-600">{participantCount} joined</span>
               </div>
-              <div className="bg-white rounded-lg p-6 flex-1 shadow-sm">
-                <div className="text-2xl font-bold">{stats.joined}</div>
-                <div className="text-gray-500 flex items-center gap-2">
-                  Total Participants
-                  <span className="text-purple-400">
-                  <svg width="16" height="16" fill="currentColor">
-                    <circle cx="8" cy="8" r="8"/>
-                  </svg>
-                </span>
-                </div>
+              <div className="flex gap-2">
+                {!isOwner && groupRequestService.canUserVote(request, currentUserId) && (
+                    <button
+                        onClick={handleVote}
+                        disabled={loading}
+                        className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                            hasVoted
+                                ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
+                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                        } disabled:opacity-50`}
+                    >
+                      {hasVoted ? `❤️ ${voteCount}` : `👍 Like (${voteCount})`}
+                    </button>
+                )}
+                {!isOwner && groupRequestService.canUserParticipate(request, currentUserId) && (
+                    <button
+                        onClick={handleParticipation}
+                        disabled={loading}
+                        className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                            isParticipating
+                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                : 'bg-orange-500 text-white hover:bg-orange-600'
+                        } disabled:opacity-50`}
+                    >
+                      {loading ? '...' : isParticipating ? 'Leave' : 'Join Request'}
+                    </button>
+                )}
+                {isOwner && (
+                    <div className="w-full bg-orange-100 text-orange-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
+                      👥 {participantCount} participants joined
+                    </div>
+                )}
               </div>
             </div>
+        )}
 
-            {/* Filters */}
-            <div className="flex gap-4 mb-8">
+        {request.status === 'accepted' && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {isOwner ? 'Payment collection' : 'Payment required'}
+                </span>
+                <span className="text-sm text-gray-600">{paidCount}/{participantCount} paid</span>
+              </div>
+              <div className="w-full bg-green-200 rounded-full h-2 mb-3">
+                <div
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
+                />
+              </div>
+              {!isOwner && isParticipating && !hasPaid && (
+                  <button
+                      onClick={handlePayment}
+                      disabled={loading}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
+                  </button>
+              )}
+              {!isOwner && hasPaid && (
+                  <div className="w-full bg-green-100 text-green-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
+                    ✓ Payment Complete - Waiting for others
+                  </div>
+              )}
+              {isOwner && (
+                  <div className="w-full bg-green-100 text-green-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
+                    💰 Collecting payments ({paidCount}/{participantCount})
+                  </div>
+              )}
+            </div>
+        )}
+
+        {/* Additional status blocks (payment_complete, in_progress, completed, cancelled) remain the same... */}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between">
+          <div className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
+            Created {new Date(request.createdAt?.toDate?.() || request.createdAt).toLocaleDateString()}
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+                to={`/requests/group/${request.id}`}
+                className={`text-sm font-medium hover:underline ${
+                    request.status === 'completed'
+                        ? 'text-gray-300 hover:text-white'
+                        : 'text-blue-600 hover:text-blue-800'
+                }`}
+            >
+              View Details
+            </Link>
+            {isOwner && ['pending', 'voting_open', 'accepted'].includes(request.status) && (
+                <Link
+                    to={`/requests/edit-group/${request.id}`}
+                    className="text-sm font-medium text-purple-600 hover:text-purple-800 hover:underline"
+                >
+                  Edit
+                </Link>
+            )}
+          </div>
+        </div>
+      </div>
+  );
+};
+
+const GroupRequests = () => {
+  const { user } = useAuth();
+  const [groupRequests, setGroupRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState(null);
+
+  // Load user's group requests using the service
+  useEffect(() => {
+    const loadUserGroupRequests = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        console.log('🔄 Loading user group requests...');
+
+        // Use the service to get user's own group requests
+        const requests = await groupRequestService.getUserGroupRequests(user.id);
+
+        console.log('✅ User group requests loaded:', requests.length);
+
+        // Process and format the requests
+        const formattedRequests = requests.map((request) => {
+          return {
+            ...request,
+            // Ensure required fields exist
+            votes: request.votes || [],
+            participants: request.participants || [],
+            paidParticipants: request.paidParticipants || [],
+            skills: request.skills || [],
+            // Compatibility fields
+            name: request.createdByName || request.userName || 'Unknown User',
+            avatar: request.createdByAvatar || request.userAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`,
+            message: request.description || request.message || '',
+            // Ensure status exists
+            status: request.status || 'pending',
+            voteCount: request.voteCount || request.votes?.length || 0,
+            participantCount: request.participantCount || request.participants?.length || 0
+          };
+        });
+
+        setGroupRequests(formattedRequests);
+
+      } catch (error) {
+        console.error('❌ Error loading user group requests:', error);
+
+        let errorMessage = 'Failed to load your group requests';
+        if (error.code === 'permission-denied') {
+          errorMessage = 'Permission denied. Please check your authentication.';
+        } else if (error.code === 'unavailable') {
+          errorMessage = 'Database temporarily unavailable. Please try again later.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserGroupRequests();
+  }, [user]);
+
+  // Handle request updates
+  const handleRequestUpdate = (requestId, updatedRequest) => {
+    setGroupRequests(prevRequests =>
+        prevRequests.map(request =>
+            request.id === requestId ? { ...request, ...updatedRequest } : request
+        )
+    );
+  };
+
+  // Get unique categories and statuses
+  const categories = ['all', ...new Set(groupRequests.map(req => req.category?.toLowerCase()).filter(Boolean))];
+  const statuses = [
+    'all',
+    'pending',
+    'voting_open',
+    'accepted',
+    'payment_complete',
+    'in_progress',
+    'completed',
+    'cancelled'
+  ];
+
+  // Filter requests
+  const filteredRequests = groupRequests.filter(request => {
+    const matchesCategory = selectedCategory === 'all' || request.category?.toLowerCase() === selectedCategory;
+    const matchesStatus = selectedStatus === 'all' || request.status === selectedStatus;
+    const matchesSearch = searchQuery === '' ||
+        request.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.groupName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.skills?.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return matchesCategory && matchesStatus && matchesSearch;
+  });
+
+  // Get status statistics
+  const getStatusStats = () => {
+    const stats = {};
+    statuses.forEach(status => {
+      if (status === 'all') {
+        stats[status] = groupRequests.length;
+      } else {
+        stats[status] = groupRequests.filter(req => req.status === status).length;
+      }
+    });
+    return stats;
+  };
+
+  const statusStats = getStatusStats();
+
+  if (loading) {
+    return (
+        <div className="p-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading your group requests...</p>
+            </div>
+          </div>
+        </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <div className="p-8">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="text-red-500 text-4xl mb-4">⚠️</div>
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">Error Loading Requests</h2>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <div className="flex gap-2 justify-center">
+                <button
+                    onClick={() => window.location.reload()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                  Try Again
+                </button>
+                <Link
+                    to="/groups"
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                >
+                  Browse Groups
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+    );
+  }
+
+  return (
+      <div className="p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">My Group Requests</h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Manage your group learning requests and sessions
+              </p>
+            </div>
+            <Link
+                to="/group/create-group-request"
+                className="bg-blue-600 text-white rounded-lg px-6 py-3 font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Create Group Request
+            </Link>
+          </div>
+        </div>
+
+        {/* Status Statistics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+          {[
+            { key: 'all', label: 'Total', color: 'bg-gray-100 text-gray-700' },
+            { key: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-700' },
+            { key: 'voting_open', label: 'Voting', color: 'bg-orange-100 text-orange-700' },
+            { key: 'accepted', label: 'Accepted', color: 'bg-green-100 text-green-700' },
+            { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-200 text-yellow-800' },
+            { key: 'in_progress', label: 'Live', color: 'bg-blue-100 text-blue-700' },
+            { key: 'completed', label: 'Done', color: 'bg-gray-200 text-gray-800' },
+            { key: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-700' }
+          ].map(({ key, label, color }) => (
+              <button
+                  key={key}
+                  onClick={() => setSelectedStatus(key)}
+                  className={`p-3 rounded-lg text-center transition-colors ${
+                      selectedStatus === key ? `${color} ring-2 ring-blue-500` : `${color} hover:opacity-75`
+                  }`}
+              >
+                <div className="text-lg font-bold">{statusStats[key] || 0}</div>
+                <div className="text-xs">{label}</div>
+              </button>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
               <input
                   type="text"
-                  placeholder="Search by topic or subject..."
-                  className="px-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm w-72"
+                  placeholder="Search your requests, skills, or groups..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
+
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
               <select
-                  className="px-3 py-2 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                {subjects.map(subject => (
-                    <option key={subject} value={subject}>{subject}</option>
+                {categories.map(category => (
+                    <option key={category} value={category}>
+                      {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
+                    </option>
                 ))}
               </select>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
-                  className="px-3 py-2 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 {statuses.map(status => (
-                    <option key={status} value={status}>{status}</option>
+                    <option key={status} value={status}>
+                      {groupRequestService.getStatusDisplay(status).label}
+                    </option>
                 ))}
               </select>
-              <select
-                  className="px-3 py-2 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
-              >
-                <option value="Any Time">Any Time</option>
-                <option value="Today">Today</option>
-                <option value="This Week">This Week</option>
-                <option value="Next Week">Next Week</option>
-              </select>
-              <button
-                  className="ml-auto text-gray-400 hover:text-blue-600 text-sm transition-colors"
-                  onClick={clearFilters}
-              >
-                Clear Filters
-              </button>
             </div>
+          </div>
+        </div>
 
-            {/* Active Filters Display */}
-            {(searchQuery || selectedSubject !== "All Subjects" || selectedStatus !== "All Statuses" || selectedTime !== "Any Time") && (
-                <div className="mb-6 flex flex-wrap gap-2">
-                  <span className="text-sm text-gray-600">Active filters:</span>
-                  {searchQuery && (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center gap-1">
-                  Search: "{searchQuery}"
-                  <button onClick={() => setSearchQuery("")} className="text-blue-600 hover:text-blue-800">×</button>
-                </span>
-                  )}
-                  {selectedSubject !== "All Subjects" && (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs flex items-center gap-1">
-                  Subject: {selectedSubject}
-                        <button onClick={() => setSelectedSubject("All Subjects")} className="text-green-600 hover:text-green-800">×</button>
-                </span>
-                  )}
-                  {selectedStatus !== "All Statuses" && (
-                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs flex items-center gap-1">
-                  Status: {selectedStatus}
-                        <button onClick={() => setSelectedStatus("All Statuses")} className="text-yellow-600 hover:text-yellow-800">×</button>
-                </span>
-                  )}
-                  {selectedTime !== "Any Time" && (
-                      <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs flex items-center gap-1">
-                  Time: {selectedTime}
-                        <button onClick={() => setSelectedTime("Any Time")} className="text-purple-600 hover:text-purple-800">×</button>
-                </span>
-                  )}
-                </div>
-            )}
+        {/* Results Count */}
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            Showing {filteredRequests.length} of {groupRequests.length} requests
+          </p>
+        </div>
 
-            {/* Results Summary */}
-            <div className="mb-4 text-sm text-gray-600">
-              Showing {filteredRequests.length} of {requests.length} requests
-              {filteredRequests.length !== requests.length && " (filtered)"}
-            </div>
+        {/* Requests Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredRequests.map((request) => (
+              <EnhancedGroupRequestCard
+                  key={request.id}
+                  request={request}
+                  currentUserId={user?.id}
+                  onRequestUpdate={handleRequestUpdate}
+              />
+          ))}
+        </div>
 
-            {/* Requests Grid */}
-            {filteredRequests.length > 0 ? (
-                <div className="grid grid-cols-4 gap-6 mb-12">
-                  {filteredRequests.map((req) => (
-                      <div key={req.id} className="bg-white rounded-lg p-5 shadow-sm flex flex-col justify-between min-h-[220px] hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-2 mb-2">
-                          <img src={req.avatar} alt={req.user} className="w-7 h-7 rounded-full border" />
-                          <span className="font-medium text-gray-700 text-sm">{req.user}</span>
-                        </div>
-                        <div className="font-semibold mb-1 text-gray-900">{req.title}</div>
-                        <div className="text-gray-500 text-xs mb-2">{req.desc}</div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                          <span>{req.date}</span>
-                          <span>•</span>
-                          <span>{req.time}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs mb-2">
-                          <span className="text-gray-400">Participants: {req.participants}</span>
-                          {req.status === "Open" && <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs">Open</span>}
-                          {req.status === "Full" && <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs">Full</span>}
-                          {req.status === "Completed" && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">Completed</span>}
-                          {req.status === "Upcoming" && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">Upcoming</span>}
-                        </div>
-                        <div className="flex gap-2 mt-auto">
-                          <button className="bg-gray-100 rounded px-3 py-1 text-blue-600 font-medium text-sm hover:bg-gray-200 transition-colors">
-                            View Details
-                          </button>
-                          {req.status === "Open" && (
-                              <button className="bg-blue-600 text-white rounded px-3 py-1 font-medium text-sm hover:bg-blue-700 transition-colors">
-                                Join
-                              </button>
-                          )}
-                        </div>
-                      </div>
-                  ))}
-                </div>
-            ) : (
-                <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-                  <div className="text-gray-400 text-4xl mb-4">🔍</div>
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">No requests found</h3>
-                  <p className="text-gray-500 mb-4">
-                    Try adjusting your filters or search terms to find what you're looking for.
-                  </p>
-                  <button
-                      onClick={clearFilters}
-                      className="bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
-            )}
-
-            {/* Featured Requests */}
-            <div className="mb-12">
-              <h2 className="text-lg font-bold mb-4">Featured Requests</h2>
-              <div className="grid grid-cols-4 gap-6">
-                {featured.map((f, idx) => (
-                    <div key={idx} className="bg-white rounded-lg p-4 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
-                      <div className="font-semibold text-gray-800">{f.title}</div>
-                      <div className="text-gray-500 text-xs">{f.desc}</div>
-                      <div className="text-gray-400 text-xs">{f.joined} joined</div>
-                    </div>
-                ))}
+        {/* Empty State */}
+        {filteredRequests.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-6xl mb-4">
+                {groupRequests.length === 0 ? '📚' : '🔍'}
+              </div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                {groupRequests.length === 0 ? 'No group requests yet' : 'No requests found'}
+              </h3>
+              <p className="text-gray-500 mb-4">
+                {groupRequests.length === 0
+                    ? "You haven't created any group requests yet. Create your first one!"
+                    : "Try adjusting your filters or search query to find more requests."
+                }
+              </p>
+              <div className="flex gap-2 justify-center">
+                {groupRequests.length > 0 && (
+                    <button
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedCategory('all');
+                          setSelectedStatus('all');
+                        }}
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Clear all filters
+                    </button>
+                )}
+                <Link
+                    to="/group/create-group-request"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  {groupRequests.length === 0 ? 'Create Your First Request' : 'Create New Request'}
+                </Link>
+                {groupRequests.length === 0 && (
+                    <Link
+                        to="/groups"
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                    >
+                      Browse Groups
+                    </Link>
+                )}
               </div>
             </div>
-
-            {/* Pagination */}
-            <div className="flex justify-center items-center gap-2 mb-12">
-              <button className="px-3 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
-                &lt; Previous
-              </button>
-              {[1,2,3,4,5,10].map((n, i) => (
-                  <button key={i} className={`px-3 py-1 rounded border border-gray-200 transition-colors ${n===1?"bg-blue-600 text-white":"text-gray-700 hover:bg-gray-100"}`}>
-                    {n}
-                  </button>
-              ))}
-              <button className="px-3 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
-                Next &gt;
-              </button>
-            </div>
-
-            {/* Footer */}
-            <footer className="mt-12 text-center text-gray-400 text-sm">
-              <div>Class Connect</div>
-              <div className="mt-2">Stay updated with Class Connect</div>
-              <form className="flex justify-center items-center gap-2 mt-2">
-                <input type="email" placeholder="Enter your email" className="px-4 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
-                <button className="bg-blue-600 text-white rounded px-4 py-2 font-medium text-sm hover:bg-blue-700 transition-colors">
-                  Subscribe
-                </button>
-              </form>
-              <div className="mt-4">© 2023 Class Connect.</div>
-            </footer>
-          </main>
-        </div>
-      </>
+        )}
+      </div>
   );
 };
 

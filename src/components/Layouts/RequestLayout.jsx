@@ -73,7 +73,7 @@ export default function RequestLayout({ children, title, subtitle }) {
       setExpanded: setReceivedRequestsExpanded,
       subItems: [
         { to: "/OneToOneRequests", label: "One-to-One", active: true },
-        { to: "/groups/requests", label: "Group Requests" },
+        { to: "/requests/group", label: "My Group Requests" }, // Only user's own group requests
         { to: "/OneToOneRequests/pending", label: "Pending Offers" },
         { to: "/OneToOneRequests/accepted", label: "Accepted" },
         { to: "/OneToOneRequests/archived", label: "Archived" }
@@ -82,17 +82,17 @@ export default function RequestLayout({ children, title, subtitle }) {
     { to: "/RequestHistory", label: "Request History", icon: "📋", type: "link" },
   ];
 
-  // ✅ FIXED: Include all create request paths including draft, active, and completed
+  // ✅ FIXED: Include all request paths including group requests
   const isCreateRequestPath = location.pathname.startsWith('/requests/create') ||
-      location.pathname.startsWith('/requests/create-group') ||
+      location.pathname.startsWith('/group/create-group-request') ||
       location.pathname.startsWith('/requests/my-requests') ||
       location.pathname.startsWith('/requests/draft') ||
       location.pathname.startsWith('/requests/active') ||
       location.pathname.startsWith('/requests/completed');
 
-  // Check if current path matches any received requests paths
+  // ✅ FIXED: Include group request paths in received requests (only user's own)
   const isReceivedRequestPath = location.pathname.startsWith('/OneToOneRequests') ||
-      location.pathname.startsWith('/requests/group-received');
+      location.pathname.startsWith('/requests/group');
 
   // Auto-expand if we're on relevant pages
   React.useEffect(() => {
@@ -118,16 +118,16 @@ export default function RequestLayout({ children, title, subtitle }) {
         isSubItem ? 'ml-6 pl-8 text-sm' : ''
     }`;
 
-    // More precise active state checking
+    // ✅ FIXED: More precise active state checking including group requests
     const isActive = location.pathname === path ||
         (path === '/requests/create' && location.pathname === '/requests/create') ||
-        (path === '/requests/create-group' && location.pathname.startsWith('/requests/create-group')) ||
+        (path === '/group/create-group-request' && location.pathname.startsWith('/group/create-group-request')) ||
         (path === '/requests/my-requests' && location.pathname.startsWith('/requests/my-requests')) ||
         (path === '/requests/draft' && location.pathname.startsWith('/requests/draft')) ||
         (path === '/requests/active' && location.pathname.startsWith('/requests/active')) ||
         (path === '/requests/completed' && location.pathname.startsWith('/requests/completed')) ||
         (path === '/OneToOneRequests' && location.pathname === '/OneToOneRequests') ||
-        (path === '/requests/group-received' && location.pathname.startsWith('/requests/group-received')) ||
+        (path === '/requests/group' && location.pathname.startsWith('/requests/group')) ||
         (path === '/OneToOneRequests/pending' && location.pathname.startsWith('/OneToOneRequests/pending')) ||
         (path === '/OneToOneRequests/accepted' && location.pathname.startsWith('/OneToOneRequests/accepted')) ||
         (path === '/OneToOneRequests/archived' && location.pathname.startsWith('/OneToOneRequests/archived'));
