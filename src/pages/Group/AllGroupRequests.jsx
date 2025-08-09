@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { groupRequestService } from "@/services/groupRequestService";
+import { collection, getDocs, limit, query, doc, getDoc } from "firebase/firestore";
+import { db } from "@/config/firebase";
 
 // Enhanced Group Request Card Component
 const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) => {
@@ -533,14 +535,34 @@ const AllGroupRequests = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState(null);
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
 
   // Check if user is admin
-  const isAdmin = user?.email?.endsWith('@admin.skillnet.com') || user?.role === 'admin';
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user?.id) return;
+
+      try {
+        console.log('🔍 Checking admin status for user:', user.id);
+        const adminRef = doc(db, 'admin', user.id);
+        const adminSnap = await getDoc(adminRef);
+        const isAdmin = adminSnap.exists();
+        setIsCurrentUserAdmin(isAdmin);
+        console.log('✅ Admin status:', isAdmin);
+      } catch (error) {
+        console.error('❌ Error checking admin status:', error);
+        setIsCurrentUserAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   // Load group requests using the service
   useEffect(() => {
     const loadGroupRequests = async () => {
       if (!user?.id) {
+        console.log('⏭️ No user ID, skipping group requests load');
         setLoading(false);
         return;
       }
@@ -550,42 +572,233 @@ const AllGroupRequests = () => {
         setError(null);
 
         console.log('🔄 Loading group requests using service...');
+        console.log('👤 User ID:', user.id);
+        console.log('📧 User Email:', user.email);
+        console.log('🔐 Is Admin:', isCurrentUserAdmin);
 
-        // Use the service method to get all group requests
-        const requests = await groupRequestService.getAllGroupRequests();
+        // Test if the service exists
+        if (!groupRequestService || typeof groupRequestService.getAllGroupRequests !== 'function') {
+          throw new Error('groupRequestService.getAllGroupRequests is not available');
+        }
+
+        // ✅ FIX: Pass required parameters to the service method
+        console.log('📞 Calling groupRequestService.getAllGroupRequests...');
+        const requests = await groupRequestService.getAllGroupRequests({
+          userId: user.id,
+          isAdmin: isCurrentUserAdmin
+        });
 
         console.log('✅ Group requests loaded:', requests.length);
+        console.log('📊 Raw requests data:', requests);
+
+        if (requests.length === 0) {
+          console.log('⚠️ No requests found. This could mean:');
+          console.log('   1. User is not a member of any groups');
+          console.log('   2. No requests exist in the groups user belongs to');
+          console.log('   3. User has not created any requests');
+          console.log('   4. Firestore security rules are blocking access');
+
+          // Let's test if user belongs to any groups
+          try {
+            const userGroups = await groupRequestService.getUserGroups(user.id);
+            console.log('👥 User belongs to groups:', userGroups);
+
+            if (userGroups.length === 0) {
+              console.log('⚠️ User is not a member of any groups - this explains why no requests are visible');
+              setError('You need to join groups to see group requests. Visit the Groups page to join some groups!');
+              setLoading(false);
+              return;
+            }
+          } catch (groupError) {
+            console.error('❌ Error checking user groups:', groupError);
+          }
+        }
 
         // Process and format the requests
-        const formattedRequests = requests.map(request => ({
-          ...request,
-          // Ensure required fields exist
-          votes: request.votes || [],
-          participants: request.participants || [],
-          paidParticipants: request.paidParticipants || [],
-          skills: request.skills || [],
-          // Compatibility fields
-          name: request.createdByName || request.userName || 'Unknown User',
-          avatar: request.createdByAvatar || request.userAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`,
-          message: request.description || request.message || '',
-          // Ensure status exists
-          status: request.status || 'pending',
-          voteCount: request.voteCount || request.votes?.length || 0,
-          participantCount: request.participantCount || request.participants?.length || 0
-        }));
+        const formattedRequests = requests.map((request, index) => {
+          console.log(`📝 Processing request ${index + 1}:`, {
+            id: request.id,
+            title: request.title,
+            status: request.status,
+            createdBy: request.createdBy || request.userId,
+            targetGroupId: request.targetGroupId || request.groupId
+          });
+
+          return {
+            ...request,
+            // Ensure required fields exist
+            votes: request.votes || [],
+            participants: request.participants || [],
+            paidParticipants: request.paidParticipants || [],
+            skills: request.skills || [],
+            // Compatibility fields
+            name: request.createdByName || request.userName || 'Unknown User',
+            avatar: request.createdByAvatar || request.userAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`,
+            message: request.description || request.message || '',
+            // Ensure status exists
+            status: request.status || 'pending',
+            voteCount: request.voteCount || request.votes?.length || 0,
+            participantCount: request.participantCount || request.participants?.length || 0
+          };
+        });
+
+        console.log('✅ Formatted requests:', formattedRequests.length);
+        console.log('📊 Formatted requests data:', formattedRequests);
 
         setGroupRequests(formattedRequests);
 
       } catch (error) {
         console.error('❌ Error loading group requests:', error);
-        setError(error.message || 'Failed to load group requests');
+        console.error('❌ Error details:', {
+          message: error.message,
+          code: error.code,
+          stack: error.stack
+        });
+
+        // Provide more specific error messages
+        let errorMessage = 'Failed to load group requests';
+
+        if (error.code === 'permission-denied') {
+          errorMessage = 'Permission denied. Please check your authentication and group memberships.';
+        } else if (error.code === 'unavailable') {
+          errorMessage = 'Database temporarily unavailable. Please try again later.';
+        } else if (error.message.includes('not available')) {
+          errorMessage = 'Service not properly initialized. Please refresh the page.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     loadGroupRequests();
-  }, [user]);
+  }, [user, isCurrentUserAdmin]); // ✅ Include both dependencies
+
+  // Test group request service function
+  const testGroupRequestService = async () => {
+    console.log('🧪 Testing groupRequestService...');
+
+    try {
+      // Test 1: Check if service exists
+      console.log('✅ groupRequestService exists:', !!groupRequestService);
+      console.log('✅ getAllGroupRequests method exists:', typeof groupRequestService.getAllGroupRequests);
+
+      // Test 2: Check user groups
+      if (groupRequestService.getUserGroups) {
+        const userGroups = await groupRequestService.getUserGroups(user?.id);
+        console.log('👥 User groups:', userGroups);
+      }
+
+      // Test 3: Try the main call
+      const requests = await groupRequestService.getAllGroupRequests({
+        userId: user?.id,
+        isAdmin: isCurrentUserAdmin
+      });
+      console.log('📊 Test requests result:', requests);
+
+      alert('✅ Service test completed! Check console for results.');
+
+    } catch (error) {
+      console.error('❌ Test failed:', error);
+      alert('❌ Service test failed: ' + error.message);
+    }
+  };
+
+  // Test database structure function
+  const testDatabaseStructure = async () => {
+    console.log('🧪 Testing database structure...');
+
+    try {
+      console.log('📋 Testing collections:');
+
+      // Test grouprequests collection
+      try {
+        const groupRequestsRef = collection(db, 'grouprequests');
+        const snapshot = await getDocs(query(groupRequestsRef, limit(3)));
+        console.log('✅ grouprequests collection exists, found', snapshot.size, 'documents');
+
+        if (snapshot.size > 0) {
+          console.log('📊 Sample grouprequest documents:');
+          snapshot.forEach((doc, index) => {
+            const data = doc.data();
+            console.log(`Document ${index + 1}:`, {
+              id: doc.id,
+              title: data.title,
+              status: data.status,
+              userId: data.userId,
+              createdBy: data.createdBy,
+              targetGroupId: data.targetGroupId,
+              groupId: data.groupId,
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt
+            });
+          });
+        } else {
+          console.log('⚠️ No documents found in grouprequests collection');
+        }
+      } catch (groupRequestsError) {
+        console.error('❌ Error accessing grouprequests collection:', groupRequestsError);
+      }
+
+      // Test groups collection
+      try {
+        const groupsRef = collection(db, 'groups');
+        const groupsSnapshot = await getDocs(query(groupsRef, limit(3)));
+        console.log('✅ groups collection exists, found', groupsSnapshot.size, 'documents');
+
+        if (groupsSnapshot.size > 0) {
+          console.log('📊 Sample group documents:');
+          groupsSnapshot.forEach((doc, index) => {
+            const data = doc.data();
+            console.log(`Group ${index + 1}:`, {
+              id: doc.id,
+              name: data.name,
+              members: data.members?.length || 0,
+              hiddenMembers: data.hiddenMembers?.length || 0,
+              isPublic: data.isPublic,
+              createdBy: data.createdBy
+            });
+          });
+
+          // Check if current user is a member of any groups
+          const userGroups = [];
+          groupsSnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.members?.includes(user?.id) || data.hiddenMembers?.includes(user?.id)) {
+              userGroups.push({ id: doc.id, name: data.name });
+            }
+          });
+
+          if (userGroups.length > 0) {
+            console.log('✅ User is member of groups:', userGroups);
+          } else {
+            console.log('⚠️ User is not a member of any groups - this explains why no requests are visible!');
+            console.log('💡 Solution: User needs to join groups first');
+          }
+        }
+      } catch (groupsError) {
+        console.error('❌ Error accessing groups collection:', groupsError);
+      }
+
+      // Test admin status
+      try {
+        const adminRef = doc(db, 'admin', user?.id);
+        const adminSnap = await getDoc(adminRef);
+        console.log('👑 User admin status:', adminSnap.exists());
+      } catch (adminError) {
+        console.error('❌ Error checking admin status:', adminError);
+      }
+
+      alert('✅ Database test completed! Check console for detailed results.');
+
+    } catch (error) {
+      console.error('❌ Database test failed:', error);
+      alert('❌ Database test failed: ' + error.message);
+    }
+  };
 
   // Handle request updates
   const handleRequestUpdate = (requestId, updatedRequest) => {
@@ -661,12 +874,20 @@ const AllGroupRequests = () => {
                 <div className="text-red-500 text-4xl mb-4">⚠️</div>
                 <h2 className="text-xl font-semibold text-gray-700 mb-2">Error Loading Requests</h2>
                 <p className="text-gray-600 mb-4">{error}</p>
-                <button
-                    onClick={() => window.location.reload()}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                  Try Again
-                </button>
+                <div className="flex gap-2 justify-center">
+                  <button
+                      onClick={() => window.location.reload()}
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                  >
+                    Try Again
+                  </button>
+                  <Link
+                      to="/groups"
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Browse Groups
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -686,7 +907,7 @@ const AllGroupRequests = () => {
                   Browse and participate in group learning sessions
                 </p>
               </div>
-              {isAdmin && (
+              {isCurrentUserAdmin && (
                   <Link
                       to="/group/create-group-request"
                       className="bg-blue-600 text-white rounded-lg px-6 py-3 font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -699,6 +920,24 @@ const AllGroupRequests = () => {
               )}
             </div>
           </div>
+
+          {/* Debug Buttons (Development Only) */}
+          {import.meta.env.DEV && (
+              <div className="mb-6 flex gap-2">
+                <button
+                    onClick={testGroupRequestService}
+                    className="bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700"
+                >
+                  🧪 Test Service
+                </button>
+                <button
+                    onClick={testDatabaseStructure}
+                    className="bg-orange-600 text-white px-4 py-2 rounded text-sm hover:bg-orange-700"
+                >
+                  🗄️ Test Database
+                </button>
+              </div>
+          )}
 
           {/* Status Statistics */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
@@ -821,7 +1060,15 @@ const AllGroupRequests = () => {
                         Clear all filters
                       </button>
                   )}
-                  {isAdmin && (
+                  {groupRequests.length === 0 && (
+                      <Link
+                          to="/groups"
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                      >
+                        Join Groups First
+                      </Link>
+                  )}
+                  {isCurrentUserAdmin && (
                       <Link
                           to="/group/create-group-request"
                           className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"

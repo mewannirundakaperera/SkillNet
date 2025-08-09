@@ -56,7 +56,8 @@ export default function RequestLayout({ children, title, subtitle }) {
       expanded: createRequestsExpanded,
       setExpanded: setCreateRequestsExpanded,
       subItems: [
-        { to: "/requests/create", label: "New Request", active: true },
+        { to: "/requests/create", label: "One-to-One Request", active: true },
+        { to: "/group/create-group-request", label: "Group Request" },
         { to: "/requests/my-requests", label: "My Requests" },
         { to: "/requests/draft", label: "Draft Requests" },
         { to: "/requests/active", label: "Active Requests" },
@@ -71,7 +72,8 @@ export default function RequestLayout({ children, title, subtitle }) {
       expanded: receivedRequestsExpanded,
       setExpanded: setReceivedRequestsExpanded,
       subItems: [
-        { to: "/OneToOneRequests", label: "All Requests", active: true },
+        { to: "/OneToOneRequests", label: "One-to-One", active: true },
+        { to: "/groups/requests", label: "Group Requests" },
         { to: "/OneToOneRequests/pending", label: "Pending Offers" },
         { to: "/OneToOneRequests/accepted", label: "Accepted" },
         { to: "/OneToOneRequests/archived", label: "Archived" }
@@ -82,13 +84,15 @@ export default function RequestLayout({ children, title, subtitle }) {
 
   // ✅ FIXED: Include all create request paths including draft, active, and completed
   const isCreateRequestPath = location.pathname.startsWith('/requests/create') ||
+      location.pathname.startsWith('/requests/create-group') ||
       location.pathname.startsWith('/requests/my-requests') ||
       location.pathname.startsWith('/requests/draft') ||
       location.pathname.startsWith('/requests/active') ||
       location.pathname.startsWith('/requests/completed');
 
   // Check if current path matches any received requests paths
-  const isReceivedRequestPath = location.pathname.startsWith('/OneToOneRequests');
+  const isReceivedRequestPath = location.pathname.startsWith('/OneToOneRequests') ||
+      location.pathname.startsWith('/requests/group-received');
 
   // Auto-expand if we're on relevant pages
   React.useEffect(() => {
@@ -117,11 +121,13 @@ export default function RequestLayout({ children, title, subtitle }) {
     // More precise active state checking
     const isActive = location.pathname === path ||
         (path === '/requests/create' && location.pathname === '/requests/create') ||
+        (path === '/requests/create-group' && location.pathname.startsWith('/requests/create-group')) ||
         (path === '/requests/my-requests' && location.pathname.startsWith('/requests/my-requests')) ||
         (path === '/requests/draft' && location.pathname.startsWith('/requests/draft')) ||
         (path === '/requests/active' && location.pathname.startsWith('/requests/active')) ||
         (path === '/requests/completed' && location.pathname.startsWith('/requests/completed')) ||
         (path === '/OneToOneRequests' && location.pathname === '/OneToOneRequests') ||
+        (path === '/requests/group-received' && location.pathname.startsWith('/requests/group-received')) ||
         (path === '/OneToOneRequests/pending' && location.pathname.startsWith('/OneToOneRequests/pending')) ||
         (path === '/OneToOneRequests/accepted' && location.pathname.startsWith('/OneToOneRequests/accepted')) ||
         (path === '/OneToOneRequests/archived' && location.pathname.startsWith('/OneToOneRequests/archived'));
