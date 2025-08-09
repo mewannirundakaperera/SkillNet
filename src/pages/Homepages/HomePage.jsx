@@ -547,13 +547,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Footer */}
-          <footer className="py-8 px-6 bg-gray-100 text-center text-sm text-gray-500 flex flex-col items-center gap-2">
-            <span>© 2025 Skill-Net. All rights reserved.</span>
-            <span className="flex items-center gap-1 text-xs">
-            Made with <span className="text-blue-600 font-bold">Visily</span>
-          </span>
-          </footer>
+
         </div>
     );
   }
@@ -586,14 +580,8 @@ export default function HomePage() {
               <p className="text-gray-500 mb-6">Connect. Collaborate. Grow. Your professional journey continues here.</p>
               <div className="flex gap-4">
                 <Link
-                    to="/network"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-blue-700 transition-colors"
-                >
-                  Explore Your Network
-                </Link>
-                <Link
                     to="/profile"
-                    className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-blue-700 transition-colors"
                 >
                   View Profile
                 </Link>
@@ -656,24 +644,7 @@ export default function HomePage() {
               )}
             </section>
 
-            {/* Enhanced Trending Topics */}
-            <section className="bg-white rounded-xl shadow p-6 mb-2">
-              <h2 className="text-xl font-bold mb-4">Trending Topics</h2>
-              <ul className="flex flex-col gap-3">
-                {trendingTopics.map((topic) => (
-                    <li key={topic.id} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <span className="text-orange-500 text-xl">{topic.icon}</span>
-                        <div>
-                          <span className="font-medium">{topic.name}</span>
-                          <div className="text-xs text-green-600">{topic.trend} this week</div>
-                        </div>
-                      </div>
-                      <span className="text-gray-400 text-sm">{topic.posts.toLocaleString()} Posts</span>
-                    </li>
-                ))}
-              </ul>
-            </section>
+
           </div>
 
           {/* Right Sidebar */}
@@ -747,34 +718,11 @@ export default function HomePage() {
               )}
             </section>
 
-            {/* Premium Features Card */}
-            <section className="bg-gradient-to-r from-orange-400 to-pink-500 rounded-xl shadow p-6 flex flex-col items-center text-white">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">★</span>
-                <span className="font-bold text-lg">Unlock Premium Features</span>
-              </div>
-              <p className="text-sm mb-4 text-center">
-                Access advanced analytics, exclusive groups, and boosted visibility to accelerate your career.
-              </p>
-              <div className="flex flex-col gap-2 w-full">
-                <button className="bg-white text-orange-500 font-bold rounded px-6 py-2 text-sm shadow hover:bg-orange-50 transition-colors">
-                  Upgrade Now
-                </button>
-                <button className="border border-white text-white font-medium rounded px-6 py-2 text-sm hover:bg-white hover:text-orange-500 transition-colors">
-                  Learn More
-                </button>
-              </div>
-            </section>
+
           </aside>
         </main>
 
-        {/* Footer */}
-        <footer className="py-8 px-6 bg-gray-100 text-center text-sm text-gray-500 flex flex-col items-center gap-2">
-          <span>© 2025 Skill-Net. All rights reserved.</span>
-          <span className="flex items-center gap-1 text-xs">
-          Made with <span className="text-blue-600 font-bold">Visily</span>
-        </span>
-        </footer>
+
       </div>
   );
 }
