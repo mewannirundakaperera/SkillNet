@@ -230,18 +230,35 @@ export default function IntelligentNavbar() {
       };
     }
 
-    // Group/Chat pages - Updated navigation (REMOVED CREATE GROUP BUTTON)
-    if (currentPath.includes('/group') || currentPath.includes('/chat') || currentPath.includes('/groups')) {
+    // Groups listing page - show main navigation buttons
+    if (currentPath === '/groups') {
       return {
         showSearch: true,
         showNotifications: true,
         showProfile: true,
         searchPlaceholder: "Search groups, members...",
-        rightSection: null, // ✅ REMOVED: Create Group button from navbar
+        rightSection: null,
         navItems: [
           { to: "/", label: "Home" },
-          { to: "/groups", label: "My Groups" },
-          { to: "/groups/discover", label: "Discover Groups" }
+          { to: "/StudentConnect", label: "Requests" },
+          { to: "/SelectTeacher", label: "Teach & Learn" },
+        ]
+      };
+    }
+
+    // Chat pages - show main navigation buttons plus Discover Groups
+    if (currentPath.includes('/chat') || currentPath === '/GroupChat' || currentPath.startsWith('/group/')) {
+      return {
+        showSearch: true,
+        showNotifications: true,
+        showProfile: true,
+        searchPlaceholder: "Search groups, members...",
+        rightSection: null,
+        navItems: [
+          { to: "/", label: "Home" },
+          { to: "/StudentConnect", label: "Requests" },
+          { to: "/SelectTeacher", label: "Teach & Learn" },
+          { to: "/groups", label: "Discover Groups" }
         ]
       };
     }

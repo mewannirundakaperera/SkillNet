@@ -234,25 +234,28 @@ export default function IntelligentNavbar() {
       };
     }
 
-    // Group/Chat pages
-    if (currentPath.includes('/group') || currentPath.includes('/GroupChat')) {
+    // Groups listing page - hide Discover Groups button
+    if (currentPath === '/groups') {
       return {
         showSearch: true,
         showNotifications: true,
         showProfile: true,
         searchPlaceholder: "Search groups, members...",
-        rightSection: (
-          <Link
-            to="/group/create"
-            className="bg-green-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-green-700 transition-colors text-sm"
-          >
-            + Create Group
-          </Link>
-        ),
+        rightSection: null,
+        navItems: [] // Empty navItems to hide Discover Groups button
+      };
+    }
+
+    // Chat pages - show Discover Groups button
+    if (currentPath.includes('/chat') || currentPath === '/GroupChat' || currentPath.startsWith('/group/')) {
+      return {
+        showSearch: true,
+        showNotifications: true,
+        showProfile: true,
+        searchPlaceholder: "Search groups, members...",
+        rightSection: null,
         navItems: [
-          { to: "/", label: "Home" },
-          { to: "/GroupChat", label: "My Groups" },
-          { to: "/JoinGroup", label: "Discover Groups" }
+          { to: "/groups", label: "Discover Groups" }
         ]
       };
     }
@@ -342,23 +345,26 @@ export default function IntelligentNavbar() {
     <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/vite.svg" alt="Logo" className="h-8 w-8" />
-            <span className="font-bold text-xl text-indigo-700">NetworkPro</span>
-          </Link>
+          {/* Left Section - Logo and Navigation */}
+          <div className="flex items-center gap-8">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2">
+              <img src="/vite.svg" alt="Logo" className="h-8 w-8" />
+              <span className="font-bold text-xl text-indigo-700">NetworkPro</span>
+            </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {navConfig.navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={getLinkClass(item.to)}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {/* Desktop Navigation - moved to left */}
+            <div className="hidden md:flex items-center space-x-1">
+              {navConfig.navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={getLinkClass(item.to)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Right Section */}

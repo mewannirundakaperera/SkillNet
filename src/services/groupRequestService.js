@@ -1033,7 +1033,42 @@ export const groupRequestService = {
         }
 
         // Can only vote in pending or voting_open states
-        return ['pending', 'voting_open'].includes(request.status);
+        if (!['pending', 'voting_open'].includes(request.status)) {
+            return false;
+        }
+
+        // Note: Group membership should be verified at the component level
+        // since this function should remain synchronous for performance.
+        // The calling component should ensure user is a member of the target group.
+        return true;
+    },
+
+    /**
+     * Check if user can vote (with async group membership verification)
+     */
+    async canUserVoteAsync(request, userId) {
+        if (!this.canUserVote(request, userId)) {
+            return { canVote: false, reason: 'Basic voting criteria not met' };
+        }
+
+        try {
+            // Verify user is a member of the target group
+            const userGroups = await this.getUserGroups(userId);
+            const targetGroupId = request.targetGroupId || request.groupId;
+            
+            if (!targetGroupId) {
+                return { canVote: false, reason: 'Request has no associated group' };
+            }
+
+            if (!userGroups.includes(targetGroupId)) {
+                return { canVote: false, reason: 'You must be a member of this group to vote' };
+            }
+
+            return { canVote: true, reason: 'Voting allowed' };
+        } catch (error) {
+            console.error('Error checking vote permission:', error);
+            return { canVote: false, reason: 'Error verifying group membership' };
+        }
     },
 
     /**
@@ -1049,6 +1084,34 @@ export const groupRequestService = {
 
         // Can only participate in voting_open or accepted states
         return ['voting_open', 'accepted'].includes(request.status);
+    },
+
+    /**
+     * Check if user can participate (with async group membership verification)
+     */
+    async canUserParticipateAsync(request, userId) {
+        if (!this.canUserParticipate(request, userId)) {
+            return { canParticipate: false, reason: 'Basic participation criteria not met' };
+        }
+
+        try {
+            // Verify user is a member of the target group
+            const userGroups = await this.getUserGroups(userId);
+            const targetGroupId = request.targetGroupId || request.groupId;
+            
+            if (!targetGroupId) {
+                return { canParticipate: false, reason: 'Request has no associated group' };
+            }
+
+            if (!userGroups.includes(targetGroupId)) {
+                return { canParticipate: false, reason: 'You must be a member of this group to participate' };
+            }
+
+            return { canParticipate: true, reason: 'Participation allowed' };
+        } catch (error) {
+            console.error('Error checking participation permission:', error);
+            return { canParticipate: false, reason: 'Error verifying group membership' };
+        }
     },
 
     /**

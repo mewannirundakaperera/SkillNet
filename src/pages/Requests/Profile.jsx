@@ -34,10 +34,10 @@ export default function Profile() {
   });
 
   const [friends] = useState([
-    { name: "Alice Smith", avatar: "https://randomuser.me/api/portraits/women/10.jpg" },
-    { name: "Bob Johnson", avatar: "https://randomuser.me/api/portraits/men/11.jpg" },
-    { name: "Charlie Brown", avatar: "https://randomuser.me/api/portraits/men/12.jpg" },
-    { name: "Diana Prince", avatar: "https://randomuser.me/api/portraits/women/13.jpg" },
+    { name: "Alice Smith", avatar: "https://ui-avatars.com/api/?name=Alice+Smith&background=f97316&color=ffffff&size=128&bold=true&rounded=true" },
+    { name: "Bob Johnson", avatar: "https://ui-avatars.com/api/?name=Bob+Johnson&background=059669&color=ffffff&size=128&bold=true&rounded=true" },
+    { name: "Charlie Brown", avatar: "https://ui-avatars.com/api/?name=Charlie+Brown&background=7c3aed&color=ffffff&size=128&bold=true&rounded=true" },
+    { name: "Diana Prince", avatar: "https://ui-avatars.com/api/?name=Diana+Prince&background=dc2626&color=ffffff&size=128&bold=true&rounded=true" },
   ]);
 
   const [weeklyActivity] = useState([2, 4, 3, 7, 6, 1, 0]);
@@ -65,7 +65,7 @@ export default function Profile() {
             skills: result.userData.skills || ["React.js", "TypeScript", "Tailwind CSS", "Next.js", "Python", "Data Analysis", "Problem Solving", "Teamwork"],
             interests: result.userData.interests || ["Machine Learning", "Web Development", "UI/UX Design", "Artificial Intelligence", "Cybersecurity", "Gaming"],
             memberSince: result.userData.createdAt ? new Date(result.userData.createdAt).getFullYear() : new Date().getFullYear(),
-            avatar: result.userData.avatar || result.userData.photoURL || "https://randomuser.me/api/portraits/men/14.jpg"
+            avatar: result.userData.avatar || result.userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(result.userData.displayName || result.userData.name || user.name || user.email || 'User')}&background=6366f1&color=ffffff&size=128&bold=true&rounded=true`
           };
 
           setUserProfile(profileData);
@@ -87,7 +87,7 @@ export default function Profile() {
             skills: ["React.js", "TypeScript"],
             interests: ["Web Development", "Programming"],
             memberSince: new Date().getFullYear(),
-            avatar: "https://randomuser.me/api/portraits/men/14.jpg"
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email || 'User')}&background=6366f1&color=ffffff&size=128&bold=true&rounded=true`
           };
           setUserProfile(fallbackProfile);
           setEditForm({

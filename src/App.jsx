@@ -32,6 +32,7 @@ import OnlineMeeting from "./pages/Teach&learn/OnlineMeeting";
 import JoinGroup from "./pages/Group/JoinGroup";
 import GroupChat from "./pages/Group/GroupChat";
 import CreateGroup from "./pages/Group/CreateGroup";
+import GroupDetails from "./pages/Group/GroupDetails";
 import GroupsList from "./pages/Group/GroupsList";
 import AllGroupRequests from "./pages/Group/AllGroupRequests";
 import JitsiMeeting from '@/components/Meeting/JitsiMeeting';
@@ -283,7 +284,7 @@ const AppRoutes = () => {
                 path="/requests/group"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="My Group Requests" subtitle="Manage your own group learning requests">
+                        <RequestLayout title="Group Requests" subtitle="Browse and participate in group learning requests from your communities">
                             <GroupRequests />
                         </RequestLayout>
                     </ProtectedRoute>
@@ -412,6 +413,17 @@ const AppRoutes = () => {
                     <ProtectedRoute>
                         <SimpleLayout>
                             <CreateGroup />
+                        </SimpleLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/groups/:groupId/details"
+                element={
+                    <ProtectedRoute>
+                        <SimpleLayout>
+                            <GroupDetails />
                         </SimpleLayout>
                     </ProtectedRoute>
                 }

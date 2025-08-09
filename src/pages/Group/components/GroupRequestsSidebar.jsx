@@ -172,13 +172,22 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
   }
 
   return (
-      <aside className="w-80 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden">
-        {/* Fixed Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0 bg-white" style={{ minHeight: '76px' }}>
+      <aside className="w-96 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden shadow-lg">
+        {/* Enhanced Header */}
+        <div className="px-6 py-6 border-b border-gray-200 flex-shrink-0 bg-gradient-to-r from-purple-50 to-pink-50" style={{ minHeight: '76px' }}>
           <div className="flex items-center justify-between h-full w-full">
             <div className="flex flex-col justify-center">
-              <h3 className="font-semibold text-lg mb-1">Recent Group Requests</h3>
-              <p className="text-xs text-gray-500">Latest learning requests from groups</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-gray-800">Group Requests</h3>
+                  <p className="text-sm text-gray-600">Latest learning opportunities</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -225,7 +234,7 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
                           </div>
 
                           <Link
-                              to={`/groups/requests/${request.id}`}
+                              to={`/requests/details/${request.id}`}
                               className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
                           >
                             View Details →

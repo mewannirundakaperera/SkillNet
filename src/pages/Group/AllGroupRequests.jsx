@@ -264,31 +264,30 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   const hasPaid = request.paidParticipants?.includes(currentUserId);
 
   return (
-      <div className={`rounded-lg shadow-sm border-2 p-6 hover:shadow-md transition-all ${styling.borderColor} ${styling.bgColor}`}>
+      <div className={`rounded-lg shadow-sm border-2 p-4 hover:shadow-md transition-all h-full flex flex-col ${styling.borderColor} ${styling.bgColor}`}>
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-start gap-3">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start gap-2">
             <img
                 src={request.createdByAvatar || request.avatar}
                 alt={request.createdByName || request.name}
-                className="w-12 h-12 rounded-full object-cover"
+                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />
-            <div>
-              <h3 className={`font-semibold text-lg ${request.status === 'completed' ? 'text-white' : 'text-gray-900'}`}>
+            <div className="min-w-0 flex-1">
+              <h3 className={`font-semibold text-base line-clamp-1 ${request.status === 'completed' ? 'text-white' : 'text-gray-900'}`}>
                 {request.title}
               </h3>
-              <p className={`text-sm ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-600'}`}>
-                {request.createdByName || request.name} •
-                {request.sessionType === 'group-session' ? ' Group Session' : ' One-on-One'}
+              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-600'}`}>
+                {request.createdByName || request.name}
               </p>
               <p className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
                 in {request.groupName}
               </p>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
             {request.rate && (
-                <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium">
+                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-medium">
               {request.rate}
             </span>
             )}
@@ -299,17 +298,17 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         </div>
 
         {/* Description */}
-        <p className={`text-sm mb-4 line-clamp-3 ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-700'}`}>
+        <p className={`text-sm mb-3 line-clamp-2 ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-700'}`}>
           {request.description}
         </p>
 
         {/* Skills */}
         {request.skills && request.skills.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {request.skills.map((skill, index) => (
+            <div className="flex flex-wrap gap-1 mb-3">
+              {request.skills.slice(0, 3).map((skill, index) => (
                   <span
                       key={index}
-                      className={`text-xs px-2 py-1 rounded-full border ${
+                      className={`text-xs px-2 py-0.5 rounded-full border ${
                           request.status === 'completed'
                               ? 'bg-gray-800 text-gray-300 border-gray-600'
                               : 'bg-white text-gray-700 border-gray-200'
@@ -318,27 +317,32 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
               {skill}
             </span>
               ))}
+              {request.skills.length > 3 && (
+                  <span className="text-xs text-gray-500">
+                    +{request.skills.length - 3} more
+                  </span>
+              )}
             </div>
         )}
 
         {/* State-specific content */}
         {request.status === 'pending' && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Needs approval votes</span>
-                <span className="text-sm text-gray-600">{voteCount}/5 votes</span>
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-700">Needs votes</span>
+                <span className="text-xs text-gray-600">{voteCount}/5</span>
               </div>
-              <div className="w-full bg-yellow-200 rounded-full h-2 mb-3">
+              <div className="w-full bg-yellow-200 rounded-full h-1.5 mb-2">
                 <div
-                    className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-yellow-500 h-1.5 rounded-full transition-all duration-300"
                     style={{ width: `${Math.min((voteCount / 5) * 100, 100)}%` }}
                 />
               </div>
-              {groupRequestService.canUserVote(request, currentUserId) && (
+              {currentUserId && (
                   <button
                       onClick={handleVote}
                       disabled={loading}
-                      className={`w-full py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                      className={`w-full py-1.5 px-3 rounded-lg font-medium text-xs transition-colors ${
                           hasVoted
                               ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
                               : 'bg-yellow-500 text-white hover:bg-yellow-600'
@@ -351,36 +355,36 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         )}
 
         {request.status === 'voting_open' && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Participants</span>
-                <span className="text-sm text-gray-600">{participantCount} joined</span>
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-700">Participants</span>
+                <span className="text-xs text-gray-600">{participantCount} joined</span>
               </div>
-              <div className="flex gap-2">
-                {groupRequestService.canUserVote(request, currentUserId) && (
+              <div className="flex gap-1">
+                {currentUserId && (
                     <button
                         onClick={handleVote}
                         disabled={loading}
-                        className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                        className={`flex-1 py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
                             hasVoted
                                 ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
                                 : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                         } disabled:opacity-50`}
                     >
-                      {hasVoted ? `❤️ ${voteCount}` : `👍 Like (${voteCount})`}
+                      {hasVoted ? `❤️ ${voteCount}` : `👍 ${voteCount}`}
                     </button>
                 )}
-                {groupRequestService.canUserParticipate(request, currentUserId) && (
+                {currentUserId && (
                     <button
                         onClick={handleParticipation}
                         disabled={loading}
-                        className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                        className={`flex-1 py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
                             isParticipating
                                 ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 : 'bg-orange-500 text-white hover:bg-orange-600'
                         } disabled:opacity-50`}
                     >
-                      {loading ? '...' : isParticipating ? 'Cancel' : 'Join Request'}
+                      {loading ? '...' : isParticipating ? 'Leave' : 'Join'}
                     </button>
                 )}
               </div>
@@ -399,7 +403,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
                 />
               </div>
-              {isParticipating && !hasPaid && (
+              {currentUserId && isParticipating && !hasPaid && (
                   <button
                       onClick={handlePayment}
                       disabled={loading}
@@ -506,20 +510,20 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
           <div className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
-            Created {new Date(request.createdAt?.toDate?.() || request.createdAt).toLocaleDateString()}
+            {new Date(request.createdAt?.toDate?.() || request.createdAt).toLocaleDateString()}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Link
-                to={`/requests/group/${request.id}`}
-                className={`text-sm font-medium hover:underline ${
+                to={`/requests/details/${request.id}`}
+                className={`text-xs font-medium hover:underline ${
                     request.status === 'completed'
                         ? 'text-gray-300 hover:text-white'
                         : 'text-blue-600 hover:text-blue-800'
                 }`}
             >
-              View Details
+              Details
             </Link>
           </div>
         </div>
@@ -1020,8 +1024,8 @@ const AllGroupRequests = () => {
             </p>
           </div>
 
-          {/* Requests Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Requests Grid - 3 cards per row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredRequests.map((request) => (
                 <EnhancedGroupRequestCard
                     key={request.id}

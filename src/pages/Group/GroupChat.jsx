@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import GroupChatMain from '@/pages/Group/components/GroupChatMain';
 import GroupRequestsSidebar from '@/pages/Group/components/GroupRequestsSidebar';
@@ -15,6 +15,7 @@ import { db } from "@/config/firebase";
 export default function GroupChat() {
   const { groupId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const chatRef = useRef(null);
 
   // State management
@@ -27,7 +28,7 @@ export default function GroupChat() {
   const [groupRequests, setGroupRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [showGroupDetails, setShowGroupDetails] = useState(false);
+
   const [error, setError] = useState(null);
   const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
 
@@ -201,7 +202,7 @@ export default function GroupChat() {
           user.id,
           {
             userName: user.displayName || user.name,
-            userAvatar: user.avatar || user.photoURL || 'https://randomuser.me/api/portraits/men/14.jpg'
+            userAvatar: user.avatar || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.name || user.email || 'User')}&background=3b82f6&color=ffffff&size=128&bold=true&rounded=true`
           },
           isOnline
       );
@@ -248,7 +249,7 @@ export default function GroupChat() {
         text: messageText,
         userId: user.id,
         userName: user.displayName || user.name,
-        userAvatar: user.avatar || user.photoURL || 'https://randomuser.me/api/portraits/men/14.jpg'
+        userAvatar: user.avatar || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.name || user.email || 'User')}&background=3b82f6&color=ffffff&size=128&bold=true&rounded=true`
       });
 
       await GroupsService.updateLastActivity(groupId, {
@@ -333,6 +334,11 @@ export default function GroupChat() {
     return grouped;
   };
 
+  // Navigate to group details page
+  const handleNavigateToDetails = () => {
+    navigate(`/groups/${groupId}/details`);
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -365,15 +371,16 @@ export default function GroupChat() {
   }
 
   return (
-      <div className="h-[calc(100vh-4rem)] bg-gray-50 flex overflow-hidden">
+      <div className="h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 to-gray-100 flex overflow-hidden">
         {/* LEFT SIDEBAR - MY GROUPS */}
         <MyGroupsSidebar
             userGroups={userGroups}
             currentGroupId={groupId}
             isCurrentUserAdmin={isCurrentUserAdmin}
+            groupRequests={groupRequests}
         />
 
-        {/* MAIN CHAT AREA */}
+        {/* MAIN CHAT AREA - Expanded */}
         <GroupChatMain
             currentGroup={currentGroup}
             onlineUsers={onlineUsers}
@@ -382,13 +389,12 @@ export default function GroupChat() {
             input={input}
             sending={sending}
             typingUsers={typingUsers}
-            showGroupDetails={showGroupDetails}
             chatRef={chatRef}
-            onShowGroupDetails={setShowGroupDetails}
             onInputChange={handleInputChange}
             onSendMessage={handleSendMessage}
             formatTime={formatTime}
             groupMessages={groupMessages}
+            onNavigateToDetails={handleNavigateToDetails}
         />
 
         {/* RIGHT SIDEBAR - GROUP REQUESTS */}

@@ -73,13 +73,12 @@ export default function RequestLayout({ children, title, subtitle }) {
       setExpanded: setReceivedRequestsExpanded,
       subItems: [
         { to: "/OneToOneRequests", label: "One-to-One", active: true },
-        { to: "/requests/group", label: "My Group Requests" }, // Only user's own group requests
+        { to: "/requests/group", label: "Group Requests" }, // All group requests from user's groups
         { to: "/OneToOneRequests/pending", label: "Pending Offers" },
         { to: "/OneToOneRequests/accepted", label: "Accepted" },
         { to: "/OneToOneRequests/archived", label: "Archived" }
       ]
-    },
-    { to: "/RequestHistory", label: "Request History", icon: "📋", type: "link" },
+    }
   ];
 
   // ✅ FIXED: Include all request paths including group requests

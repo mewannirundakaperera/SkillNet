@@ -169,25 +169,43 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-4 mb-4">
-          <Link
-            to="/groups"
-            className="text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Create New Group</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="max-w-6xl mx-auto py-12 px-6">
+        {/* Enhanced Header */}
+        <div className="mb-12">
+          <div className="flex items-center gap-4 mb-6">
+            <Link
+              to="/groups"
+              className="p-3 text-gray-600 hover:text-gray-800 hover:bg-white rounded-xl transition-all duration-200 shadow-sm"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Create New Group</h1>
+              <p className="text-lg text-gray-600">Start a new community and connect with like-minded people</p>
+            </div>
+          </div>
+          
+          {/* Progress indicator */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800">Set up your group</h3>
+                <p className="text-sm text-gray-600">Fill in the details below to create your group</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <p className="text-gray-600">Start a new community and connect with like-minded people</p>
-      </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-8">
+        {/* Enhanced Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-10 border border-gray-200">
         {/* Error Display */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -491,7 +509,8 @@ export default function CreateGroup() {
             {loading ? 'Creating Group...' : 'Create Group'}
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

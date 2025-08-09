@@ -1,13 +1,58 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { groupRequestService } from "@/services/groupRequestService";
 
 const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedRequest, setEditedRequest] = useState({ ...request });
   const [showActions, setShowActions] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [permissions, setPermissions] = useState({
+    canVote: false,
+    canParticipate: false,
+    loading: true
+  });
 
   // Check if current user is the owner of this request
   const isOwner = currentUserId === request.userId || currentUserId === request.createdBy;
+
+  // Check permissions when component mounts or relevant data changes
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!currentUserId || isOwner) {
+        setPermissions({
+          canVote: false,
+          canParticipate: false,
+          loading: false
+        });
+        return;
+      }
+
+      try {
+        setPermissions(prev => ({ ...prev, loading: true }));
+
+        const [votePermission, participatePermission] = await Promise.all([
+          groupRequestService.canUserVoteAsync(request, currentUserId),
+          groupRequestService.canUserParticipateAsync(request, currentUserId)
+        ]);
+
+        setPermissions({
+          canVote: votePermission.canVote,
+          canParticipate: participatePermission.canParticipate,
+          loading: false
+        });
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setPermissions({
+          canVote: false,
+          canParticipate: false,
+          loading: false
+        });
+      }
+    };
+
+    checkPermissions();
+  }, [currentUserId, request.id, request.status, isOwner]);
 
   // Handle input changes during editing
   const handleInputChange = (field, value) => {
@@ -45,6 +90,102 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
     const updatedRequest = { ...request, status: newStatus };
     onRequestUpdate(request.id, updatedRequest);
     setShowActions(false);
+  };
+
+  // Handle voting on request
+  const handleVote = async () => {
+    if (!currentUserId || loading) return;
+
+    try {
+      setLoading(true);
+      
+      // First check if user can vote (including group membership)
+      const votePermission = await groupRequestService.canUserVoteAsync(request, currentUserId);
+      if (!votePermission.canVote) {
+        alert(votePermission.reason);
+        return;
+      }
+
+      const hasVoted = request.votes?.includes(currentUserId);
+      const result = await groupRequestService.voteOnRequest(request.id, currentUserId, !hasVoted);
+      
+      if (result.success) {
+        // Update the local state
+        const newVotes = hasVoted 
+          ? request.votes?.filter(id => id !== currentUserId) || []
+          : [...(request.votes || []), currentUserId];
+        
+        const updatedRequest = {
+          ...request,
+          votes: newVotes,
+          voteCount: newVotes.length
+        };
+
+        // Auto-transition to voting_open if enough votes
+        if (newVotes.length >= 5 && request.status === 'pending') {
+          updatedRequest.status = 'voting_open';
+        }
+
+        onRequestUpdate(request.id, updatedRequest);
+      } else {
+        console.error('Voting failed:', result.message);
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      alert('Failed to vote. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle joining/leaving request
+  const handleParticipation = async () => {
+    if (!currentUserId || loading) return;
+
+    try {
+      setLoading(true);
+      
+      // First check if user can participate (including group membership)
+      const participationPermission = await groupRequestService.canUserParticipateAsync(request, currentUserId);
+      if (!participationPermission.canParticipate) {
+        alert(participationPermission.reason);
+        return;
+      }
+
+      const isParticipating = request.participants?.includes(currentUserId);
+      const result = isParticipating 
+        ? await groupRequestService.leaveRequest(request.id, currentUserId)
+        : await groupRequestService.joinRequest(request.id, currentUserId);
+      
+      if (result.success) {
+        // Update the local state
+        const newParticipants = isParticipating
+          ? request.participants?.filter(id => id !== currentUserId) || []
+          : [...(request.participants || []), currentUserId];
+        
+        const updatedRequest = {
+          ...request,
+          participants: newParticipants,
+          participantCount: newParticipants.length
+        };
+
+        // Auto-approve if enough participants
+        if (newParticipants.length >= (request.minParticipants || 3) && request.status === 'voting_open') {
+          updatedRequest.status = 'accepted';
+        }
+
+        onRequestUpdate(request.id, updatedRequest);
+      } else {
+        console.error('Participation failed:', result.message);
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Error with participation:', error);
+      alert('Failed to update participation. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Get status styling
@@ -231,7 +372,7 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
 
   // Display Mode
   return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow relative">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow relative h-full flex flex-col">
         {/* Actions Menu - Only show for request owner */}
         {showActions && isOwner && (
             <div className="absolute top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-2 min-w-[120px]">
@@ -341,6 +482,123 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
           <span>Category: {request.category || 'General'}</span>
         </div>
 
+        {/* Voting and Participation Section */}
+        {!isOwner && (request.status === 'pending' || request.status === 'voting_open') && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+            {request.status === 'pending' && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Needs Approval</span>
+                  <span className="text-sm text-gray-600">{request.voteCount || 0}/5 votes</span>
+                </div>
+                <div className="w-full bg-yellow-200 rounded-full h-2 mb-3">
+                  <div
+                    className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(((request.voteCount || 0) / 5) * 100, 100)}%` }}
+                  />
+                </div>
+                {permissions.canVote && !permissions.loading && (
+                  <button
+                    onClick={handleVote}
+                    disabled={loading}
+                    className={`w-full py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
+                      request.votes?.includes(currentUserId)
+                        ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
+                        : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                    } disabled:opacity-50`}
+                  >
+                    {loading ? 'Processing...' : request.votes?.includes(currentUserId) ? '✓ Voted' : 'Vote to Approve'}
+                  </button>
+                )}
+                {!permissions.canVote && !permissions.loading && !isOwner && (
+                  <div className="w-full py-2 px-3 rounded-lg bg-gray-100 text-gray-500 text-center text-sm">
+                    You must be a group member to vote
+                  </div>
+                )}
+              </div>
+            )}
+
+            {request.status === 'voting_open' && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Open for Participation</span>
+                  <span className="text-sm text-gray-600">{request.participantCount || 0} joined</span>
+                </div>
+                <div className="flex gap-2">
+                  {permissions.canVote && !permissions.loading && (
+                    <button
+                      onClick={handleVote}
+                      disabled={loading}
+                      className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
+                        request.votes?.includes(currentUserId)
+                          ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
+                          : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                      } disabled:opacity-50`}
+                    >
+                      {request.votes?.includes(currentUserId) ? `❤️ ${request.voteCount || 0}` : `👍 Like (${request.voteCount || 0})`}
+                    </button>
+                  )}
+                  {permissions.canParticipate && !permissions.loading && (
+                    <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
+                        request.participants?.includes(currentUserId)
+                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-orange-500 text-white hover:bg-orange-600'
+                      } disabled:opacity-50`}
+                    >
+                      {loading ? '...' : request.participants?.includes(currentUserId) ? 'Leave' : 'Join Request'}
+                    </button>
+                  )}
+                  {(!permissions.canVote && !permissions.canParticipate) && !permissions.loading && !isOwner && (
+                    <div className="w-full py-2 px-3 rounded-lg bg-gray-100 text-gray-500 text-center text-sm">
+                      You must be a group member to participate
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Payment Section */}
+        {!isOwner && request.status === 'accepted' && request.participants?.includes(currentUserId) && (
+          <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+            <div className="text-center">
+              <p className="text-sm text-green-700 font-medium">💰 Payment Required</p>
+              <p className="text-xs text-green-600 mb-2">Session approved! Please complete payment to confirm your spot.</p>
+              <button className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                Pay {request.rate || 'Now'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Status info for owner */}
+        {isOwner && (request.status === 'pending' || request.status === 'voting_open' || request.status === 'accepted') && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            {request.status === 'pending' && (
+              <div className="text-center">
+                <p className="text-sm text-blue-700 font-medium">⏳ Awaiting Community Approval</p>
+                <p className="text-xs text-blue-600">{request.voteCount || 0}/5 votes received</p>
+              </div>
+            )}
+            {request.status === 'voting_open' && (
+              <div className="text-center">
+                <p className="text-sm text-blue-700 font-medium">✅ Approved! Members Can Join</p>
+                <p className="text-xs text-blue-600">{request.participantCount || 0} members joined</p>
+              </div>
+            )}
+            {request.status === 'accepted' && (
+              <div className="text-center">
+                <p className="text-sm text-blue-700 font-medium">💰 Collecting Payments</p>
+                <p className="text-xs text-blue-600">{request.paidParticipants?.length || 0}/{request.participantCount || 0} participants paid</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -355,7 +613,7 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
           </div>
           <div className="flex items-center gap-2">
             <Link
-                to={`/requests/${request.id}`}
+                to={`/requests/details/${request.id}`}
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
             >
               View Details

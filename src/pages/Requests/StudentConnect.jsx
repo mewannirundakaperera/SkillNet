@@ -96,20 +96,42 @@ const StudentConnect = () => {
       try {
         setLoading(true);
 
-        // Load My Requests Stats
+        // Load My Requests Stats (both regular and group requests)
         const myRequestsRef = collection(db, 'requests');
         const myRequestsQuery = query(myRequestsRef, where('userId', '==', user.id));
         const myRequestsSnapshot = await getDocs(myRequestsQuery);
 
+        // Load My Group Requests Stats
+        const myGroupRequestsRef = collection(db, 'grouprequests');
+        const myGroupRequestsQuery = query(myGroupRequestsRef, where('createdBy', '==', user.id));
+        const myGroupRequestsSnapshot = await getDocs(myGroupRequestsQuery);
+
         const myRequestsStats = {
-          total: myRequestsSnapshot.size,
+          total: myRequestsSnapshot.size + myGroupRequestsSnapshot.size,
           draft: 0,
           active: 0,
           completed: 0,
-          archived: 0
+          archived: 0,
+          pending: 0,
+          voting_open: 0,
+          accepted: 0,
+          payment_complete: 0,
+          in_progress: 0,
+          cancelled: 0
         };
 
+        // Count regular requests
         myRequestsSnapshot.forEach(doc => {
+          const status = doc.data().status;
+          if (status === 'open') {
+            myRequestsStats.active++;
+          } else if (myRequestsStats[status] !== undefined) {
+            myRequestsStats[status]++;
+          }
+        });
+
+        // Count group requests
+        myGroupRequestsSnapshot.forEach(doc => {
           const status = doc.data().status;
           if (myRequestsStats[status] !== undefined) {
             myRequestsStats[status]++;
@@ -135,7 +157,7 @@ const StudentConnect = () => {
           }
         });
 
-        // Load All Available Requests Stats
+        // Load All Available Requests Stats (including group requests)
         const allRequestsRef = collection(db, 'requests');
         const allRequestsQuery = query(
           allRequestsRef,
@@ -144,15 +166,34 @@ const StudentConnect = () => {
         );
         const allRequestsSnapshot = await getDocs(allRequestsQuery);
 
+        // Load Group Requests from user's groups
+        const userGroupsRef = collection(db, 'groups');
+        const userGroupsQuery = query(userGroupsRef, where('members', 'array-contains', user.id));
+        const userGroupsSnapshot = await getDocs(userGroupsQuery);
+        const userGroupIds = userGroupsSnapshot.docs.map(doc => doc.id);
+
+        let allGroupRequestsSnapshot = { docs: [] };
+        if (userGroupIds.length > 0) {
+          const allGroupRequestsRef = collection(db, 'grouprequests');
+          // Get requests from user's groups
+          const allGroupRequestsQuery = query(
+            allGroupRequestsRef,
+            where('status', 'in', ['pending', 'voting_open', 'accepted', 'payment_complete', 'in_progress'])
+          );
+          allGroupRequestsSnapshot = await getDocs(allGroupRequestsQuery);
+        }
+
         const allRequestsStats = {
-          total: allRequestsSnapshot.size,
-          available: allRequestsSnapshot.size,
+          total: allRequestsSnapshot.size + allGroupRequestsSnapshot.docs.length,
+          available: allRequestsSnapshot.size + allGroupRequestsSnapshot.docs.length,
           tutoring: 0,
-          studyGroups: 0,
+          studyGroups: allGroupRequestsSnapshot.docs.length, // All group requests count as study groups
           projects: 0
         };
 
         const subjectCount = {};
+        
+        // Count regular requests
         allRequestsSnapshot.forEach(doc => {
           const data = doc.data();
           const type = data.type;
@@ -169,6 +210,17 @@ const StudentConnect = () => {
           }
         });
 
+        // Count group requests
+        allGroupRequestsSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const category = data.category || data.subject;
+
+          // Count subjects for trending
+          if (category) {
+            subjectCount[category] = (subjectCount[category] || 0) + 1;
+          }
+        });
+
         // Get trending subjects
         const trending = Object.entries(subjectCount)
           .sort(([,a], [,b]) => b - a)
@@ -180,7 +232,7 @@ const StudentConnect = () => {
         // Load Recent Activity
         const recentActivity = [];
 
-        // Get recent requests created by user
+        // Get recent regular requests created by user
         const recentMyRequestsQuery = query(
           myRequestsRef,
           where('userId', '==', user.id),
@@ -196,6 +248,26 @@ const StudentConnect = () => {
             type: 'created',
             title: data.topic || data.title,
             timestamp: data.createdAt?.toDate() || new Date(),
+            status: data.status
+          });
+        });
+
+        // Get recent group requests created by user
+        const recentMyGroupRequestsQuery = query(
+          myGroupRequestsRef,
+          where('createdBy', '==', user.id),
+          orderBy('createdAt', 'desc'),
+          limit(3)
+        );
+        const recentMyGroupRequestsSnapshot = await getDocs(recentMyGroupRequestsQuery);
+
+        recentMyGroupRequestsSnapshot.forEach(doc => {
+          const data = doc.data();
+          recentActivity.push({
+            id: doc.id,
+            type: 'group_created',
+            title: data.title,
+            timestamp: data.createdAt?.toDate() || data.updatedAt?.toDate() || new Date(),
             status: data.status
           });
         });

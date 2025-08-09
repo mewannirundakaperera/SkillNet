@@ -8,52 +8,75 @@ const GroupChatMain = ({
   input,
   sending,
   typingUsers,
-  showGroupDetails,
   chatRef,
-  onShowGroupDetails,
   onInputChange,
   onSendMessage,
   formatTime,
-  groupMessages
+  groupMessages,
+  onNavigateToDetails
 }) => {
   const groupedMessages = groupMessages(messages);
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Chat Header - Fixed - Matches sidebar heights */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ minHeight: '76px' }}>
-        <div>
-          <button
-            onClick={() => onShowGroupDetails(!showGroupDetails)}
-            className="hover:bg-gray-100 p-2 rounded transition-colors"
-          >
-            <h1 className="font-bold text-xl text-left">{currentGroup?.name || 'Loading...'}</h1>
-            <div className="text-xs text-gray-500 text-left">
-              Click to view group details • {onlineUsers.length} online • {currentGroup?.memberCount || 0} total
-            </div>
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Online users indicators */}
-          <div className="flex -space-x-2">
-            {onlineUsers.slice(0, 5).map((member) => (
+    <div className="flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-white">
+      {/* Enhanced Chat Header */}
+      <div className="bg-gradient-to-r from-white to-gray-50 border-b border-gray-200 px-8 py-6 flex items-center justify-between flex-shrink-0 shadow-sm" style={{ minHeight: '76px' }}>
+        <div className="flex items-center gap-6">
+          {/* Group Picture */}
+          <div className="flex-shrink-0">
+            {currentGroup?.image ? (
               <img
-                key={member.id}
-                src={member.userAvatar}
-                alt={member.userName}
-                className="w-8 h-8 rounded-full border-2 border-white object-cover"
-                title={`${member.userName} - online`}
+                src={currentGroup.image}
+                alt={currentGroup.name}
+                className="w-16 h-16 rounded-xl object-cover border-2 border-white shadow-lg ring-2 ring-blue-100"
               />
-            ))}
-            {onlineUsers.length > 5 && (
-              <div className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-xs font-medium">
-                +{onlineUsers.length - 5}
+            ) : (
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl flex items-center justify-center border-2 border-white shadow-lg ring-2 ring-blue-100">
+                <span className="text-white text-xl font-bold">
+                  {currentGroup?.name?.charAt(0)?.toUpperCase() || '?'}
+                </span>
               </div>
             )}
           </div>
-          <button className="border rounded px-3 py-1 text-sm font-semibold hover:bg-gray-100">
-            Invite Members
+          
+          {/* Group Info */}
+          <button
+            onClick={onNavigateToDetails}
+            className="hover:bg-white/80 p-3 rounded-xl transition-all duration-200 hover:shadow-sm text-left flex-1"
+          >
+            <h1 className="font-bold text-2xl text-gray-800">{currentGroup?.name || 'Loading...'}</h1>
+            <div className="text-sm text-gray-600 mt-1 flex items-center gap-2">
+              <span>Click to view details</span>
+              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+              <span className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                {onlineUsers.length} online
+              </span>
+              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+              <span>{currentGroup?.memberCount || 0} total members</span>
+            </div>
           </button>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Enhanced Online users indicators */}
+          <div className="flex -space-x-3">
+            {onlineUsers.slice(0, 6).map((member) => (
+              <div key={member.id} className="relative">
+                <img
+                  src={member.userAvatar}
+                  alt={member.userName}
+                  className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm"
+                  title={`${member.userName} - online`}
+                />
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+              </div>
+            ))}
+            {onlineUsers.length > 6 && (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 border-2 border-white flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                +{onlineUsers.length - 6}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -143,55 +166,7 @@ const GroupChatMain = ({
         </button>
       </form>
 
-      {/* Group Details Modal */}
-      {showGroupDetails && currentGroup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Group Details</h2>
-              <button
-                onClick={() => onShowGroupDetails(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
 
-            {/* Group Info */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-lg mb-2">{currentGroup.name}</h3>
-              <div className="space-y-2 text-sm">
-                <div><strong>Description:</strong> {currentGroup.description}</div>
-                <div><strong>Category:</strong> {currentGroup.category}</div>
-                <div><strong>Members:</strong> {currentGroup.memberCount}</div>
-                <div><strong>Created:</strong> {currentGroup.createdAt?.toLocaleDateString()}</div>
-                <div><strong>Type:</strong> {currentGroup.isPublic ? 'Public' : 'Private'}</div>
-                <div><strong>Created by:</strong> {currentGroup.createdByName}</div>
-              </div>
-            </div>
-
-            {/* Online Members */}
-            <div>
-              <h3 className="font-semibold mb-3">Online Members ({onlineUsers.length})</h3>
-              {onlineUsers.length > 0 ? (
-                <ul className="flex flex-col gap-2">
-                  {onlineUsers.map((member) => (
-                    <li key={member.id} className="flex items-center gap-3 text-sm p-2 rounded hover:bg-gray-50">
-                      <img src={member.userAvatar} alt={member.userName} className="w-8 h-8 rounded-full object-cover" />
-                      <span className="flex-1">{member.userName}</span>
-                      <span className="w-2 h-2 bg-green-500 rounded-full" title="Online"></span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500 text-sm">No members online right now</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

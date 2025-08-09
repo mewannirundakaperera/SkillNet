@@ -4,10 +4,12 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   doc,
   getDoc,
+  getDocs,
   collection,
   query,
   where,
   orderBy,
+  limit,
   onSnapshot,
   addDoc,
   updateDoc,
@@ -42,17 +44,33 @@ export default function RequestDetails() {
 
       try {
         setLoading(true);
-        const requestDoc = await getDoc(doc(db, 'requests', id));
+        
+        // Try to load from regular requests collection first
+        let requestDoc = await getDoc(doc(db, 'requests', id));
+        let collection_name = 'requests';
+
+        // If not found in requests, try grouprequests collection
+        if (!requestDoc.exists()) {
+          requestDoc = await getDoc(doc(db, 'grouprequests', id));
+          collection_name = 'grouprequests';
+        }
 
         if (requestDoc.exists()) {
           const requestData = {
             id: requestDoc.id,
             ...requestDoc.data(),
-            createdAt: requestDoc.data().createdAt?.toDate() || new Date(),
+            createdAt: requestDoc.data().createdAt?.toDate() || requestDoc.data().updatedAt?.toDate() || new Date(),
             scheduledDate: requestDoc.data().preferredDate || requestDoc.data().scheduledDate,
-            scheduledTime: requestDoc.data().preferredTime || requestDoc.data().scheduledTime
+            scheduledTime: requestDoc.data().preferredTime || requestDoc.data().scheduledTime,
+            // Handle different field names between collections
+            topic: requestDoc.data().topic || requestDoc.data().title,
+            description: requestDoc.data().description || requestDoc.data().message,
+            subject: requestDoc.data().subject || requestDoc.data().category || 'General',
+            userId: requestDoc.data().userId || requestDoc.data().createdBy,
+            collection: collection_name
           };
 
+          console.log(`RequestDetails: Loading ${collection_name} request:`, requestData);
           setRequest(requestData);
 
           // Load request creator info
@@ -178,10 +196,11 @@ export default function RequestDetails() {
 
   // Load messages with real-time updates
   useEffect(() => {
-    if (!id) return;
+    if (!id || !request) return;
 
+    const collectionName = request.collection || 'requests';
     const messagesQuery = query(
-      collection(db, 'requests', id, 'messages'),
+      collection(db, collectionName, id, 'messages'),
       orderBy('createdAt', 'asc')
     );
 
@@ -222,16 +241,17 @@ export default function RequestDetails() {
     });
 
     return () => unsubscribe();
-  }, [id]);
+  }, [id, request]);
 
   // Handle sending messages
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user?.id) return;
+    if (!newMessage.trim() || !user?.id || !request) return;
 
     setSending(true);
     try {
-      await addDoc(collection(db, 'requests', id, 'messages'), {
+      const collectionName = request.collection || 'requests';
+      await addDoc(collection(db, collectionName, id, 'messages'), {
         userId: user.id,
         text: newMessage.trim(),
         createdAt: serverTimestamp()
@@ -253,7 +273,8 @@ export default function RequestDetails() {
     setActionLoading(prev => ({ ...prev, join: true }));
 
     try {
-      await updateDoc(doc(db, 'requests', id), {
+      const collectionName = request.collection || 'requests';
+      await updateDoc(doc(db, collectionName, id), {
         participants: arrayUnion(user.id),
         participantCount: (request.participants?.length || 0) + 1,
         updatedAt: serverTimestamp()
@@ -287,7 +308,8 @@ export default function RequestDetails() {
     setActionLoading(prev => ({ ...prev, leave: true }));
 
     try {
-      await updateDoc(doc(db, 'requests', id), {
+      const collectionName = request.collection || 'requests';
+      await updateDoc(doc(db, collectionName, id), {
         participants: arrayRemove(user.id),
         participantCount: Math.max((request.participants?.length || 1) - 1, 0),
         updatedAt: serverTimestamp()
@@ -310,7 +332,8 @@ export default function RequestDetails() {
     setActionLoading(prev => ({ ...prev, cancel: true }));
 
     try {
-      await updateDoc(doc(db, 'requests', id), {
+      const collectionName = request.collection || 'requests';
+      await updateDoc(doc(db, collectionName, id), {
         status: 'cancelled',
         cancelledAt: serverTimestamp(),
         updatedAt: serverTimestamp()
