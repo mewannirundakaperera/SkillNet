@@ -436,11 +436,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'pending' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-<<<<<<< HEAD
-                <span className="text-xs font-medium text-gray-700">
-=======
                 <span className="text-xs font-medium text-slate-200">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                   {isOwner ? 'Awaiting community votes' : 'Community voting'}
                 </span>
                 <span className="text-xs text-slate-300">{voteCount}/5</span>
@@ -465,44 +461,28 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
               {/* Already voted */}
               {!isOwner && hasVoted && (
-<<<<<<< HEAD
-                  <div className="w-full bg-yellow-200 text-yellow-800 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-=======
                   <div className="w-full bg-yellow-800 text-yellow-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     ✓ You voted to approve
                   </div>
               )}
 
               {/* Owner view */}
               {isOwner && (
-<<<<<<< HEAD
-                  <div className="bg-yellow-100 text-yellow-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-=======
                   <div className="bg-yellow-800 text-yellow-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     ⏳ Waiting for community approval ({voteCount}/5)
                   </div>
               )}
 
               {/* Cannot vote (not group member) */}
               {!permissions.canVote && !permissions.isLoading && !isOwner && !hasVoted && (
-<<<<<<< HEAD
-                  <div className="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-=======
                   <div className="bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     ❌ Cannot vote (not a group member)
                   </div>
               )}
 
               {/* Loading permissions */}
               {permissions.isLoading && !isOwner && (
-<<<<<<< HEAD
-                  <div className="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-=======
                   <div className="bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     🔄 Checking permissions...
                   </div>
               )}
@@ -512,11 +492,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'voting_open' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-<<<<<<< HEAD
-                <span className="text-xs font-medium text-gray-700">
-=======
                 <span className="text-xs font-medium text-slate-200">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                   Join this session
                 </span>
                 <span className="text-xs text-slate-300">{participantCount} joined</span>
@@ -536,21 +512,13 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
               {/* Already participating */}
               {isParticipating && (
                   <div className="flex gap-1">
-<<<<<<< HEAD
-                    <div className="flex-1 bg-orange-200 text-orange-800 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
-=======
                     <div className="flex-1 bg-orange-800 text-orange-100 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                       ✓ You're participating
                     </div>
                     <button
                         onClick={handleParticipation}
                         disabled={loading}
-<<<<<<< HEAD
-                        className="bg-gray-200 text-gray-700 py-1.5 px-2 rounded-lg text-xs hover:bg-gray-300 transition-colors disabled:opacity-50"
-=======
                         className="bg-slate-600 text-slate-200 py-1.5 px-2 rounded-lg text-xs hover:bg-slate-700 transition-colors disabled:opacity-50"
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     >
                       Leave
                     </button>
@@ -559,11 +527,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
               {/* Can't participate */}
               {!permissions.canParticipate && !permissions.isLoading && !isParticipating && (
-<<<<<<< HEAD
-                  <div className="w-full bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-=======
                   <div className="w-full bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     {participantCount > 0 ? `👥 ${participantCount} participants joined` : '❌ Cannot join (not a group member)'}
                   </div>
               )}
@@ -573,11 +537,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'accepted' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-<<<<<<< HEAD
-                <span className="text-xs font-medium text-gray-700">
-=======
                 <span className="text-xs font-medium text-slate-200">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                   Payment required
                 </span>
                 <span className="text-xs text-slate-300">{paidCount}/{participantCount}</span>
@@ -602,22 +562,14 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
               {/* Already paid */}
               {isParticipating && hasPaid && (
-<<<<<<< HEAD
-                  <div className="w-full bg-green-100 text-green-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-=======
                   <div className="w-full bg-green-800 text-green-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     ✓ Payment completed - Waiting for others
                   </div>
               )}
 
               {/* Not participating */}
               {!isParticipating && (
-<<<<<<< HEAD
-                  <div className="w-full bg-gray-100 text-gray-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-=======
                   <div className="w-full bg-slate-700 text-slate-200 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     💰 Payment phase ({paidCount}/{participantCount})
                   </div>
               )}
@@ -626,19 +578,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'payment_complete' && (
             <div className="mb-3">
-<<<<<<< HEAD
-              <div className="bg-yellow-200 text-yellow-900 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
-                🎉 Session starting soon!
-              </div>
-              {timeUntilSession && (
-                  <div className="text-xs text-center text-yellow-800 mb-2">
-=======
               <div className="bg-yellow-800 text-yellow-100 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
                 🎉 Session starting soon!
               </div>
               {timeUntilSession && (
                   <div className="text-xs text-center text-yellow-200 mb-2">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     Starts in {timeUntilSession.hours}h {timeUntilSession.minutes}m
                   </div>
               )}
@@ -657,11 +601,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'in_progress' && (
             <div className="mb-3">
-<<<<<<< HEAD
-              <div className="bg-blue-100 text-blue-800 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
-=======
               <div className="bg-blue-800 text-blue-100 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                 🔴 Session in progress
               </div>
               {conferenceLink && (
@@ -679,11 +619,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'completed' && (
             <div className="mb-3">
-<<<<<<< HEAD
-              <div className="bg-gray-700 text-gray-200 py-2 px-3 rounded-lg text-center text-xs font-medium">
-=======
               <div className="bg-slate-700 text-slate-200 py-2 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                 ✅ Session completed
               </div>
             </div>
@@ -691,11 +627,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'cancelled' && (
             <div className="mb-3">
-<<<<<<< HEAD
-              <div className="bg-red-100 text-red-700 py-2 px-3 rounded-lg text-center text-xs font-medium">
-=======
               <div className="bg-red-800 text-red-100 py-2 px-3 rounded-lg text-center text-xs font-medium">
->>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                 ❌ Request cancelled
               </div>
             </div>
