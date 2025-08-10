@@ -16,6 +16,50 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
   // Check if current user is the owner of this request
   const isOwner = currentUserId === request.userId || currentUserId === request.createdBy;
 
+  // Standardize field names for consistency
+  const requestData = {
+    ...request,
+    // User identification fields
+    userId: request.userId || request.createdBy,
+    createdBy: request.createdBy || request.userId,
+    
+    // User display fields
+    createdByName: request.createdByName || request.userName || request.name || 'Unknown User',
+    createdByAvatar: request.createdByAvatar || request.userAvatar || request.avatar || `https://ui-avatars.com/api/?name=${request.createdByName || request.userName || request.name || 'User'}&background=3b82f6&color=fff`,
+    
+    // Content fields
+    title: request.title || request.topic || 'Untitled Request',
+    description: request.description || request.message || '',
+    
+    // Group identification
+    targetGroupId: request.targetGroupId || request.groupId,
+    groupId: request.groupId || request.targetGroupId,
+    
+    // Arrays with defaults
+    votes: request.votes || [],
+    participants: request.participants || [],
+    paidParticipants: request.paidParticipants || [],
+    skills: request.skills || [],
+    
+    // Status and counts
+    status: request.status || 'pending',
+    voteCount: request.voteCount || request.votes?.length || 0,
+    participantCount: request.participantCount || request.participants?.length || 0,
+    
+    // Timestamps
+    createdAt: request.createdAt || request.timestamp,
+    updatedAt: request.updatedAt || request.modifiedAt || request.createdAt || request.timestamp,
+    
+    // Rate and payment
+    rate: request.rate || request.price || '25',
+    totalPaid: request.totalPaid || 0,
+    
+    // Additional fields
+    urgency: request.urgency || 'medium',
+    minParticipants: request.minParticipants || 3,
+    maxParticipants: request.maxParticipants || 10
+  };
+
   // Check permissions when component mounts or relevant data changes
   useEffect(() => {
     const checkPermissions = async () => {
@@ -32,8 +76,8 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
         setPermissions(prev => ({ ...prev, loading: true }));
 
         const [votePermission, participatePermission] = await Promise.all([
-          groupRequestService.canUserVoteAsync(request, currentUserId),
-          groupRequestService.canUserParticipateAsync(request, currentUserId)
+          groupRequestService.canUserVoteAsync(requestData, currentUserId),
+          groupRequestService.canUserParticipateAsync(requestData, currentUserId)
         ]);
 
         setPermissions({
@@ -52,7 +96,7 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
     };
 
     checkPermissions();
-  }, [currentUserId, request.id, request.status, isOwner]);
+  }, [currentUserId, requestData.id, requestData.status, isOwner]);
 
   // Handle input changes during editing
   const handleInputChange = (field, value) => {
@@ -87,8 +131,8 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
 
   // Change status quickly
   const handleStatusChange = (newStatus) => {
-    const updatedRequest = { ...request, status: newStatus };
-    onRequestUpdate(request.id, updatedRequest);
+    const updatedRequest = { ...requestData, status: newStatus };
+    onRequestUpdate(requestData.id, updatedRequest);
     setShowActions(false);
   };
 
@@ -100,33 +144,33 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
       setLoading(true);
       
       // First check if user can vote (including group membership)
-      const votePermission = await groupRequestService.canUserVoteAsync(request, currentUserId);
+      const votePermission = await groupRequestService.canUserVoteAsync(requestData, currentUserId);
       if (!votePermission.canVote) {
         alert(votePermission.reason);
         return;
       }
 
-      const hasVoted = request.votes?.includes(currentUserId);
-      const result = await groupRequestService.voteOnRequest(request.id, currentUserId, !hasVoted);
+      const hasVoted = requestData.votes?.includes(currentUserId);
+      const result = await groupRequestService.voteOnRequest(requestData.id, currentUserId, !hasVoted);
       
       if (result.success) {
         // Update the local state
         const newVotes = hasVoted 
-          ? request.votes?.filter(id => id !== currentUserId) || []
-          : [...(request.votes || []), currentUserId];
+          ? requestData.votes?.filter(id => id !== currentUserId) || []
+          : [...(requestData.votes || []), currentUserId];
         
         const updatedRequest = {
-          ...request,
+          ...requestData,
           votes: newVotes,
           voteCount: newVotes.length
         };
 
         // Auto-transition to voting_open if enough votes
-        if (newVotes.length >= 5 && request.status === 'pending') {
+        if (newVotes.length >= 5 && requestData.status === 'pending') {
           updatedRequest.status = 'voting_open';
         }
 
-        onRequestUpdate(request.id, updatedRequest);
+        onRequestUpdate(requestData.id, updatedRequest);
       } else {
         console.error('Voting failed:', result.message);
         alert(result.message);
@@ -147,35 +191,35 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
       setLoading(true);
       
       // First check if user can participate (including group membership)
-      const participationPermission = await groupRequestService.canUserParticipateAsync(request, currentUserId);
+      const participationPermission = await groupRequestService.canUserParticipateAsync(requestData, currentUserId);
       if (!participationPermission.canParticipate) {
         alert(participationPermission.reason);
         return;
       }
 
-      const isParticipating = request.participants?.includes(currentUserId);
+      const isParticipating = requestData.participants?.includes(currentUserId);
       const result = isParticipating 
-        ? await groupRequestService.leaveRequest(request.id, currentUserId)
-        : await groupRequestService.joinRequest(request.id, currentUserId);
+        ? await groupRequestService.leaveRequest(requestData.id, currentUserId)
+        : await groupRequestService.joinRequest(requestData.id, currentUserId);
       
       if (result.success) {
         // Update the local state
         const newParticipants = isParticipating
-          ? request.participants?.filter(id => id !== currentUserId) || []
-          : [...(request.participants || []), currentUserId];
+          ? requestData.participants?.filter(id => id !== currentUserId) || []
+          : [...(requestData.participants || []), currentUserId];
         
         const updatedRequest = {
-          ...request,
+          ...requestData,
           participants: newParticipants,
           participantCount: newParticipants.length
         };
 
         // Auto-approve if enough participants
-        if (newParticipants.length >= (request.minParticipants || 3) && request.status === 'voting_open') {
+        if (newParticipants.length >= (requestData.minParticipants || 3) && requestData.status === 'voting_open') {
           updatedRequest.status = 'accepted';
         }
 
-        onRequestUpdate(request.id, updatedRequest);
+        onRequestUpdate(requestData.id, updatedRequest);
       } else {
         console.error('Participation failed:', result.message);
         alert(result.message);
@@ -280,7 +324,7 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
-                  value={editedRequest.message || editedRequest.description || ''}
+                  value={editedRequest.description || editedRequest.message || ''}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={3}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -400,9 +444,9 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
                       key={status}
                       onClick={() => handleStatusChange(status)}
                       className={`w-full px-4 py-1 text-left text-xs hover:bg-gray-50 ${
-                          request.status === status ? 'bg-blue-50 text-blue-700' : ''
+                          requestData.status === status ? 'bg-blue-50 text-blue-700' : ''
                       }`}
-                      disabled={request.status === status}
+                      disabled={requestData.status === status}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
                   </button>
@@ -423,24 +467,24 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
             <img
-                src={request.avatar || request.createdByAvatar || `https://ui-avatars.com/api/?name=${request.name || request.createdByName}&background=3b82f6&color=fff`}
-                alt={request.name || request.createdByName || 'User'}
+                src={requestData.avatar || requestData.createdByAvatar || `https://ui-avatars.com/api/?name=${requestData.name || requestData.createdByName}&background=3b82f6&color=fff`}
+                alt={requestData.name || requestData.createdByName || 'User'}
                 className="w-12 h-12 rounded-full object-cover"
             />
             <div>
-              <h3 className="font-semibold text-lg text-gray-900">{request.title}</h3>
+              <h3 className="font-semibold text-lg text-gray-900">{requestData.title}</h3>
               <p className="text-sm text-gray-600">
-                {request.name || request.createdByName} • {formatTimeAgo(request.updatedAt || request.createdAt)}
+                {requestData.name || requestData.createdByName} • {formatTimeAgo(requestData.updatedAt || requestData.createdAt)}
               </p>
-              {request.groupName && (
-                  <p className="text-xs text-gray-500">in {request.groupName}</p>
+              {requestData.groupName && (
+                  <p className="text-xs text-gray-500">in {requestData.groupName}</p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {request.rate && (
+            {requestData.rate && (
                 <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium">
-              {request.rate}
+              {requestData.rate}
             </span>
             )}
             {isOwner && (
@@ -459,13 +503,13 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
 
         {/* Message */}
         <p className="text-gray-700 text-sm mb-4 line-clamp-3">
-          {request.message || request.description || 'No description provided'}
+          {requestData.description || 'No description provided'}
         </p>
 
         {/* Skills */}
-        {request.skills && request.skills.length > 0 && (
+        {requestData.skills && requestData.skills.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {request.skills.map((skill, index) => (
+              {requestData.skills.map((skill, index) => (
                   <span
                       key={index}
                       className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
@@ -478,23 +522,23 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
 
         {/* Metadata */}
         <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-          <span>Duration: {request.duration || 'Not specified'}</span>
-          <span>Category: {request.category || 'General'}</span>
+          <span>Duration: {requestData.duration || 'Not specified'}</span>
+          <span>Category: {requestData.category || 'General'}</span>
         </div>
 
         {/* Voting and Participation Section */}
-        {!isOwner && (request.status === 'pending' || request.status === 'voting_open') && (
+        {!isOwner && (requestData.status === 'pending' || requestData.status === 'voting_open') && (
           <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
-            {request.status === 'pending' && (
+            {requestData.status === 'pending' && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Needs Approval</span>
-                  <span className="text-sm text-gray-600">{request.voteCount || 0}/5 votes</span>
+                  <span className="text-sm text-gray-600">{requestData.voteCount || 0}/5 votes</span>
                 </div>
                 <div className="w-full bg-yellow-200 rounded-full h-2 mb-3">
                   <div
                     className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(((request.voteCount || 0) / 5) * 100, 100)}%` }}
+                    style={{ width: `${Math.min(((requestData.voteCount || 0) / 5) * 100, 100)}%` }}
                   />
                 </div>
                 {permissions.canVote && !permissions.loading && (
@@ -502,12 +546,12 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
                     onClick={handleVote}
                     disabled={loading}
                     className={`w-full py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
-                      request.votes?.includes(currentUserId)
+                      requestData.votes?.includes(currentUserId)
                         ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
                         : 'bg-yellow-500 text-white hover:bg-yellow-600'
                     } disabled:opacity-50`}
                   >
-                    {loading ? 'Processing...' : request.votes?.includes(currentUserId) ? '✓ Voted' : 'Vote to Approve'}
+                    {loading ? 'Processing...' : requestData.votes?.includes(currentUserId) ? '✓ Voted' : 'Vote to Approve'}
                   </button>
                 )}
                 {!permissions.canVote && !permissions.loading && !isOwner && (
@@ -518,11 +562,11 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
               </div>
             )}
 
-            {request.status === 'voting_open' && (
+            {requestData.status === 'voting_open' && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Open for Participation</span>
-                  <span className="text-sm text-gray-600">{request.participantCount || 0} joined</span>
+                  <span className="text-sm text-gray-600">{requestData.participantCount || 0} joined</span>
                 </div>
                 <div className="flex gap-2">
                   {permissions.canVote && !permissions.loading && (
@@ -530,12 +574,12 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
                       onClick={handleVote}
                       disabled={loading}
                       className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
-                        request.votes?.includes(currentUserId)
+                        requestData.votes?.includes(currentUserId)
                           ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
                           : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                       } disabled:opacity-50`}
                     >
-                      {request.votes?.includes(currentUserId) ? `❤️ ${request.voteCount || 0}` : `👍 Like (${request.voteCount || 0})`}
+                      {requestData.votes?.includes(currentUserId) ? `❤️ ${requestData.voteCount || 0}` : `👍 Like (${requestData.voteCount || 0})`}
                     </button>
                   )}
                   {permissions.canParticipate && !permissions.loading && (
@@ -543,12 +587,12 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
                       onClick={handleParticipation}
                       disabled={loading}
                       className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-colors ${
-                        request.participants?.includes(currentUserId)
+                        requestData.participants?.includes(currentUserId)
                           ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                           : 'bg-orange-500 text-white hover:bg-orange-600'
                       } disabled:opacity-50`}
                     >
-                      {loading ? '...' : request.participants?.includes(currentUserId) ? 'Leave' : 'Join Request'}
+                      {loading ? '...' : requestData.participants?.includes(currentUserId) ? 'Leave' : 'Join Request'}
                     </button>
                   )}
                   {(!permissions.canVote && !permissions.canParticipate) && !permissions.loading && !isOwner && (
@@ -563,37 +607,37 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
         )}
 
         {/* Payment Section */}
-        {!isOwner && request.status === 'accepted' && request.participants?.includes(currentUserId) && (
+        {!isOwner && requestData.status === 'accepted' && requestData.participants?.includes(currentUserId) && (
           <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
             <div className="text-center">
               <p className="text-sm text-green-700 font-medium">💰 Payment Required</p>
               <p className="text-xs text-green-600 mb-2">Session approved! Please complete payment to confirm your spot.</p>
               <button className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
-                Pay {request.rate || 'Now'}
+                Pay {requestData.rate || 'Now'}
               </button>
             </div>
           </div>
         )}
 
         {/* Status info for owner */}
-        {isOwner && (request.status === 'pending' || request.status === 'voting_open' || request.status === 'accepted') && (
+        {isOwner && (requestData.status === 'pending' || requestData.status === 'voting_open' || requestData.status === 'accepted') && (
           <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            {request.status === 'pending' && (
+            {requestData.status === 'pending' && (
               <div className="text-center">
                 <p className="text-sm text-blue-700 font-medium">⏳ Awaiting Community Approval</p>
-                <p className="text-xs text-blue-600">{request.voteCount || 0}/5 votes received</p>
+                <p className="text-xs text-blue-600">{requestData.voteCount || 0}/5 votes received</p>
               </div>
             )}
-            {request.status === 'voting_open' && (
+            {requestData.status === 'voting_open' && (
               <div className="text-center">
                 <p className="text-sm text-blue-700 font-medium">✅ Approved! Members Can Join</p>
-                <p className="text-xs text-blue-600">{request.participantCount || 0} members joined</p>
+                <p className="text-xs text-blue-600">{requestData.participantCount || 0} members joined</p>
               </div>
             )}
-            {request.status === 'accepted' && (
+            {requestData.status === 'accepted' && (
               <div className="text-center">
                 <p className="text-sm text-blue-700 font-medium">💰 Collecting Payments</p>
-                <p className="text-xs text-blue-600">{request.paidParticipants?.length || 0}/{request.participantCount || 0} participants paid</p>
+                <p className="text-xs text-blue-600">{requestData.paidParticipants?.length || 0}/{requestData.participantCount || 0} participants paid</p>
               </div>
             )}
           </div>
@@ -602,18 +646,18 @@ const RequestCard = ({ request, onRequestUpdate, currentUserId }) => {
         {/* Footer */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-          <span className={`text-xs px-2 py-1 rounded-full border ${getStatusStyle(request.status || 'active')}`}>
-            {(request.status || 'active').charAt(0).toUpperCase() + (request.status || 'active').slice(1)}
+          <span className={`text-xs px-2 py-1 rounded-full border ${getStatusStyle(requestData.status || 'active')}`}>
+            {(requestData.status || 'active').charAt(0).toUpperCase() + (requestData.status || 'active').slice(1)}
           </span>
-            {request.urgency && (
-                <span className={`text-xs px-2 py-1 rounded-full border ${getUrgencyStyle(request.urgency)}`}>
-              {request.urgency} priority
+            {requestData.urgency && (
+                <span className={`text-xs px-2 py-1 rounded-full border ${getUrgencyStyle(requestData.urgency)}`}>
+              {requestData.urgency} priority
             </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             <Link
-                to={`/requests/details/${request.id}`}
+                to={`/requests/details/${requestData.id}`}
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
             >
               View Details

@@ -82,7 +82,7 @@ export default function Profile() {
           const fallbackProfile = {
             ...user,
             displayName: user.name || "User",
-            bio: "Welcome to NetworkPro! Connect with like-minded professionals and grow your network.",
+            bio: "Welcome to Skill-Net! Connect with like-minded professionals and grow your network.",
             location: "Location not set",
             skills: ["React.js", "TypeScript"],
             interests: ["Web Development", "Programming"],
@@ -306,10 +306,10 @@ export default function Profile() {
   // Loading state
   if (loading && !userProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#1A202C]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
+          <p className="mt-4 text-[#A0AEC0]">Loading profile...</p>
         </div>
       </div>
     );
@@ -318,14 +318,14 @@ export default function Profile() {
   // Error state
   if (!userProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#1A202C]">
         <div className="text-center">
           <div className="text-red-500 text-xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Profile Not Found</h2>
-          <p className="text-gray-600 mb-4">{error || "Unable to load profile data"}</p>
+          <h2 className="text-xl font-semibold text-white mb-2">Profile Not Found</h2>
+          <p className="text-[#A0AEC0] mb-4">{error || "Unable to load profile data"}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="btn-gradient-primary px-4 py-2 rounded transition-all duration-200"
           >
             Retry
           </button>
@@ -335,23 +335,23 @@ export default function Profile() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-[#1A202C] min-h-screen">
       {/* Error Banner */}
       {error && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
+        <div className="bg-yellow-900/20 border border-yellow-500/30 text-yellow-400 px-4 py-3 rounded mb-6">
           <p className="text-sm">{error}</p>
         </div>
       )}
 
       {/* Profile Card */}
-      <section className="bg-white rounded-xl shadow p-6 flex flex-col gap-2 mb-6">
+      <section className="card-dark p-6 flex flex-col gap-2 mb-6">
         <div className="flex items-center gap-6">
           {/* Profile Picture with Upload */}
           <div className="relative">
             <img
               src={isEditing ? editForm.avatar : userProfile.avatar}
               alt={userProfile.displayName || "User"}
-              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow"
+              className="w-24 h-24 rounded-full object-cover border-4 border-[#4299E1] shadow-lg"
             />
 
             {/* Upload overlay */}
@@ -384,11 +384,11 @@ export default function Profile() {
                   type="text"
                   value={editForm.displayName}
                   onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
-                  className="font-bold text-2xl border-b-2 border-blue-500 focus:outline-none bg-transparent"
+                  className="font-bold text-2xl border-b-2 border-[#4299E1] focus:outline-none bg-transparent text-white"
                   placeholder="Your name"
                 />
               ) : (
-                <h2 className="font-bold text-2xl">{userProfile.displayName || "User"}</h2>
+                <h2 className="font-bold text-2xl text-white">{userProfile.displayName || "User"}</h2>
               )}
               <div className="ml-auto flex gap-2">
                 {isEditing ? (
@@ -402,7 +402,7 @@ export default function Profile() {
                     </button>
                     <button
                       onClick={handleEditToggle}
-                      className="border rounded px-3 py-1 text-xs font-semibold hover:bg-gray-100"
+                      className="border border-[#4A5568] rounded px-3 py-1 text-xs font-semibold hover:bg-[#2D3748] text-[#E0E0E0] transition-colors"
                     >
                       Cancel
                     </button>
@@ -410,14 +410,14 @@ export default function Profile() {
                 ) : (
                   <button
                     onClick={handleEditToggle}
-                    className="border rounded px-3 py-1 text-xs font-semibold hover:bg-gray-100"
+                    className="border border-[#4A5568] rounded px-3 py-1 text-xs font-semibold hover:bg-[#2D3748] text-[#E0E0E0] transition-colors"
                   >
                     Edit profile
                   </button>
                 )}
                 <Link
                   to="/Settings"
-                  className="border rounded px-3 py-1 text-xs font-semibold hover:bg-gray-100 transition-colors"
+                  className="border border-[#4A5568] rounded px-3 py-1 text-xs font-semibold hover:bg-[#2D3748] text-[#E0E0E0] transition-colors"
                 >
                   Settings
                 </Link>
@@ -429,27 +429,27 @@ export default function Profile() {
                 </button>
               </div>
             </div>
-            <div className="text-gray-500 text-sm">{userProfile.email}</div>
-            <div className="text-gray-400 text-xs flex items-center gap-2">
+            <div className="text-[#A0AEC0] text-sm">{userProfile.email}</div>
+            <div className="text-[#718096] text-xs flex items-center gap-2">
               @{userProfile.email?.split('@')[0] || 'user'} •
               {isEditing ? (
                 <input
                   type="text"
                   value={editForm.location}
                   onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                  className="border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent"
+                  className="border-b border-[#4A5568] focus:outline-none focus:border-[#4299E1] bg-transparent text-white"
                   placeholder="Your location"
                 />
               ) : (
-                <span>{userProfile.location}</span>
+                <span className="text-[#E0E0E0]">{userProfile.location}</span>
               )} • Member since {userProfile.memberSince}
             </div>
-            <div className="mt-2 text-gray-700 text-sm">
+            <div className="mt-2 text-[#E0E0E0] text-sm">
               {isEditing ? (
                 <textarea
                   value={editForm.bio}
                   onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
-                  className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:border-blue-500"
+                  className="input-dark w-full rounded p-2 focus:outline-none focus:border-[#4299E1]"
                   rows="3"
                   placeholder="Tell us about yourself..."
                 />
@@ -463,58 +463,58 @@ export default function Profile() {
 
       {/* Stats */}
       <section className="grid grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
+        <div className="card-dark p-6 flex flex-col items-center">
           <div className="text-yellow-500 text-2xl mb-1">★</div>
-          <div className="text-2xl font-bold">{stats.averageRating} <span className="text-yellow-500 text-lg">★</span></div>
-          <div className="text-gray-400 text-xs">{stats.totalRatings} ratings</div>
-          <div className="mt-2 text-xs text-gray-500 font-medium">Average Rating</div>
+          <div className="text-2xl font-bold text-white">{stats.averageRating} <span className="text-yellow-500 text-lg">★</span></div>
+          <div className="text-[#A0AEC0] text-xs">{stats.totalRatings} ratings</div>
+          <div className="mt-2 text-xs text-[#E0E0E0] font-medium">Average Rating</div>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
-          <div className="text-blue-500 text-2xl mb-1">📅</div>
-          <div className="text-2xl font-bold">{stats.upcomingSessions}</div>
-          <div className="text-gray-400 text-xs">Next 7 days</div>
-          <div className="mt-2 text-xs text-gray-500 font-medium">Upcoming Class Connects</div>
+        <div className="card-dark p-6 flex flex-col items-center">
+          <div className="text-[#4299E1] text-2xl mb-1">📅</div>
+          <div className="text-2xl font-bold text-white">{stats.upcomingSessions}</div>
+          <div className="text-[#A0AEC0] text-xs">Next 7 days</div>
+          <div className="mt-2 text-xs text-[#E0E0E0] font-medium">Upcoming Class Connects</div>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
+        <div className="card-dark p-6 flex flex-col items-center">
           <div className="text-green-500 text-2xl mb-1">✓</div>
-          <div className="text-2xl font-bold">{stats.completedRequests}</div>
-          <div className="text-gray-400 text-xs">All time</div>
-          <div className="mt-2 text-xs text-gray-500 font-medium">Requests Completed</div>
+          <div className="text-2xl font-bold text-white">{stats.completedRequests}</div>
+          <div className="text-[#A0AEC0] text-xs">All time</div>
+          <div className="mt-2 text-xs text-[#E0E0E0] font-medium">Requests Completed</div>
         </div>
       </section>
 
       {/* Friends & Skills */}
       <section className="grid grid-cols-2 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-4">
+        <div className="card-dark p-6 flex flex-col gap-4">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold">My Friends</h3>
-            <Link to="#" className="text-blue-600 text-xs font-medium">View All</Link>
+            <h3 className="font-semibold text-white">My Friends</h3>
+            <Link to="#" className="text-[#4299E1] text-xs font-medium hover:text-[#00BFFF] transition-colors">View All</Link>
           </div>
           <div className="flex flex-col gap-2">
             {friends.map((f, i) => (
               <div key={i} className="flex items-center gap-3">
                 <img src={f.avatar} alt={f.name} className="w-8 h-8 rounded-full object-cover" />
-                <span className="text-sm font-medium text-gray-700">{f.name}</span>
+                <span className="text-sm font-medium text-white">{f.name}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-4">
+        <div className="card-dark p-6 flex flex-col gap-4">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold">Skills & Interests</h3>
+            <h3 className="font-semibold text-white">Skills & Interests</h3>
           </div>
           <div>
-            <div className="font-semibold text-xs mb-1">Skills</div>
+            <div className="font-semibold text-xs mb-1 text-white">Skills</div>
             {isEditing ? (
               <div className="mb-2">
                 <div className="flex flex-wrap gap-2 mb-2">
                   {editForm.skills.map((skill, i) => (
-                    <span key={i} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                    <span key={i} className="bg-[#4A5568] text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 border border-[#718096]">
                       {skill}
                       <button
                         onClick={() => handleRemoveSkill(skill)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-400 hover:text-red-300 transition-colors"
                       >
                         ×
                       </button>
@@ -524,7 +524,7 @@ export default function Profile() {
                 <input
                   type="text"
                   placeholder="Add skill (press Enter)"
-                  className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+                  className="input-dark text-xs px-2 py-1 focus:outline-none focus:border-[#4299E1]"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleAddSkill(e.target.value);
@@ -536,21 +536,21 @@ export default function Profile() {
             ) : (
               <div className="flex flex-wrap gap-2 mb-2">
                 {userProfile.skills?.map((skill, i) => (
-                  <span key={i} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium">{skill}</span>
+                  <span key={i} className="bg-[#4A5568] text-white px-2 py-1 rounded text-xs font-medium border border-[#718096]">{skill}</span>
                 ))}
               </div>
             )}
 
-            <div className="font-semibold text-xs mb-1">Interests</div>
+            <div className="font-semibold text-xs mb-1 text-white">Interests</div>
             {isEditing ? (
               <div>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {editForm.interests.map((interest, i) => (
-                    <span key={i} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                    <span key={i} className="bg-[#4A5568] text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1 border border-[#718096]">
                       {interest}
                       <button
                         onClick={() => handleRemoveInterest(interest)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-400 hover:text-red-300 transition-colors"
                       >
                         ×
                       </button>
@@ -560,7 +560,7 @@ export default function Profile() {
                 <input
                   type="text"
                   placeholder="Add interest (press Enter)"
-                  className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500"
+                  className="input-dark text-xs px-2 py-1 focus:outline-none focus:border-[#4299E1]"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleAddInterest(e.target.value);
@@ -572,7 +572,7 @@ export default function Profile() {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {userProfile.interests?.map((interest, i) => (
-                  <span key={i} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium">{interest}</span>
+                  <span key={i} className="bg-[#4A5568] text-white px-2 py-1 rounded text-xs font-medium border border-[#718096]">{interest}</span>
                 ))}
               </div>
             )}
@@ -581,17 +581,17 @@ export default function Profile() {
       </section>
 
       {/* Weekly Activity */}
-      <section className="bg-white rounded-xl shadow p-6 flex flex-col gap-4 mb-6">
-        <h3 className="font-semibold mb-2">Weekly Activity Overview</h3>
-        <div className="text-xs text-gray-400 mb-2">Your interactions over the last 7 days.</div>
+      <section className="card-dark p-6 flex flex-col gap-4 mb-6">
+        <h3 className="font-semibold mb-2 text-white">Weekly Activity Overview</h3>
+        <div className="text-xs text-[#A0AEC0] mb-2">Your interactions over the last 7 days.</div>
         <div className="flex items-end gap-4 h-32">
           {weeklyActivity.map((val, i) => (
             <div key={i} className="flex flex-col items-center justify-end h-full">
               <div
-                className="w-8 rounded bg-blue-500"
+                className="w-8 rounded bg-gradient-to-t from-[#4299E1] to-[#00BFFF]"
                 style={{ height: `${val * 18}px` }}
               ></div>
-              <span className="text-xs text-gray-500 mt-1">{days[i]}</span>
+              <span className="text-xs text-[#E0E0E0] mt-1">{days[i]}</span>
             </div>
           ))}
         </div>

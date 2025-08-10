@@ -429,73 +429,89 @@ export default function HomePage() {
   // ======================================
   if (!isAuthenticated) {
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#1A202C]">
           {/* Hero Section */}
-          <section className="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 text-white">
-            <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-              <h1 className="text-5xl md:text-6xl font-bold mb-6">
-                Connect. Learn. <span className="text-yellow-300">Grow.</span>
-              </h1>
-              <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
-                Join the professional network that empowers peer-to-peer learning and meaningful connections
+          <section className="relative overflow-hidden">
+            {/* Background Image with Overlay */}
+            <div className="absolute inset-0 bg-[#1A202C]">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1A202C] via-[#2D3748] to-[#1A202C] opacity-90"></div>
+            </div>
+            
+            <div className="relative max-w-7xl mx-auto px-4 py-32 text-center">
+              {/* Small Text Above Headline */}
+              <p className="text-[#FFD700] text-sm font-medium uppercase tracking-wider mb-4">
+                MORE THAN A WEBSITE BUILDER
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              
+              {/* Main Headline with Gradient */}
+              <h1 className="text-6xl md:text-7xl font-bold mb-8 gradient-text leading-tight">
+                YOUR SITE SHOULD DO<br />
+                MORE THAN LOOK GOOD
+              </h1>
+              
+              {/* Description */}
+              <p className="text-xl md:text-2xl mb-12 text-white max-w-4xl mx-auto leading-relaxed">
+                Learn how to build stunning, fully responsive websites using the power of React 19 and Tailwind CSS v4 — from start to finish.
+              </p>
+              
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <Link
                     to="/signup"
-                    className="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
+                    className="btn-gradient-primary px-10 py-4 rounded-lg font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
-                  Get Started Free
+                  Login
                 </Link>
                 <Link
                     to="/login"
-                    className="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-blue-600 transition-colors"
+                    className="btn-secondary px-10 py-4 rounded-lg font-bold text-lg transition-all duration-300"
                 >
-                  Sign In
+                  Help
                 </Link>
               </div>
             </div>
           </section>
 
           {/* Platform Stats */}
-          <section className="py-16 bg-white">
+          <section className="py-20 bg-[#2D3748]">
             <div className="max-w-7xl mx-auto px-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                <div>
-                  <div className="text-3xl md:text-4xl font-bold text-blue-600 mb-2">{stats_public.users}</div>
-                  <div className="text-gray-600">Active Users</div>
+                <div className="card-dark p-6 hover:scale-105 transition-transform duration-300">
+                  <div className="text-4xl md:text-5xl font-bold gradient-text mb-3">{stats_public.users}</div>
+                  <div className="text-white font-medium">Active Users</div>
                 </div>
-                <div>
-                  <div className="text-3xl md:text-4xl font-bold text-purple-600 mb-2">{stats_public.groups}</div>
-                  <div className="text-gray-600">Learning Groups</div>
+                <div className="card-dark p-6 hover:scale-105 transition-transform duration-300">
+                  <div className="text-4xl md:text-5xl font-bold gradient-text mb-3">{stats_public.groups}</div>
+                  <div className="text-white font-medium">Learning Groups</div>
                 </div>
-                <div>
-                  <div className="text-3xl md:text-4xl font-bold text-green-600 mb-2">{stats_public.sessions}</div>
-                  <div className="text-gray-600">Sessions Completed</div>
+                <div className="card-dark p-6 hover:scale-105 transition-transform duration-300">
+                  <div className="text-4xl md:text-5xl font-bold gradient-text mb-3">{stats_public.sessions}</div>
+                  <div className="text-white font-medium">Sessions Completed</div>
                 </div>
-                <div>
-                  <div className="text-3xl md:text-4xl font-bold text-orange-600 mb-2">{stats_public.countries}</div>
-                  <div className="text-gray-600">Countries</div>
+                <div className="card-dark p-6 hover:scale-105 transition-transform duration-300">
+                  <div className="text-4xl md:text-5xl font-bold gradient-text mb-3">{stats_public.countries}</div>
+                  <div className="text-white font-medium">Countries</div>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Features Section */}
-          <section className="py-20 bg-gray-50">
+          <section className="py-20 bg-[#1A202C]">
             <div className="max-w-7xl mx-auto px-4">
               <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Skill-Net?</h2>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                <h2 className="text-4xl font-bold text-white mb-4">Why Choose Skill-Net?</h2>
+                <p className="text-xl text-[#E0E0E0] max-w-2xl mx-auto">
                   Everything you need to advance your career through meaningful connections and continuous learning
                 </p>
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {features.map((feature, index) => (
-                    <div key={index} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                      <div className="text-4xl mb-4">{feature.icon}</div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                      <p className="text-gray-600">{feature.description}</p>
+                    <div key={index} className="card-dark p-8 hover:scale-105 transition-all duration-300 group">
+                      <div className="text-5xl mb-6 group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
+                      <h3 className="text-xl font-bold text-white mb-4">{feature.title}</h3>
+                      <p className="text-[#E0E0E0] leading-relaxed">{feature.description}</p>
                     </div>
                 ))}
               </div>
@@ -503,28 +519,28 @@ export default function HomePage() {
           </section>
 
           {/* Testimonials */}
-          <section className="py-20 bg-white">
+          <section className="py-20 bg-[#2D3748]">
             <div className="max-w-7xl mx-auto px-4">
               <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">What Our Members Say</h2>
-                <p className="text-xl text-gray-600">Real stories from real professionals</p>
+                <h2 className="text-4xl font-bold text-white mb-4">What Our Members Say</h2>
+                <p className="text-xl text-[#E0E0E0]">Real stories from real professionals</p>
               </div>
 
               <div className="grid md:grid-cols-3 gap-8">
                 {testimonials.map((testimonial, index) => (
-                    <div key={index} className="bg-gray-50 rounded-xl p-6">
-                      <div className="flex items-center mb-4">
+                    <div key={index} className="card-dark p-8 hover:scale-105 transition-all duration-300">
+                      <div className="flex items-center mb-6">
                         <img
                             src={testimonial.avatar}
                             alt={testimonial.name}
-                            className="w-12 h-12 rounded-full mr-4"
+                            className="w-14 h-14 rounded-full mr-4 border-2 border-[#4299E1]"
                         />
                         <div>
-                          <div className="font-bold text-gray-900">{testimonial.name}</div>
-                          <div className="text-gray-600 text-sm">{testimonial.role}</div>
+                          <div className="font-bold text-white text-lg">{testimonial.name}</div>
+                          <div className="text-[#A0AEC0] text-sm">{testimonial.role}</div>
                         </div>
                       </div>
-                      <p className="text-gray-700 italic">"{testimonial.quote}"</p>
+                      <p className="text-[#E0E0E0] italic text-lg leading-relaxed">"{testimonial.quote}"</p>
                     </div>
                 ))}
               </div>
@@ -532,15 +548,16 @@ export default function HomePage() {
           </section>
 
           {/* CTA Section */}
-          <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-            <div className="max-w-4xl mx-auto px-4 text-center">
+          <section className="py-20 bg-gradient-to-r from-[#4299E1] to-[#8B5CF6] text-white relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1A202C] via-[#2D3748] to-[#1A202C] opacity-80"></div>
+            <div className="relative max-w-4xl mx-auto px-4 text-center">
               <h2 className="text-4xl font-bold mb-6">Ready to Transform Your Career?</h2>
-              <p className="text-xl mb-8 text-blue-100">
+              <p className="text-xl mb-8 text-[#E0E0E0]">
                 Join thousands of professionals who are already growing their networks and skills
               </p>
               <Link
                   to="/signup"
-                  className="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg inline-block"
+                  className="btn-gradient-primary px-10 py-4 rounded-lg font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl inline-block"
               >
                 Start Your Journey Today
               </Link>
@@ -556,32 +573,32 @@ export default function HomePage() {
   // AUTHENTICATED USER VIEW
   // ======================================
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#1A202C]">
         {/* Main Content */}
         <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col lg:flex-row gap-8">
           <div className="flex-1 flex flex-col gap-8">
             {/* Welcome Banner with Dynamic User Data */}
-            <section className="bg-white rounded-xl shadow p-8 flex flex-col items-center text-center mb-2">
+            <section className="card-dark p-8 flex flex-col items-center text-center mb-2">
               <div className="flex items-center gap-4 mb-4">
                 <img
                     src={userProfile?.avatar}
                     alt={userProfile?.displayName}
-                    className="w-16 h-16 rounded-full object-cover border-4 border-blue-100"
+                    className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1]"
                 />
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                  <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white">
                     Welcome Back, {userProfile?.displayName || 'User'}!
                   </h1>
-                  <p className="text-gray-500 text-sm">
+                  <p className="text-[#A0AEC0] text-sm">
                     {userProfile?.email}
                   </p>
                 </div>
               </div>
-              <p className="text-gray-500 mb-6">Connect. Collaborate. Grow. Your professional journey continues here.</p>
+              <p className="text-[#E0E0E0] mb-6">Connect. Collaborate. Grow. Your professional journey continues here.</p>
               <div className="flex gap-4">
                 <Link
                     to="/profile"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-blue-700 transition-colors"
+                    className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold transition-all duration-300"
                 >
                   View Profile
                 </Link>
@@ -589,36 +606,36 @@ export default function HomePage() {
             </section>
 
             {/* Recent Activities with Real Data */}
-            <section className="bg-white rounded-xl shadow p-6 mb-2">
+            <section className="card-dark p-6 mb-2">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Recent Activities</h2>
-                <Link to="/activities" className="text-blue-600 text-sm font-medium hover:underline">
+                <h2 className="text-xl font-bold text-white">Recent Activities</h2>
+                <Link to="/activities" className="text-[#4299E1] text-sm font-medium hover:underline">
                   View All
                 </Link>
               </div>
 
               {loadingActivities ? (
                   <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4299E1]"></div>
                   </div>
               ) : activities.length > 0 ? (
                   <ul className="flex flex-col gap-4">
                     {activities.map((activity) => (
-                        <li key={activity.id} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded">
+                        <li key={activity.id} className="flex items-center justify-between hover:bg-[#2D3748] p-3 rounded-lg transition-colors duration-200">
                           <div className="flex items-center gap-3">
                             <img
                                 src={activity.actorAvatar}
                                 alt={activity.actorName}
-                                className="w-8 h-8 rounded-full object-cover"
+                                className="w-8 h-8 rounded-full object-cover border border-[#4A5568]"
                             />
                             <div>
-                        <span>
-                          <b className="text-blue-700">{activity.actorName}</b> {activity.action}
+                        <span className="text-white">
+                          <b className="text-[#4299E1]">{activity.actorName}</b> <span className="text-[#E0E0E0]">{activity.action}</span>
                         </span>
                               {activity.description && (
-                                  <div className="text-gray-400 text-xs">{activity.description}</div>
+                                  <div className="text-[#A0AEC0] text-xs mt-1">{activity.description}</div>
                               )}
-                              <span className="text-gray-400 text-xs">
+                              <span className="text-[#A0AEC0] text-xs block mt-1">
                           {formatTimeAgo(activity.timestamp)}
                         </span>
                             </div>
@@ -626,7 +643,7 @@ export default function HomePage() {
                           {activity.actionable && (
                               <Link
                                   to={`/profile/${activity.actorId || '#'}`}
-                                  className="text-blue-600 text-sm font-medium hover:underline"
+                                  className="text-[#4299E1] text-sm font-medium hover:text-[#00BFFF] transition-colors"
                               >
                                 View Profile
                               </Link>
@@ -635,9 +652,9 @@ export default function HomePage() {
                     ))}
                   </ul>
               ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-[#A0AEC0]">
                     <p>No recent activities to show.</p>
-                    <Link to="/explore" className="text-blue-600 hover:underline">
+                    <Link to="/explore" className="text-[#4299E1] hover:text-[#00BFFF] transition-colors">
                       Explore the network to get started
                     </Link>
                   </div>
@@ -650,50 +667,50 @@ export default function HomePage() {
           {/* Right Sidebar */}
           <aside className="w-full lg:w-96 flex flex-col gap-8">
             {/* Enhanced Dashboard with Real Stats */}
-            <section className="bg-white rounded-xl shadow p-6 flex flex-col items-center mb-2">
-              <h3 className="text-base font-bold mb-4">My Dashboard</h3>
+            <section className="card-dark p-6 flex flex-col items-center mb-2">
+              <h3 className="text-base font-bold mb-4 text-white">My Dashboard</h3>
               <div className="grid grid-cols-2 gap-4 w-full text-center">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-700">{stats.connections.toLocaleString()}</div>
-                  <div className="text-gray-500 text-sm">Connections</div>
+                <div className="p-4 bg-gradient-to-br from-[#4299E1] to-[#00BFFF] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                  <div className="text-2xl font-bold">{stats.connections.toLocaleString()}</div>
+                  <div className="text-sm opacity-90">Connections</div>
                 </div>
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-700">{stats.groupsJoined}</div>
-                  <div className="text-gray-500 text-sm">Groups</div>
+                <div className="p-4 bg-gradient-to-br from-[#48BB78] to-[#38A169] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                  <div className="text-2xl font-bold">{stats.groupsJoined}</div>
+                  <div className="text-sm opacity-90">Groups</div>
                 </div>
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-700">{stats.postsLiked}</div>
-                  <div className="text-gray-500 text-sm">Posts Liked</div>
+                <div className="p-4 bg-gradient-to-br from-[#8B5CF6] to-[#A855F7] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                  <div className="text-2xl font-bold">{stats.postsLiked}</div>
+                  <div className="text-sm opacity-90">Posts Liked</div>
                 </div>
-                <div className="p-3 bg-orange-50 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-700">{stats.profileViews}</div>
-                  <div className="text-gray-500 text-sm">Profile Views</div>
+                <div className="p-4 bg-gradient-to-br from-[#ED8936] to-[#F56565] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                  <div className="text-2xl font-bold">{stats.profileViews}</div>
+                  <div className="text-sm opacity-90">Profile Views</div>
                 </div>
               </div>
             </section>
 
             {/* Interactive Suggested Groups */}
-            <section className="bg-white rounded-xl shadow p-6 mb-2">
-              <h3 className="text-base font-bold mb-4">Suggested Groups</h3>
+            <section className="card-dark p-6 mb-2">
+              <h3 className="text-base font-bold mb-4 text-white">Suggested Groups</h3>
               {suggestedGroups.length > 0 ? (
                   <div className="flex flex-col gap-4">
                     {suggestedGroups.slice(0, 4).map((group) => (
-                        <div key={group.id} className="flex gap-4 items-center">
+                        <div key={group.id} className="flex gap-4 items-center p-3 rounded-lg hover:bg-[#1A202C] transition-colors duration-200">
                           <img
                               src={group.image}
                               alt={group.name}
-                              className="w-16 h-16 rounded object-cover"
+                              className="w-16 h-16 rounded-lg object-cover border border-[#4A5568]"
                           />
                           <div className="flex-1">
-                            <div className="font-semibold text-sm">{group.name}</div>
-                            <div className="text-xs text-gray-500 mb-1">
+                            <div className="font-semibold text-sm text-white">{group.name}</div>
+                            <div className="text-xs text-[#A0AEC0] mb-1">
                               {group.members?.toLocaleString() || 0} Members
                             </div>
-                            <div className="text-xs text-gray-500 line-clamp-2">
+                            <div className="text-xs text-[#E0E0E0] line-clamp-2">
                               {group.description}
                             </div>
                             {group.category && (
-                                <span className="inline-block mt-1 px-2 py-1 bg-gray-100 text-xs rounded">
+                                <span className="inline-block mt-1 px-2 py-1 bg-[#4A5568] text-[#E0E0E0] text-xs rounded">
                           {group.category}
                         </span>
                             )}
@@ -701,7 +718,7 @@ export default function HomePage() {
                           <button
                               onClick={() => handleJoinGroup(group.id, group.name)}
                               disabled={joiningGroups.has(group.id)}
-                              className="bg-blue-600 text-white rounded px-4 py-2 font-medium text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="btn-gradient-primary px-4 py-2 font-medium text-xs transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {joiningGroups.has(group.id) ? 'Joining...' : 'Join Group'}
                           </button>
@@ -709,9 +726,9 @@ export default function HomePage() {
                     ))}
                   </div>
               ) : (
-                  <div className="text-center py-4 text-gray-500">
+                  <div className="text-center py-4 text-[#A0AEC0]">
                     <p>No new groups to suggest right now.</p>
-                    <Link to="/groups" className="text-blue-600 hover:underline text-sm">
+                    <Link to="/groups" className="text-[#4299E1] hover:text-[#00BFFF] transition-colors text-sm">
                       Browse all groups
                     </Link>
                   </div>

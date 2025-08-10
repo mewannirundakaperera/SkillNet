@@ -169,52 +169,52 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-[#1A202C]">
       <div className="max-w-6xl mx-auto py-12 px-6">
         {/* Enhanced Header */}
         <div className="mb-12">
           <div className="flex items-center gap-4 mb-6">
             <Link
               to="/groups"
-              className="p-3 text-gray-600 hover:text-gray-800 hover:bg-white rounded-xl transition-all duration-200 shadow-sm"
+              className="p-3 text-[#A0AEC0] hover:text-white hover:bg-[#2D3748] rounded-xl transition-all duration-200 shadow-sm"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </Link>
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">Create New Group</h1>
-              <p className="text-lg text-gray-600">Start a new community and connect with like-minded people</p>
+              <h1 className="text-4xl font-bold text-white mb-2">Create New Group</h1>
+              <p className="text-lg text-[#A0AEC0]">Start a new community and connect with like-minded people</p>
             </div>
           </div>
           
           {/* Progress indicator */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div className="card-dark p-6 shadow-sm border border-[#4A5568]">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 bg-[#2D3748] rounded-full flex items-center justify-center border border-[#4299E1]">
+                <svg className="w-5 h-5 text-[#4299E1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-800">Set up your group</h3>
-                <p className="text-sm text-gray-600">Fill in the details below to create your group</p>
+                <h3 className="font-semibold text-white">Set up your group</h3>
+                <p className="text-sm text-[#A0AEC0]">Fill in the details below to create your group</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Enhanced Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-10 border border-gray-200">
+        <form onSubmit={handleSubmit} className="card-dark rounded-2xl shadow-lg p-10 border border-[#4A5568]">
         {/* Error Display */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
             <div className="flex">
               <svg className="w-5 h-5 text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
               <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
+                <p className="text-sm text-red-400">{error}</p>
               </div>
             </div>
           </div>
@@ -222,13 +222,13 @@ export default function CreateGroup() {
 
         {/* Warning if image upload not available */}
         {!uploadGroupImageToCloudinary && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
             <div className="flex">
               <svg className="w-5 h-5 text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <div className="ml-3">
-                <p className="text-sm text-yellow-700">Image upload is currently unavailable. You can create the group without an image.</p>
+                <p className="text-sm text-yellow-400">Image upload is currently unavailable. You can create the group without an image.</p>
               </div>
             </div>
           </div>
@@ -239,7 +239,7 @@ export default function CreateGroup() {
           <div className="space-y-6">
             {/* Group Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-white mb-2">
                 Group Name *
               </label>
               <input
@@ -248,17 +248,17 @@ export default function CreateGroup() {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-dark w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
                 placeholder="Enter group name"
                 maxLength={50}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">{formData.name.length}/50 characters</p>
+              <p className="text-xs text-[#A0AEC0] mt-1">{formData.name.length}/50 characters</p>
             </div>
 
             {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-white mb-2">
                 Description *
               </label>
               <textarea
@@ -267,17 +267,17 @@ export default function CreateGroup() {
                 value={formData.description}
                 onChange={handleInputChange}
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-dark w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
                 placeholder="Describe what your group is about..."
                 maxLength={500}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">{formData.description.length}/500 characters</p>
+              <p className="text-xs text-[#A0AEC0] mt-1">{formData.description.length}/500 characters</p>
             </div>
 
             {/* Category */}
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="category" className="block text-sm font-medium text-white mb-2">
                 Category *
               </label>
               <select
@@ -285,7 +285,7 @@ export default function CreateGroup() {
                 name="category"
                 value={formData.category}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-dark w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
                 required
               >
                 <option value="">Select a category</option>
@@ -299,7 +299,7 @@ export default function CreateGroup() {
 
             {/* Tags */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 Tags (Optional)
               </label>
               <div className="flex gap-2 mb-2">
@@ -308,14 +308,14 @@ export default function CreateGroup() {
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyPress={handleTagKeyPress}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-dark flex-1 px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
                   placeholder="Add a tag..."
                   maxLength={20}
                 />
                 <button
                   type="button"
                   onClick={addTag}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="btn-gradient-primary px-4 py-2 rounded-lg transition-colors"
                 >
                   Add
                 </button>
@@ -324,20 +324,20 @@ export default function CreateGroup() {
                 {formData.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-[#2D3748] text-[#4299E1] rounded-full text-sm border border-[#4299E1]"
                   >
                     {tag}
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
-                      className="ml-1 text-blue-500 hover:text-blue-700"
+                      className="ml-1 text-[#4299E1] hover:text-[#00BFFF]"
                     >
                       ×
                     </button>
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-[#A0AEC0] mt-1">
                 {formData.tags.length}/10 tags • Max 20 characters per tag
               </p>
             </div>
@@ -347,11 +347,11 @@ export default function CreateGroup() {
           <div className="space-y-6">
             {/* Group Image */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 Group Image (Optional)
               </label>
               <div className={`border-2 border-dashed rounded-lg p-6 text-center relative ${
-                uploadGroupImageToCloudinary ? 'border-gray-300' : 'border-gray-200 bg-gray-50'
+                uploadGroupImageToCloudinary ? 'border-[#4299E1]' : 'border-[#4A5568] bg-[#2D3748]'
               }`}>
                 {imagePreview ? (
                   <div className="space-y-4">
@@ -366,20 +366,20 @@ export default function CreateGroup() {
                         setImageFile(null);
                         setImagePreview(null);
                       }}
-                      className="text-red-600 hover:text-red-700 text-sm"
+                      className="text-red-400 hover:text-red-300 text-sm"
                     >
                       Remove Image
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <svg className="w-12 h-12 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-12 h-12 text-[#A0AEC0] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <p className={`text-gray-600 ${!uploadGroupImageToCloudinary ? 'text-gray-400' : ''}`}>
+                    <p className={`text-[#E0E0E0] ${!uploadGroupImageToCloudinary ? 'text-[#718096]' : ''}`}>
                       {uploadGroupImageToCloudinary ? 'Click to upload group image' : 'Image upload unavailable'}
                     </p>
-                    <p className="text-xs text-gray-500">PNG, JPG up to 5MB</p>
+                    <p className="text-xs text-[#A0AEC0]">PNG, JPG up to 5MB</p>
                   </div>
                 )}
                 {uploadGroupImageToCloudinary && (
@@ -395,13 +395,13 @@ export default function CreateGroup() {
 
             {/* Group Settings */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Group Settings</h3>
+              <h3 className="text-lg font-medium text-white mb-4">Group Settings</h3>
               <div className="space-y-4">
                 {/* Public/Private */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700">Public Group</h4>
-                    <p className="text-xs text-gray-500">Anyone can find and join this group</p>
+                    <h4 className="text-sm font-medium text-white">Public Group</h4>
+                    <p className="text-xs text-[#A0AEC0]">Anyone can find and join this group</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -411,13 +411,13 @@ export default function CreateGroup() {
                       onChange={handleInputChange}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-[#4A5568] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4299E1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#4A5568] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4299E1]"></div>
                   </label>
                 </div>
 
                 {/* Max Members */}
                 <div>
-                  <label htmlFor="maxMembers" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="maxMembers" className="block text-sm font-medium text-white mb-1">
                     Maximum Members
                   </label>
                   <input
@@ -428,15 +428,15 @@ export default function CreateGroup() {
                     onChange={handleInputChange}
                     min={2}
                     max={1000}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-dark w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
                   />
                 </div>
 
                 {/* File Sharing */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700">Allow File Sharing</h4>
-                    <p className="text-xs text-gray-500">Members can share files and images</p>
+                    <h4 className="text-sm font-medium text-white">Allow File Sharing</h4>
+                    <p className="text-xs text-[#A0AEC0]">Members can share files and images</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -446,15 +446,15 @@ export default function CreateGroup() {
                       onChange={handleInputChange}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-[#4A5568] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4299E1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#4A5568] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4299E1]"></div>
                   </label>
                 </div>
 
                 {/* Voice Messages */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700">Allow Voice Messages</h4>
-                    <p className="text-xs text-gray-500">Members can send voice messages</p>
+                    <h4 className="text-sm font-medium text-white">Allow Voice Messages</h4>
+                    <p className="text-xs text-[#A0AEC0]">Members can send voice messages</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -464,7 +464,7 @@ export default function CreateGroup() {
                       onChange={handleInputChange}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-[#4A5568] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4299E1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#4A5568] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4299E1]"></div>
                   </label>
                 </div>
               </div>
@@ -472,7 +472,7 @@ export default function CreateGroup() {
 
             {/* Group Rules */}
             <div>
-              <label htmlFor="rules" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="rules" className="block text-sm font-medium text-white mb-2">
                 Group Rules (Optional)
               </label>
               <textarea
@@ -481,27 +481,27 @@ export default function CreateGroup() {
                 value={formData.rules}
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-dark w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
                 placeholder="Set guidelines for your group members..."
                 maxLength={1000}
               />
-              <p className="text-xs text-gray-500 mt-1">{formData.rules.length}/1000 characters</p>
+              <p className="text-xs text-[#A0AEC0] mt-1">{formData.rules.length}/1000 characters</p>
             </div>
           </div>
         </div>
 
         {/* Submit Buttons */}
-        <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+        <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-[#4A5568]">
           <Link
             to="/groups"
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-6 py-3 border border-[#4A5568] text-[#A0AEC0] rounded-lg hover:bg-[#2D3748] hover:text-white transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="btn-gradient-primary px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading && (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

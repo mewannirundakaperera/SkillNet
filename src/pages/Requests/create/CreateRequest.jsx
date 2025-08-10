@@ -565,7 +565,7 @@ export default function CreateRequest() {
 
         {/* Footer */}
         <footer className="text-xs text-gray-400 px-6 py-4 text-center border-t">
-          <div>© 2025 NetworkPro. All rights reserved.</div>
+          <div>© 2025 Skill-Net. All rights reserved.</div>
         </footer>
       </div>
   );

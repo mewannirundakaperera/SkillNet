@@ -204,51 +204,51 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
     switch (request.status) {
       case 'pending':
         return {
-          borderColor: 'border-yellow-300',
-          bgColor: 'bg-yellow-50',
-          statusColor: 'bg-yellow-100 text-yellow-800'
+          borderColor: 'border-yellow-500',
+          bgColor: 'bg-[#2D3748]',
+          statusColor: 'bg-yellow-900 text-yellow-400'
         };
       case 'voting_open':
         return {
-          borderColor: 'border-orange-300',
-          bgColor: 'bg-orange-50',
-          statusColor: 'bg-orange-100 text-orange-800'
+          borderColor: 'border-orange-500',
+          bgColor: 'bg-[#2D3748]',
+          statusColor: 'bg-orange-900 text-orange-400'
         };
-      case 'accepted':
-        return {
-          borderColor: 'border-green-300',
-          bgColor: 'bg-green-50',
-          statusColor: 'bg-green-100 text-green-800'
-        };
+                  case 'accepted':
+              return {
+                borderColor: 'border-green-500',
+                bgColor: 'bg-[#2D3748]',
+                statusColor: 'bg-green-900 text-green-400'
+              };
       case 'payment_complete':
         return {
-          borderColor: 'border-yellow-400',
-          bgColor: 'bg-gradient-to-br from-yellow-100 to-yellow-200',
-          statusColor: 'bg-yellow-200 text-yellow-900'
+          borderColor: 'border-yellow-500',
+          bgColor: 'bg-[#2D3748]',
+          statusColor: 'bg-yellow-800 text-yellow-300'
         };
       case 'in_progress':
         return {
-          borderColor: 'border-blue-400',
-          bgColor: 'bg-blue-50',
-          statusColor: 'bg-blue-100 text-blue-800'
+          borderColor: 'border-blue-500',
+          bgColor: 'bg-[#2D3748]',
+          statusColor: 'bg-blue-900 text-blue-400'
         };
       case 'completed':
         return {
-          borderColor: 'border-gray-600',
-          bgColor: 'bg-gray-900 text-white',
-          statusColor: 'bg-gray-700 text-gray-200'
+          borderColor: 'border-gray-500',
+          bgColor: 'bg-[#2D3748]',
+          statusColor: 'bg-[#4A5568] text-white'
         };
       case 'cancelled':
         return {
-          borderColor: 'border-red-400',
-          bgColor: 'bg-red-50',
-          statusColor: 'bg-red-100 text-red-800'
+          borderColor: 'border-red-500',
+          bgColor: 'bg-[#2D3748]',
+          statusColor: 'bg-red-900 text-red-400'
         };
       default:
         return {
-          borderColor: 'border-gray-200',
-          bgColor: 'bg-white',
-          statusColor: 'bg-gray-100 text-gray-700'
+          borderColor: 'border-[#4A5568]',
+          bgColor: 'bg-[#2D3748]',
+          statusColor: 'bg-[#4A5568] text-white'
         };
     }
   };
@@ -273,20 +273,20 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <h3 className={`font-semibold text-base line-clamp-1 ${request.status === 'completed' ? 'text-white' : 'text-gray-900'}`}>
+              <h3 className={`font-semibold text-base line-clamp-1 ${request.status === 'completed' ? 'text-white' : 'text-white'}`}>
                 {request.title}
               </h3>
-              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-600'}`}>
+              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-300' : 'text-[#E0E0E0]'}`}>
                 {isOwner ? '👑 Your Request' : request.createdByName || request.name}
               </p>
-              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-[#A0AEC0]'}`}>
                 in {request.groupName}
               </p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             {request.rate && (
-                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-medium">
+                <span className="text-xs bg-[#2D3748] text-[#4299E1] px-2 py-1 rounded-full font-medium border border-[#4299E1]">
               {request.rate}
             </span>
             )}
@@ -294,7 +294,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             {groupRequestService.getStatusDisplay(request.status).label}
           </span>
             {isOwner && (
-                <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">
+                <span className="text-xs bg-[#2D3748] text-[#8B5CF6] px-1.5 py-0.5 rounded-full font-medium border border-[#8B5CF6]">
               Owner
             </span>
             )}
@@ -302,7 +302,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         </div>
 
         {/* Description */}
-        <p className={`text-sm mb-3 line-clamp-2 ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-700'}`}>
+        <p className={`text-sm mb-3 line-clamp-2 ${request.status === 'completed' ? 'text-gray-300' : 'text-white'}`}>
           {request.description}
         </p>
 
@@ -315,14 +315,14 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                       className={`text-xs px-2 py-0.5 rounded-full border ${
                           request.status === 'completed'
                               ? 'bg-gray-800 text-gray-300 border-gray-600'
-                              : 'bg-white text-gray-700 border-gray-200'
+                              : 'bg-[#2D3748] text-white border-[#4A5568]'
                       }`}
                   >
               {skill}
             </span>
               ))}
               {request.skills.length > 3 && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-[#A0AEC0]">
                     +{request.skills.length - 3} more
                   </span>
               )}
@@ -333,10 +333,10 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'pending' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-xs font-medium text-white">
                   {isOwner ? 'Awaiting votes' : 'Needs votes'}
                 </span>
-                <span className="text-xs text-gray-600">{voteCount}/5</span>
+                <span className="text-xs text-[#A0AEC0]">{voteCount}/5</span>
               </div>
               <div className="w-full bg-yellow-200 rounded-full h-1.5 mb-2">
                 <div
@@ -368,10 +368,10 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'voting_open' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-xs font-medium text-white">
                   {isOwner ? 'Participants' : 'Join session'}
                 </span>
-                <span className="text-xs text-gray-600">{participantCount} joined</span>
+                <span className="text-xs text-[#A0AEC0]">{participantCount} joined</span>
               </div>
               <div className="flex gap-1">
                 {!isOwner && groupRequestService.canUserVote(request, currentUserId) && (
@@ -412,10 +412,10 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'accepted' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-xs font-medium text-white">
                   {isOwner ? 'Payment' : 'Payment required'}
                 </span>
-                <span className="text-xs text-gray-600">{paidCount}/{participantCount}</span>
+                <span className="text-xs text-[#A0AEC0]">{paidCount}/{participantCount}</span>
               </div>
               <div className="w-full bg-green-200 rounded-full h-1.5 mb-2">
                 <div
@@ -448,8 +448,8 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {/* Additional status blocks (payment_complete, in_progress, completed, cancelled) remain the same... */}
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
-          <div className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-[#4A5568]">
+          <div className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-[#A0AEC0]'}`}>
             {new Date(request.createdAt?.toDate?.() || request.createdAt).toLocaleDateString()}
           </div>
           <div className="flex items-center gap-1">
@@ -458,7 +458,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                 className={`text-xs font-medium hover:underline ${
                     request.status === 'completed'
                         ? 'text-gray-300 hover:text-white'
-                        : 'text-blue-600 hover:text-blue-800'
+                        : 'text-[#4299E1] hover:text-[#00BFFF]'
                 }`}
             >
               Details
@@ -466,7 +466,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             {isOwner && ['pending', 'voting_open', 'accepted'].includes(request.status) && (
                 <Link
                     to={`/requests/edit-group/${request.id}`}
-                    className="text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline ml-2"
+                    className="text-xs font-medium text-[#8B5CF6] hover:text-[#A78BFA] hover:underline ml-2"
                 >
                   Edit
                 </Link>
@@ -603,11 +603,11 @@ const GroupRequests = () => {
 
   if (loading) {
     return (
-        <div className="p-8">
+        <div className="p-8 bg-[#1A202C] min-h-screen">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading your group requests...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
+              <p className="mt-4 text-[#A0AEC0]">Loading your group requests...</p>
             </div>
           </div>
         </div>
@@ -616,16 +616,16 @@ const GroupRequests = () => {
 
   if (error) {
     return (
-        <div className="p-8">
+        <div className="p-8 bg-[#1A202C] min-h-screen">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
-              <div className="text-red-500 text-4xl mb-4">⚠️</div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">Error Loading Requests</h2>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <div className="text-red-400 text-4xl mb-4">⚠️</div>
+              <h2 className="text-xl font-semibold text-white mb-2">Error Loading Requests</h2>
+              <p className="text-[#A0AEC0] mb-4">{error}</p>
               <div className="flex gap-2 justify-center">
                 <button
                     onClick={() => window.location.reload()}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="btn-gradient-primary px-4 py-2 rounded"
                 >
                   Try Again
                 </button>
@@ -643,19 +643,19 @@ const GroupRequests = () => {
   }
 
   return (
-      <div className="p-8">
+      <div className="p-8 bg-[#1A202C] min-h-screen">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Group Requests</h1>
-              <p className="mt-2 text-sm text-gray-600">
+              <h1 className="text-3xl font-bold text-white">Group Requests</h1>
+              <p className="mt-2 text-sm text-[#A0AEC0]">
                 Browse and participate in group learning requests from your communities
               </p>
             </div>
             <Link
                 to="/group/create-group-request"
-                className="bg-blue-600 text-white rounded-lg px-6 py-3 font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="btn-gradient-primary rounded-lg px-6 py-3 font-semibold transition-colors flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -668,20 +668,20 @@ const GroupRequests = () => {
         {/* Status Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
           {[
-            { key: 'all', label: 'Total', color: 'bg-gray-100 text-gray-700' },
-            { key: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-700' },
-            { key: 'voting_open', label: 'Voting', color: 'bg-orange-100 text-orange-700' },
-            { key: 'accepted', label: 'Accepted', color: 'bg-green-100 text-green-700' },
-            { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-200 text-yellow-800' },
-            { key: 'in_progress', label: 'Live', color: 'bg-blue-100 text-blue-700' },
-            { key: 'completed', label: 'Done', color: 'bg-gray-200 text-gray-800' },
-            { key: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-700' }
+            { key: 'all', label: 'Total', color: 'bg-[#4A5568] text-white' },
+            { key: 'pending', label: 'Pending', color: 'bg-yellow-900 text-yellow-400' },
+            { key: 'voting_open', label: 'Voting', color: 'bg-orange-900 text-orange-400' },
+            { key: 'accepted', label: 'Accepted', color: 'bg-green-900 text-green-400' },
+            { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-800 text-yellow-300' },
+            { key: 'in_progress', label: 'Live', color: 'bg-blue-900 text-blue-400' },
+            { key: 'completed', label: 'Done', color: 'bg-[#2D3748] text-white' },
+            { key: 'cancelled', label: 'Cancelled', color: 'bg-red-900 text-red-400' }
           ].map(({ key, label, color }) => (
               <button
                   key={key}
                   onClick={() => setSelectedStatus(key)}
                   className={`p-3 rounded-lg text-center transition-colors ${
-                      selectedStatus === key ? `${color} ring-2 ring-blue-500` : `${color} hover:opacity-75`
+                      selectedStatus === key ? `${color} ring-2 ring-[#4299E1]` : `${color} hover:opacity-75`
                   }`}
               >
                 <div className="text-lg font-bold">{statusStats[key] || 0}</div>
@@ -691,27 +691,27 @@ const GroupRequests = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="card-dark p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <label className="block text-sm font-medium text-white mb-2">Search</label>
               <input
                   type="text"
                   placeholder="Search requests, skills, or groups..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-dark w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
               />
             </div>
 
             {/* Category Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-medium text-white mb-2">Category</label>
               <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-dark w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
               >
                 {categories.map(category => (
                     <option key={category} value={category}>
@@ -723,11 +723,11 @@ const GroupRequests = () => {
 
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-white mb-2">Status</label>
               <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-dark w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
               >
                 {statuses.map(status => (
                     <option key={status} value={status}>
@@ -741,7 +741,7 @@ const GroupRequests = () => {
 
         {/* Results Count */}
         <div className="mb-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[#A0AEC0]">
             Showing {filteredRequests.length} of {groupRequests.length} requests
           </p>
         </div>
@@ -761,13 +761,13 @@ const GroupRequests = () => {
         {/* Empty State */}
         {filteredRequests.length === 0 && !loading && (
             <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">
+              <div className="text-[#718096] text-6xl mb-4">
                 {groupRequests.length === 0 ? '📚' : '🔍'}
               </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              <h3 className="text-lg font-semibold text-white mb-2">
                 {groupRequests.length === 0 ? 'No group requests yet' : 'No requests found'}
               </h3>
-              <p className="text-gray-500 mb-4">
+              <p className="text-[#A0AEC0] mb-4">
                 {groupRequests.length === 0
                     ? "No group requests available in your communities yet. Join more groups or create the first request!"
                     : "Try adjusting your filters or search query to find more requests."
@@ -781,14 +781,14 @@ const GroupRequests = () => {
                           setSelectedCategory('all');
                           setSelectedStatus('all');
                         }}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-[#4299E1] hover:text-[#00BFFF] font-medium transition-colors"
                     >
                       Clear all filters
                     </button>
                 )}
                 <Link
                     to="/group/create-group-request"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    className="btn-gradient-primary px-4 py-2 rounded-lg font-medium transition-colors"
                 >
                   {groupRequests.length === 0 ? 'Create First Request' : 'Create New Request'}
                 </Link>

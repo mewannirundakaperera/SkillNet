@@ -74,7 +74,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
     }
   };
 
-  // Handle voting using service
+  // Handle voting using proper service method
   const handleVote = async () => {
     if (!currentUserId || loading) return;
 
@@ -82,42 +82,28 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
       setLoading(true);
       const hasVoted = request.votes?.includes(currentUserId);
 
-      // Note: You'd need to add vote handling to the service
-      // For now, we'll use a simple approach
-      let newVotes;
-      if (hasVoted) {
-        newVotes = request.votes?.filter(id => id !== currentUserId) || [];
-      } else {
-        newVotes = [...(request.votes || []), currentUserId];
-      }
-
-      const updateData = {
-        votes: newVotes,
-        voteCount: newVotes.length
-      };
-
-      // Auto-transition to voting_open if enough votes
-      if (newVotes.length >= 5 && request.status === 'pending') {
-        updateData.status = 'voting_open';
-      }
-
-      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      // Use the proper service method for voting
+      const result = await groupRequestService.voteOnRequest(request.id, currentUserId, !hasVoted);
+      
       if (result.success) {
-        onRequestUpdate?.(request.id, {
-          ...request,
-          votes: newVotes,
-          voteCount: newVotes.length,
-          status: updateData.status || request.status
-        });
+        // Get updated request data from service
+        const updatedRequest = await groupRequestService.getGroupRequestById(request.id);
+        if (updatedRequest) {
+          onRequestUpdate?.(request.id, updatedRequest);
+        }
+      } else {
+        console.error('Voting failed:', result.message);
+        alert(result.message);
       }
     } catch (error) {
       console.error('Error handling vote:', error);
+      alert('Failed to vote. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle participation using service
+  // Handle participation using proper service method
   const handleParticipation = async () => {
     if (!currentUserId || loading) return;
 
@@ -125,34 +111,24 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
       setLoading(true);
       const isParticipating = request.participants?.includes(currentUserId);
 
-      let newParticipants;
-      if (isParticipating) {
-        newParticipants = request.participants?.filter(id => id !== currentUserId) || [];
-      } else {
-        newParticipants = [...(request.participants || []), currentUserId];
-      }
-
-      const updateData = {
-        participants: newParticipants,
-        participantCount: newParticipants.length
-      };
-
-      // Auto-approve if enough participants
-      if (newParticipants.length >= (request.minParticipants || 3) && request.status === 'voting_open') {
-        updateData.status = 'accepted';
-      }
-
-      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      // Use the proper service method for participation
+      const result = isParticipating 
+        ? await groupRequestService.leaveRequest(request.id, currentUserId)
+        : await groupRequestService.joinRequest(request.id, currentUserId);
+      
       if (result.success) {
-        onRequestUpdate?.(request.id, {
-          ...request,
-          participants: newParticipants,
-          participantCount: newParticipants.length,
-          status: updateData.status || request.status
-        });
+        // Get updated request data from service
+        const updatedRequest = await groupRequestService.getGroupRequestById(request.id);
+        if (updatedRequest) {
+          onRequestUpdate?.(request.id, updatedRequest);
+        }
+      } else {
+        console.error('Participation failed:', result.message);
+        alert(result.message);
       }
     } catch (error) {
       console.error('Error handling participation:', error);
+      alert('Failed to update participation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -175,11 +151,9 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         totalPaid: (request.totalPaid || 0) + paymentAmount
       };
 
-      // Check if payment is complete
-      if (newPaidParticipants.length >= (request.participantCount || 1)) {
+      // Auto-transition to payment_complete if this is the first payment
+      if (newPaidParticipants.length === 1) {
         updateData.status = 'payment_complete';
-        // Schedule session for 1 hour from now (for demo)
-        updateData.scheduledDateTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       }
 
       const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
@@ -188,13 +162,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           ...request,
           paidParticipants: newPaidParticipants,
           totalPaid: updateData.totalPaid,
-          status: updateData.status || request.status,
-          scheduledDateTime: updateData.scheduledDateTime || request.scheduledDateTime
+          status: updateData.status || request.status
         });
-        alert('Payment successful!');
       }
     } catch (error) {
-      console.error('Error processing payment:', error);
+      console.error('Error handling payment:', error);
       alert('Payment failed. Please try again.');
     } finally {
       setLoading(false);
@@ -630,19 +602,46 @@ const AllGroupRequests = () => {
 
           return {
             ...request,
-            // Ensure required fields exist
+            // Standardize field names for consistency
+            // User identification fields
+            userId: request.userId || request.createdBy,
+            createdBy: request.createdBy || request.userId,
+            
+            // User display fields
+            createdByName: request.createdByName || request.userName || request.name || 'Unknown User',
+            createdByAvatar: request.createdByAvatar || request.userAvatar || request.avatar || `https://ui-avatars.com/api/?name=${request.createdByName || request.userName || request.name || 'User'}&background=3b82f6&color=fff`,
+            
+            // Content fields
+            title: request.title || request.topic || 'Untitled Request',
+            description: request.description || request.message || '',
+            
+            // Group identification
+            targetGroupId: request.targetGroupId || request.groupId,
+            groupId: request.groupId || request.targetGroupId,
+            
+            // Arrays with defaults
             votes: request.votes || [],
             participants: request.participants || [],
             paidParticipants: request.paidParticipants || [],
             skills: request.skills || [],
-            // Compatibility fields
-            name: request.createdByName || request.userName || 'Unknown User',
-            avatar: request.createdByAvatar || request.userAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`,
-            message: request.description || request.message || '',
-            // Ensure status exists
+            
+            // Status and counts
             status: request.status || 'pending',
             voteCount: request.voteCount || request.votes?.length || 0,
-            participantCount: request.participantCount || request.participants?.length || 0
+            participantCount: request.participantCount || request.participants?.length || 0,
+            
+            // Timestamps
+            createdAt: request.createdAt || request.timestamp,
+            updatedAt: request.updatedAt || request.modifiedAt || request.createdAt || request.timestamp,
+            
+            // Rate and payment
+            rate: request.rate || request.price || '25',
+            totalPaid: request.totalPaid || 0,
+            
+            // Additional fields
+            urgency: request.urgency || 'medium',
+            minParticipants: request.minParticipants || 3,
+            maxParticipants: request.maxParticipants || 10
           };
         });
 
@@ -828,15 +827,17 @@ const AllGroupRequests = () => {
 
   // Filter requests
   const filteredRequests = groupRequests.filter(request => {
-    const matchesCategory = selectedCategory === 'all' || request.category?.toLowerCase() === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || request.status === selectedStatus;
-    const matchesSearch = searchQuery === '' ||
-        request.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.createdByName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.skills?.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    return matchesCategory && matchesStatus && matchesSearch;
+    const searchLower = searchQuery.toLowerCase();
+    
+    return (
+      request.title?.toLowerCase().includes(searchLower) ||
+      request.description?.toLowerCase().includes(searchLower) ||
+      request.createdByName?.toLowerCase().includes(searchLower) ||
+      request.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
+      request.status?.toLowerCase().includes(searchLower) ||
+      request.urgency?.toLowerCase().includes(searchLower) ||
+      request.rate?.toLowerCase().includes(searchLower)
+    );
   });
 
   // Get status statistics

@@ -379,8 +379,11 @@ export default function IntelligentNavbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <img src="/vite.svg" alt="Logo" className="h-8 w-8" />
-            <span className="font-bold text-xl text-indigo-700">Skill-Net</span>
+            <img src="/brain-logo.png" alt="Logo" className="h-8 w-8" />
+            <div className="flex items-center">
+              <span className="font-bold text-xl text-blue-500">Skill</span>
+              <span className="font-bold text-xl text-white">-net</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}

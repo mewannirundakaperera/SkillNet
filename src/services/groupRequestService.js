@@ -83,6 +83,38 @@ export const groupRequestService = {
     },
 
     /**
+     * Get a single group request by ID
+     * @param {string} requestId
+     * @returns {Promise<Object|null>} Request document or null if not found
+     */
+    async getGroupRequestById(requestId) {
+        try {
+            console.log('🔍 Getting group request by ID:', requestId);
+
+            if (!requestId) {
+                console.log('⚠️ No requestId provided to getGroupRequestById');
+                return null;
+            }
+
+            const requestRef = doc(db, 'grouprequests', requestId);
+            const requestSnap = await getDoc(requestRef);
+
+            if (!requestSnap.exists()) {
+                console.log('⚠️ Request not found:', requestId);
+                return null;
+            }
+
+            const requestData = { id: requestSnap.id, ...requestSnap.data() };
+            console.log('✅ Request found:', requestData.title);
+            return requestData;
+
+        } catch (error) {
+            console.error('❌ Error getting group request by ID:', error);
+            return null;
+        }
+    },
+
+    /**
      * Get all group requests accessible to a user, handling Firestore rule restrictions
      * @param {Object} params
      * @param {string} params.userId - Current user ID
@@ -406,9 +438,28 @@ export const groupRequestService = {
                 userId: requestData.userId
             });
 
-            // Check ownership
-            if (requestData.userId !== userId && requestData.createdBy !== userId) {
-                return { success: false, message: 'You can only update your own requests' };
+            // Check if user is the owner
+            const isOwner = requestData.userId === userId || requestData.createdBy === userId;
+
+            // If not owner, check if user is updating allowed fields
+            if (!isOwner) {
+                const allowedFields = ['votes', 'participants', 'paidParticipants', 'voteCount', 'participantCount', 'totalPaid', 'conferenceLink'];
+                const requestedFields = Object.keys(updateData);
+                
+                // Check if all requested fields are allowed for non-owners
+                const hasUnauthorizedFields = requestedFields.some(field => !allowedFields.includes(field));
+                
+                if (hasUnauthorizedFields) {
+                    return { success: false, message: 'You can only update certain fields on requests you did not create' };
+                }
+
+                // For non-owners, verify they are a member of the target group
+                const userGroups = await this.getUserGroups(userId);
+                const targetGroupId = requestData.targetGroupId || requestData.groupId;
+                
+                if (!targetGroupId || !userGroups.includes(targetGroupId)) {
+                    return { success: false, message: 'You must be a member of this group to update the request' };
+                }
             }
 
             const finalUpdateData = {

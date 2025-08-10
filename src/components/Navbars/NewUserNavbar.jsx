@@ -7,8 +7,11 @@ export default function NewUserNavbar() {
   return (
     <nav className="bg-white shadow px-4 py-4 md:px-8 flex items-center justify-between relative">
       <div className="flex items-center gap-2">
-        <img src="/vite.svg" alt="Logo" className="h-8 w-8" />
-        <span className="font-bold text-xl text-indigo-700">Skillnet</span>
+        <img src="/brain-logo.png" alt="Logo" className="h-8 w-8" />
+        <div className="flex items-center">
+          <span className="font-bold text-xl text-blue-500">Skill</span>
+          <span className="font-bold text-xl text-white">net</span>
+        </div>
       </div>
     
       <div className="hidden md:flex gap-4">

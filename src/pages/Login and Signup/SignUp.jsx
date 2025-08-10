@@ -140,7 +140,7 @@ export default function SignUp() {
             email: email.trim(),
             displayName: displayName,
             name: displayName, // For compatibility
-            bio: `Hello! I'm ${firstName}, welcome to connect with me on NetworkPro.`,
+            bio: `Hello! I'm ${firstName}, welcome to connect with me on Skill-Net.`,
             location: "",
             skills: [],
             interests: [],
@@ -189,18 +189,18 @@ export default function SignUp() {
       </div>
 
       {/* Right Side Form */}
-      <div className="w-full md:w-3/5 flex items-center justify-center bg-white px-8 py-12">
+      <div className="w-full md:w-3/5 flex items-center justify-center bg-[#1A202C] px-8 py-12">
         <div className="w-auto max-w-lg">
           {/* Top login link */}
-          <div className="text-right mb-6 text-sm text-[#171A1F]">
+          <div className="text-right mb-6 text-sm text-[#E0E0E0]">
             Already have an account?{" "}
-            <a href="/login" className="underline hover:text-[#636AE8]">
+            <a href="/login" className="underline hover:text-[#4299E1] transition-colors">
               Log in
             </a>
           </div>
 
           {/* Heading */}
-          <h2 className="text-[32px] leading-[48px] font-bold text-[#2e349a] mb-8">
+          <h2 className="text-[32px] leading-[48px] font-bold text-[#4299E1] mb-8">
             Sign up
           </h2>
 
@@ -218,14 +218,14 @@ export default function SignUp() {
 
           {/* Divider */}
           <div className="flex items-center my-6">
-            <hr className="flex-grow border-gray-300" />
-            <span className="mx-2 text-gray-400">OR</span>
-            <hr className="flex-grow border-gray-300" />
+            <hr className="flex-grow border-[#4A5568]" />
+            <span className="mx-2 text-[#A0AEC0]">OR</span>
+            <hr className="flex-grow border-[#4A5568]" />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div className="mb-4 p-3 bg-red-900/20 border border-red-500/30 text-red-400 rounded">
               {error}
             </div>
           )}
@@ -234,7 +234,7 @@ export default function SignUp() {
           <form onSubmit={handleSignUp} className="space-y-px">
             <div className="grid grid-cols-2 gap-px mb-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label className="text-sm font-medium text-white mb-1 flex items-center">
                   <FiUser className="mr-2" />
                   First Name
                 </label>
@@ -245,16 +245,16 @@ export default function SignUp() {
                   placeholder="John"
                   required
                   disabled={loading}
-                  className={`w-full h-[29px] px-3 text-center text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px] border outline-none hover:text-[#BDC1CA] focus:text-[#000000] focus:bg-white ${
-                    validationErrors.firstName ? 'border-red-500' : 'border-gray-300'
+                  className={`input-dark w-full h-[29px] px-3 text-center text-[18px] leading-[28px] rounded-[6px] outline-none hover:text-[#A0AEC0] focus:text-white focus:bg-[#2D3748] ${
+                    validationErrors.firstName ? 'border-red-500' : 'border-[#4A5568]'
                   }`}
                 />
                 {validationErrors.firstName && (
-                  <p className="text-red-500 text-xs mt-1">{validationErrors.firstName}</p>
+                  <p className="text-red-400 text-xs mt-1">{validationErrors.firstName}</p>
                 )}
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label className="text-sm font-medium text-white mb-1 flex items-center">
                   <FiUser className="mr-2" />
                   Last Name
                 </label>
@@ -265,18 +265,18 @@ export default function SignUp() {
                   placeholder="Doe"
                   required
                   disabled={loading}
-                  className={`w-full h-[29px] px-3 text-center text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px] border outline-none hover:text-[#BDC1CA] focus:text-[#000000] focus:bg-white ${
-                    validationErrors.lastName ? 'border-red-500' : 'border-gray-300'
+                  className={`input-dark w-full h-[29px] px-3 text-center text-[18px] leading-[28px] rounded-[6px] outline-none hover:text-[#A0AEC0] focus:text-white focus:bg-[#2D3748] ${
+                    validationErrors.lastName ? 'border-red-500' : 'border-[#4A5568]'
                   }`}
                 />
                 {validationErrors.lastName && (
-                  <p className="text-red-500 text-xs mt-1">{validationErrors.lastName}</p>
+                  <p className="text-red-400 text-xs mt-1">{validationErrors.lastName}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <label className="text-sm font-medium text-white mb-1 flex items-center">
                 <FiMail className="mr-2" />
                 Email
               </label>
@@ -287,17 +287,17 @@ export default function SignUp() {
                 placeholder="example.email@gmail.com"
                 required
                 disabled={loading}
-                className={`w-full h-[29px] px-3 text-center text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px] border outline-none hover:text-[#BDC1CA] focus:text-[#070708] focus:bg-white ${
-                  validationErrors.email ? 'border-red-500' : 'border-gray-300'
+                className={`input-dark w-full h-[29px] px-3 text-center text-[18px] leading-[28px] rounded-[6px] outline-none hover:text-[#A0AEC0] focus:text-white focus:bg-[#2D3748] ${
+                  validationErrors.email ? 'border-red-500' : 'border-[#4A5568]'
                 }`}
               />
               {validationErrors.email && (
-                <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+                <p className="text-red-400 text-xs mt-1">{validationErrors.email}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <label className="block text-sm font-medium text-white mb-1 flex items-center">
                 <FiLock className="mr-2" />
                 Password
               </label>
@@ -310,13 +310,13 @@ export default function SignUp() {
                   minLength={8}
                   required
                   disabled={loading}
-                  className={`w-full h-[29px] pl-3 pr-10 font-inter text-[18px] leading-[28px] bg-[#F3F4F6] rounded-[6px] border outline-none hover:text-[#BDC1CA] focus:text-[#000000] focus:bg-white text-center ${
-                    validationErrors.password ? 'border-red-500' : 'border-gray-300'
+                  className={`input-dark w-full h-[29px] pl-3 pr-10 font-inter text-[18px] leading-[28px] rounded-[6px] outline-none hover:text-[#A0AEC0] focus:text-white focus:bg-[#2D3748] text-center ${
+                    validationErrors.password ? 'border-red-500' : 'border-[#4A5568]'
                   }`}
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-2.5 text-[#A0AEC0] hover:text-[#E0E0E0] transition-colors"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={loading}
@@ -333,13 +333,13 @@ export default function SignUp() {
                 </button>
               </div>
               {validationErrors.password && (
-                <p className="text-red-500 text-xs mt-1">{validationErrors.password}</p>
+                <p className="text-red-400 text-xs mt-1">{validationErrors.password}</p>
               )}
 
               {/* Password Strength Indicator */}
               {password && (
                 <div className="mt-2">
-                  <div className="text-xs text-gray-600 mb-1">Password strength:</div>
+                  <div className="text-xs text-[#A0AEC0] mb-1">Password strength:</div>
                   <div className="flex gap-1">
                     {[...Array(4)].map((_, i) => {
                       const strength = getPasswordStrength(password);
@@ -353,15 +353,15 @@ export default function SignUp() {
                                 : strength === 2
                                 ? 'bg-yellow-500'
                                 : strength === 3
-                                ? 'bg-blue-500'
+                                ? 'bg-[#4299E1]'
                                 : 'bg-green-500'
-                              : 'bg-gray-200'
+                              : 'bg-[#4A5568]'
                           }`}
                         />
                       );
                     })}
                   </div>
-                  <div className="text-xs mt-1">
+                  <div className="text-xs mt-1 text-[#E0E0E0]">
                     {getPasswordStrengthText(getPasswordStrength(password))}
                   </div>
                 </div>
@@ -369,25 +369,25 @@ export default function SignUp() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 space-y-px">
+              <label className="block text-sm font-medium text-white mb-1 space-y-px">
                 Upload University Registration Letter
               </label>
               <label
                 htmlFor="file-upload"
-                className={`flex flex-col items-center justify-center w-full p-6 border border-dashed rounded-[6px] cursor-pointer hover:border-blue-500 transition ${
-                  validationErrors.file ? 'border-red-500' : 'border-gray-400'
+                className={`flex flex-col items-center justify-center w-full p-6 border border-dashed rounded-[6px] cursor-pointer hover:border-[#4299E1] transition-colors ${
+                  validationErrors.file ? 'border-red-500' : 'border-[#4A5568]'
                 }`}
               >
-                <HiOutlineUpload className="w-8 h-8 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-400 text-center">
+                <HiOutlineUpload className="w-8 h-8 text-[#A0AEC0] mb-2" />
+                <p className="text-sm text-[#A0AEC0] text-center">
                   <span className="font-medium">Drag and drop</span> or{" "}
                   <span className="font-medium">browse</span> files
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-[#718096] mt-1">
                   PDF, JPEG, JPG, PNG (Max 5MB)
                 </p>
                 {file && (
-                  <p className="mt-2 text-sm text-gray-900 font-medium">
+                  <p className="mt-2 text-sm text-white font-medium">
                     {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
                   </p>
                 )}
@@ -401,7 +401,7 @@ export default function SignUp() {
                 />
               </label>
               {validationErrors.file && (
-                <p className="text-red-500 text-xs mt-1">{validationErrors.file}</p>
+                <p className="text-red-400 text-xs mt-1">{validationErrors.file}</p>
               )}
             </div>
 
@@ -412,19 +412,19 @@ export default function SignUp() {
                   type="checkbox"
                   required
                   disabled={loading}
-                  className="w-5 h-5 rounded border-gray-300 focus:ring-blue-500"
+                  className="w-5 h-5 rounded border-[#4A5568] focus:ring-[#4299E1] text-[#4299E1]"
                 />
               </div>
               <label
                 htmlFor="terms"
-                className="ml-2 text-sm text-gray-700 cursor-pointer"
+                className="ml-2 text-sm text-white cursor-pointer"
               >
                 By signing up, I agree with the{" "}
-                <a href="#" className="text-blue-600 underline">
+                <a href="#" className="text-[#4299E1] underline hover:text-[#00BFFF] transition-colors">
                   Terms of Use
                 </a>{" "}
                 &{" "}
-                <a href="#" className="text-blue-600 underline">
+                <a href="#" className="text-[#4299E1] underline hover:text-[#00BFFF] transition-colors">
                   Privacy Policy
                 </a>
               </label>
@@ -432,7 +432,7 @@ export default function SignUp() {
 
             <button
               type="submit"
-              className="w-full h-[52px] px-5 mt-6 flex items-center justify-center text-[18px] leading-[28px] font-medium text-[#FFFFFF] bg-[#636AE8] hover:bg-[#4850E4] active:bg-[#2C35E0] rounded-[6px] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-gradient-primary w-full h-[52px] px-5 mt-6 flex items-center justify-center text-[18px] leading-[28px] font-medium rounded-[6px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             >
               {loading ? (
