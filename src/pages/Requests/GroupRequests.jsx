@@ -319,50 +319,50 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
       case 'pending':
         return {
           borderColor: 'border-yellow-300',
-          bgColor: 'bg-yellow-50',
-          statusColor: 'bg-yellow-100 text-yellow-800'
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-yellow-900 text-yellow-200'
         };
       case 'voting_open':
         return {
           borderColor: 'border-orange-300',
-          bgColor: 'bg-orange-50',
-          statusColor: 'bg-orange-100 text-orange-800'
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-orange-900 text-orange-200'
         };
       case 'accepted':
         return {
           borderColor: 'border-green-300',
-          bgColor: 'bg-green-50',
-          statusColor: 'bg-green-100 text-green-800'
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-green-900 text-green-200'
         };
       case 'payment_complete':
         return {
           borderColor: 'border-yellow-400',
-          bgColor: 'bg-gradient-to-br from-yellow-100 to-yellow-200',
-          statusColor: 'bg-yellow-200 text-yellow-900'
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-yellow-800 text-yellow-100'
         };
       case 'in_progress':
         return {
           borderColor: 'border-blue-400',
-          bgColor: 'bg-blue-50',
-          statusColor: 'bg-blue-100 text-blue-800'
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-blue-900 text-blue-200'
         };
       case 'completed':
         return {
-          borderColor: 'border-gray-600',
-          bgColor: 'bg-gray-900 text-white',
-          statusColor: 'bg-gray-700 text-gray-200'
+          borderColor: 'border-slate-600',
+          bgColor: 'bg-slate-800 text-white',
+          statusColor: 'bg-slate-700 text-slate-200'
         };
       case 'cancelled':
         return {
           borderColor: 'border-red-400',
-          bgColor: 'bg-red-50',
-          statusColor: 'bg-red-100 text-red-800'
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-red-900 text-red-200'
         };
       default:
         return {
-          borderColor: 'border-gray-200',
-          bgColor: 'bg-white',
-          statusColor: 'bg-gray-100 text-gray-700'
+          borderColor: 'border-slate-700',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-slate-700 text-slate-200'
         };
     }
   };
@@ -380,20 +380,20 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <h3 className={`font-semibold text-base line-clamp-1 ${request.status === 'completed' ? 'text-white' : 'text-gray-900'}`}>
+              <h3 className={`font-semibold text-base line-clamp-1 text-white`}>
                 {request.title}
               </h3>
-              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-600'}`}>
+              <p className={`text-xs text-slate-300`}>
                 {isOwner ? '👑 Your Request' : request.createdByName || request.name}
               </p>
-              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p className={`text-xs text-slate-400`}>
                 in {request.groupName}
               </p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             {request.rate && (
-                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-medium">
+                <span className="text-xs bg-blue-900 text-blue-200 px-2 py-1 rounded-full font-medium">
               {request.rate}
             </span>
             )}
@@ -401,7 +401,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             {groupRequestService.getStatusDisplay(request.status).label}
           </span>
             {isOwner && (
-                <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">
+                <span className="text-xs bg-purple-900 text-purple-200 px-1.5 py-0.5 rounded-full font-medium">
               Owner
             </span>
             )}
@@ -409,7 +409,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         </div>
 
         {/* Description */}
-        <p className={`text-sm mb-3 line-clamp-2 ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-700'}`}>
+        <p className={`text-sm mb-3 line-clamp-2 text-slate-300`}>
           {request.description}
         </p>
 
@@ -419,17 +419,13 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
               {request.skills.slice(0, 3).map((skill, index) => (
                   <span
                       key={index}
-                      className={`text-xs px-2 py-0.5 rounded-full border ${
-                          request.status === 'completed'
-                              ? 'bg-gray-800 text-gray-300 border-gray-600'
-                              : 'bg-white text-gray-700 border-gray-200'
-                      }`}
+                      className={`text-xs px-2 py-0.5 rounded-full border bg-slate-700 text-slate-200 border-slate-600`}
                   >
               {skill}
             </span>
               ))}
               {request.skills.length > 3 && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-slate-400">
                     +{request.skills.length - 3} more
                   </span>
               )}
@@ -440,12 +436,16 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'pending' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
+<<<<<<< HEAD
                 <span className="text-xs font-medium text-gray-700">
+=======
+                <span className="text-xs font-medium text-slate-200">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                   {isOwner ? 'Awaiting community votes' : 'Community voting'}
                 </span>
-                <span className="text-xs text-gray-600">{voteCount}/5</span>
+                <span className="text-xs text-slate-300">{voteCount}/5</span>
               </div>
-              <div className="w-full bg-yellow-200 rounded-full h-1.5 mb-2">
+              <div className="w-full bg-yellow-800 rounded-full h-1.5 mb-2">
                 <div
                     className="bg-yellow-500 h-1.5 rounded-full transition-all duration-300"
                     style={{ width: `${Math.min((voteCount / 5) * 100, 100)}%` }}
@@ -465,28 +465,44 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
               {/* Already voted */}
               {!isOwner && hasVoted && (
+<<<<<<< HEAD
                   <div className="w-full bg-yellow-200 text-yellow-800 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+=======
+                  <div className="w-full bg-yellow-800 text-yellow-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     ✓ You voted to approve
                   </div>
               )}
 
               {/* Owner view */}
               {isOwner && (
+<<<<<<< HEAD
                   <div className="bg-yellow-100 text-yellow-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+=======
+                  <div className="bg-yellow-800 text-yellow-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     ⏳ Waiting for community approval ({voteCount}/5)
                   </div>
               )}
 
               {/* Cannot vote (not group member) */}
               {!permissions.canVote && !permissions.isLoading && !isOwner && !hasVoted && (
+<<<<<<< HEAD
                   <div className="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+=======
+                  <div className="bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     ❌ Cannot vote (not a group member)
                   </div>
               )}
 
               {/* Loading permissions */}
               {permissions.isLoading && !isOwner && (
+<<<<<<< HEAD
                   <div className="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+=======
+                  <div className="bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     🔄 Checking permissions...
                   </div>
               )}
@@ -496,10 +512,14 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'voting_open' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
+<<<<<<< HEAD
                 <span className="text-xs font-medium text-gray-700">
+=======
+                <span className="text-xs font-medium text-slate-200">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                   Join this session
                 </span>
-                <span className="text-xs text-gray-600">{participantCount} joined</span>
+                <span className="text-xs text-slate-300">{participantCount} joined</span>
               </div>
 
               {/* ✅ FIXED: Participation button - anyone can join including owner with proper permissions */}
@@ -516,13 +536,21 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
               {/* Already participating */}
               {isParticipating && (
                   <div className="flex gap-1">
+<<<<<<< HEAD
                     <div className="flex-1 bg-orange-200 text-orange-800 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
+=======
+                    <div className="flex-1 bg-orange-800 text-orange-100 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                       ✓ You're participating
                     </div>
                     <button
                         onClick={handleParticipation}
                         disabled={loading}
+<<<<<<< HEAD
                         className="bg-gray-200 text-gray-700 py-1.5 px-2 rounded-lg text-xs hover:bg-gray-300 transition-colors disabled:opacity-50"
+=======
+                        className="bg-slate-600 text-slate-200 py-1.5 px-2 rounded-lg text-xs hover:bg-slate-700 transition-colors disabled:opacity-50"
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     >
                       Leave
                     </button>
@@ -531,7 +559,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
               {/* Can't participate */}
               {!permissions.canParticipate && !permissions.isLoading && !isParticipating && (
+<<<<<<< HEAD
                   <div className="w-full bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+=======
+                  <div className="w-full bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     {participantCount > 0 ? `👥 ${participantCount} participants joined` : '❌ Cannot join (not a group member)'}
                   </div>
               )}
@@ -541,12 +573,16 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'accepted' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
+<<<<<<< HEAD
                 <span className="text-xs font-medium text-gray-700">
+=======
+                <span className="text-xs font-medium text-slate-200">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                   Payment required
                 </span>
-                <span className="text-xs text-gray-600">{paidCount}/{participantCount}</span>
+                <span className="text-xs text-slate-300">{paidCount}/{participantCount}</span>
               </div>
-              <div className="w-full bg-green-200 rounded-full h-1.5 mb-2">
+              <div className="w-full bg-green-800 rounded-full h-1.5 mb-2">
                 <div
                     className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
                     style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
@@ -566,14 +602,22 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
               {/* Already paid */}
               {isParticipating && hasPaid && (
+<<<<<<< HEAD
                   <div className="w-full bg-green-100 text-green-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+=======
+                  <div className="w-full bg-green-800 text-green-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     ✓ Payment completed - Waiting for others
                   </div>
               )}
 
               {/* Not participating */}
               {!isParticipating && (
+<<<<<<< HEAD
                   <div className="w-full bg-gray-100 text-gray-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+=======
+                  <div className="w-full bg-slate-700 text-slate-200 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     💰 Payment phase ({paidCount}/{participantCount})
                   </div>
               )}
@@ -582,11 +626,19 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'payment_complete' && (
             <div className="mb-3">
+<<<<<<< HEAD
               <div className="bg-yellow-200 text-yellow-900 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
                 🎉 Session starting soon!
               </div>
               {timeUntilSession && (
                   <div className="text-xs text-center text-yellow-800 mb-2">
+=======
+              <div className="bg-yellow-800 text-yellow-100 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
+                🎉 Session starting soon!
+              </div>
+              {timeUntilSession && (
+                  <div className="text-xs text-center text-yellow-200 mb-2">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                     Starts in {timeUntilSession.hours}h {timeUntilSession.minutes}m
                   </div>
               )}
@@ -605,7 +657,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'in_progress' && (
             <div className="mb-3">
+<<<<<<< HEAD
               <div className="bg-blue-100 text-blue-800 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
+=======
+              <div className="bg-blue-800 text-blue-100 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                 🔴 Session in progress
               </div>
               {conferenceLink && (
@@ -623,7 +679,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'completed' && (
             <div className="mb-3">
+<<<<<<< HEAD
               <div className="bg-gray-700 text-gray-200 py-2 px-3 rounded-lg text-center text-xs font-medium">
+=======
+              <div className="bg-slate-700 text-slate-200 py-2 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                 ✅ Session completed
               </div>
             </div>
@@ -631,32 +691,32 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'cancelled' && (
             <div className="mb-3">
+<<<<<<< HEAD
               <div className="bg-red-100 text-red-700 py-2 px-3 rounded-lg text-center text-xs font-medium">
+=======
+              <div className="bg-red-800 text-red-100 py-2 px-3 rounded-lg text-center text-xs font-medium">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                 ❌ Request cancelled
               </div>
             </div>
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
-          <div className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-700">
+          <div className={`text-xs text-slate-400`}>
             {new Date(request.createdAt?.toDate?.() || request.createdAt).toLocaleDateString()}
           </div>
           <div className="flex items-center gap-1">
             <Link
                 to={`/requests/details/${request.id}`}
-                className={`text-xs font-medium hover:underline ${
-                    request.status === 'completed'
-                        ? 'text-gray-300 hover:text-white'
-                        : 'text-blue-600 hover:text-blue-800'
-                }`}
+                className={`text-xs font-medium hover:underline text-blue-400 hover:text-blue-300`}
             >
               Details
             </Link>
             {isOwner && ['pending', 'voting_open', 'accepted'].includes(request.status) && (
                 <Link
                     to={`/requests/edit-group/${request.id}`}
-                    className="text-xs font-medium text-purple-600 hover:text-purple-800 hover:underline ml-2"
+                    className="text-xs font-medium text-purple-400 hover:text-purple-300 hover:underline ml-2"
                 >
                   Edit
                 </Link>
@@ -794,11 +854,11 @@ const GroupRequests = () => {
 
   if (loading) {
     return (
-        <div className="p-8">
+        <div className="p-8 bg-slate-900">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading your group requests...</p>
+              <p className="mt-4 text-slate-300">Loading your group requests...</p>
             </div>
           </div>
         </div>
@@ -807,12 +867,12 @@ const GroupRequests = () => {
 
   if (error) {
     return (
-        <div className="p-8">
+        <div className="p-8 bg-slate-900">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
               <div className="text-red-500 text-4xl mb-4">⚠️</div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">Error Loading Requests</h2>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <h2 className="text-xl font-semibold text-white mb-2">Error Loading Requests</h2>
+              <p className="text-slate-300 mb-4">{error}</p>
               <div className="flex gap-2 justify-center">
                 <button
                     onClick={() => window.location.reload()}
@@ -834,13 +894,13 @@ const GroupRequests = () => {
   }
 
   return (
-      <div className="p-8">
+      <div className="p-8 bg-slate-900 min-h-screen">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Group Requests</h1>
-              <p className="mt-2 text-sm text-gray-600">
+              <h1 className="text-3xl font-bold text-white">Group Requests</h1>
+              <p className="mt-2 text-sm text-slate-300">
                 Browse and participate in group learning requests from your communities
               </p>
             </div>
@@ -859,14 +919,14 @@ const GroupRequests = () => {
         {/* Status Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
           {[
-            { key: 'all', label: 'Total', color: 'bg-gray-100 text-gray-700' },
-            { key: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-700' },
-            { key: 'voting_open', label: 'Voting', color: 'bg-orange-100 text-orange-700' },
-            { key: 'accepted', label: 'Accepted', color: 'bg-green-100 text-green-700' },
-            { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-200 text-yellow-800' },
-            { key: 'in_progress', label: 'Live', color: 'bg-blue-100 text-blue-700' },
-            { key: 'completed', label: 'Done', color: 'bg-gray-200 text-gray-800' },
-            { key: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-700' }
+            { key: 'all', label: 'Total', color: 'bg-slate-700 text-slate-200' },
+            { key: 'pending', label: 'Pending', color: 'bg-yellow-900 text-yellow-200' },
+            { key: 'voting_open', label: 'Voting', color: 'bg-orange-900 text-orange-200' },
+            { key: 'accepted', label: 'Accepted', color: 'bg-green-900 text-green-200' },
+            { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-800 text-yellow-100' },
+            { key: 'in_progress', label: 'Live', color: 'bg-blue-900 text-blue-200' },
+            { key: 'completed', label: 'Done', color: 'bg-slate-600 text-slate-100' },
+            { key: 'cancelled', label: 'Cancelled', color: 'bg-red-900 text-red-200' }
           ].map(({ key, label, color }) => (
               <button
                   key={key}
@@ -882,27 +942,27 @@ const GroupRequests = () => {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-slate-800 rounded-lg shadow-sm border border-slate-700 p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Search</label>
               <input
                   type="text"
                   placeholder="Search requests, skills, or groups..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
               />
             </div>
 
             {/* Category Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Category</label>
               <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
               >
                 {categories.map(category => (
                     <option key={category} value={category}>
@@ -914,11 +974,11 @@ const GroupRequests = () => {
 
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Status</label>
               <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
               >
                 {statuses.map(status => (
                     <option key={status} value={status}>
@@ -932,7 +992,7 @@ const GroupRequests = () => {
 
         {/* Results Count */}
         <div className="mb-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-slate-300">
             Showing {filteredRequests.length} of {groupRequests.length} requests
           </p>
         </div>
@@ -952,13 +1012,13 @@ const GroupRequests = () => {
         {/* Empty State */}
         {filteredRequests.length === 0 && !loading && (
             <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">
+              <div className="text-slate-400 text-6xl mb-4">
                 {groupRequests.length === 0 ? '📚' : '🔍'}
               </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              <h3 className="text-lg font-semibold text-white mb-2">
                 {groupRequests.length === 0 ? 'No group requests yet' : 'No requests found'}
               </h3>
-              <p className="text-gray-500 mb-4">
+              <p className="text-slate-300 mb-4">
                 {groupRequests.length === 0
                     ? "No group requests available in your communities yet. Join more groups or create the first request!"
                     : "Try adjusting your filters or search query to find more requests."
@@ -972,7 +1032,7 @@ const GroupRequests = () => {
                           setSelectedCategory('all');
                           setSelectedStatus('all');
                         }}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-blue-400 hover:text-blue-300 font-medium"
                     >
                       Clear all filters
                     </button>

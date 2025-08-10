@@ -46,10 +46,10 @@ const ProtectedRoute = ({ children }) => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading...</p>
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
+                    <p className="mt-4 text-[#A0AEC0]">Loading...</p>
                 </div>
             </div>
         );
@@ -64,10 +64,10 @@ const PublicRoute = ({ children }) => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading...</p>
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
+                    <p className="mt-4 text-[#A0AEC0]">Loading...</p>
                 </div>
             </div>
         );
@@ -82,12 +82,12 @@ const NotFound = () => {
         <SimpleLayout>
             <div className="min-h-96 flex items-center justify-center">
                 <div className="text-center">
-                    <h1 className="text-6xl font-bold text-gray-400">404</h1>
-                    <h2 className="text-2xl font-semibold text-gray-700 mt-4">Page Not Found</h2>
-                    <p className="text-gray-600 mt-2">The page you're looking for doesn't exist.</p>
+                    <h1 className="text-6xl font-bold text-[#A0AEC0]">404</h1>
+                    <h2 className="text-2xl font-semibold text-white mt-4">Page Not Found</h2>
+                    <p className="text-[#A0AEC0] mt-2">The page you're looking for doesn't exist.</p>
                     <a
                         href="/"
-                        className="mt-6 inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                        className="btn-gradient-primary mt-6 inline-block px-6 py-3 rounded-lg font-semibold transition-colors"
                     >
                         Go Home
                     </a>
@@ -113,10 +113,10 @@ const AppRoutes = () => {
     // Show loading screen while checking authentication
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading...</p>
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
+                    <p className="mt-4 text-[#A0AEC0]">Loading...</p>
                 </div>
             </div>
         );

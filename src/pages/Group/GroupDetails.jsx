@@ -413,10 +413,10 @@ export default function GroupDetails() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading group details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
+          <p className="mt-4 text-[#A0AEC0]">Loading group details...</p>
         </div>
       </div>
     );
@@ -425,14 +425,14 @@ export default function GroupDetails() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Error</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="text-red-400 text-4xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-white mb-2">Error</h2>
+          <p className="text-[#A0AEC0] mb-4">{error}</p>
           <Link
             to="/groups"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="btn-gradient-primary px-4 py-2 rounded hover:bg-blue-700"
           >
             Back to Groups
           </Link>
@@ -442,23 +442,23 @@ export default function GroupDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#1A202C]">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="card-dark shadow-sm border-b border-[#4A5568]">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
                 to={`/chat/${groupId}`}
-                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-[#A0AEC0] hover:text-white hover:bg-[#2D3748] rounded-lg transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Group Details</h1>
-                <p className="text-gray-600">Comprehensive information about {currentGroup?.name}</p>
+                <h1 className="text-2xl font-bold text-white">Group Details</h1>
+                <p className="text-[#A0AEC0]">Comprehensive information about {currentGroup?.name}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -476,7 +476,7 @@ export default function GroupDetails() {
               )}
               <Link
                 to={`/chat/${groupId}`}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                className="btn-gradient-primary px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
               >
                 Back to Chat
               </Link>
@@ -492,9 +492,9 @@ export default function GroupDetails() {
           <div className="lg:col-span-2 space-y-8">
             
             {/* Group Overview Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Group Overview</h2>
+            <div className="card-dark rounded-xl shadow-sm border border-[#4A5568] overflow-hidden">
+              <div className="bg-gradient-to-r from-[#2D3748] to-[#4A5568] px-6 py-4 border-b border-[#4A5568]">
+                <h2 className="text-lg font-semibold text-white">Group Overview</h2>
               </div>
               <div className="p-6">
                 <div className="flex items-start gap-6 mb-6">
@@ -512,24 +512,24 @@ export default function GroupDetails() {
                     </div>
                   )}
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">{currentGroup?.name}</h3>
-                    <p className="text-gray-600 mb-4 leading-relaxed">{currentGroup?.description}</p>
+                    <h3 className="text-2xl font-bold text-white mb-2">{currentGroup?.name}</h3>
+                    <p className="text-[#E0E0E0] mb-4 leading-relaxed">{currentGroup?.description}</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">{currentGroup?.memberCount || 0}</div>
-                        <div className="text-xs text-gray-500">Total Members</div>
+                      <div className="text-center p-3 bg-[#2D3748] rounded-lg border border-[#4A5568]">
+                        <div className="text-2xl font-bold text-[#4299E1]">{currentGroup?.memberCount || 0}</div>
+                        <div className="text-xs text-[#A0AEC0]">Total Members</div>
                       </div>
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">{onlineUsers.length}</div>
-                        <div className="text-xs text-gray-500">Online Now</div>
+                      <div className="text-center p-3 bg-[#2D3748] rounded-lg border border-[#4A5568]">
+                        <div className="text-2xl font-bold text-[#48BB78]">{onlineUsers.length}</div>
+                        <div className="text-xs text-[#A0AEC0]">Online Now</div>
                       </div>
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">{groupStats.totalMessages}</div>
-                        <div className="text-xs text-gray-500">Messages</div>
+                      <div className="text-center p-3 bg-[#2D3748] rounded-lg border border-[#4A5568]">
+                        <div className="text-2xl font-bold text-[#8B5CF6]">{groupStats.totalMessages}</div>
+                        <div className="text-xs text-[#A0AEC0]">Messages</div>
                       </div>
-                      <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <div className="text-2xl font-bold text-orange-600">{groupStats.activeToday}</div>
-                        <div className="text-xs text-gray-500">Active Today</div>
+                      <div className="text-center p-3 bg-[#2D3748] rounded-lg border border-[#4A5568]">
+                        <div className="text-2xl font-bold text-[#ED8936]">{groupStats.activeToday}</div>
+                        <div className="text-xs text-[#A0AEC0]">Active Today</div>
                       </div>
                     </div>
                   </div>
@@ -541,30 +541,30 @@ export default function GroupDetails() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Basic Information */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900">Basic Information</h3>
+              <div className="card-dark rounded-xl shadow-sm border border-[#4A5568]">
+                <div className="bg-gradient-to-r from-[#2D3748] to-[#4A5568] px-4 py-3 border-b border-[#4A5568]">
+                  <h3 className="font-semibold text-white">Basic Information</h3>
                 </div>
                 <div className="p-4 space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Category</label>
-                    <p className="text-gray-900 capitalize">{currentGroup?.category || 'General'}</p>
+                    <label className="text-sm font-medium text-[#A0AEC0]">Category</label>
+                    <p className="text-white capitalize">{currentGroup?.category || 'General'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Created</label>
-                    <p className="text-gray-900">{formatDate(currentGroup?.createdAt)}</p>
+                    <label className="text-sm font-medium text-[#A0AEC0]">Created</label>
+                    <p className="text-white">{formatDate(currentGroup?.createdAt)}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Created by</label>
-                    <p className="text-gray-900">{currentGroup?.createdByName || 'Unknown'}</p>
+                    <label className="text-sm font-medium text-[#A0AEC0]">Created by</label>
+                    <p className="text-white">{currentGroup?.createdByName || 'Unknown'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Group Type</label>
+                    <label className="text-sm font-medium text-[#A0AEC0]">Group Type</label>
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         currentGroup?.isPublic 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-blue-100 text-blue-700'
+                          ? 'bg-green-900 text-green-400' 
+                          : 'bg-blue-900 text-blue-400'
                       }`}>
                         {currentGroup?.isPublic ? 'Public' : 'Private'}
                       </span>
@@ -574,24 +574,24 @@ export default function GroupDetails() {
               </div>
 
               {/* Activity Status */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="bg-gradient-to-r from-purple-50 to-violet-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900">Activity Status</h3>
+              <div className="card-dark rounded-xl shadow-sm border border-[#4A5568]">
+                <div className="bg-gradient-to-r from-[#2D3748] to-[#4A5568] px-4 py-3 border-b border-[#4A5568]">
+                  <h3 className="font-semibold text-white">Activity Status</h3>
                 </div>
                 <div className="p-4 space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Last Activity</label>
-                    <p className="text-gray-900">{formatTimeAgo(groupStats.lastActivity)}</p>
+                    <label className="text-sm font-medium text-[#A0AEC0]">Last Activity</label>
+                    <p className="text-white">{formatTimeAgo(groupStats.lastActivity)}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Max Members</label>
-                    <p className="text-gray-900">{currentGroup?.maxMembers || 'Unlimited'}</p>
+                    <label className="text-sm font-medium text-[#A0AEC0]">Max Members</label>
+                    <p className="text-white">{currentGroup?.maxMembers || 'Unlimited'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Member Capacity</label>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <label className="text-sm font-medium text-[#A0AEC0]">Member Capacity</label>
+                    <div className="w-full bg-[#4A5568] rounded-full h-2">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full" 
+                        className="bg-[#4299E1] h-2 rounded-full" 
                         style={{ 
                           width: currentGroup?.maxMembers 
                             ? `${Math.min((currentGroup.memberCount / currentGroup.maxMembers) * 100, 100)}%` 
@@ -599,7 +599,7 @@ export default function GroupDetails() {
                         }}
                       ></div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[#A0AEC0] mt-1">
                       {currentGroup?.memberCount || 0} / {currentGroup?.maxMembers || '∞'}
                     </p>
                   </div>
@@ -608,51 +608,51 @@ export default function GroupDetails() {
             </div>
 
             {/* Group Settings */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="bg-gradient-to-r from-orange-50 to-amber-50 px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Group Settings & Permissions</h3>
+            <div className="card-dark rounded-xl shadow-sm border border-[#4A5568]">
+              <div className="bg-gradient-to-r from-[#2D3748] to-[#4A5568] px-6 py-4 border-b border-[#4A5568]">
+                <h3 className="text-lg font-semibold text-white">Group Settings & Permissions</h3>
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-700 font-medium">File Sharing</span>
+                    <div className="flex items-center justify-between p-3 bg-[#2D3748] rounded-lg border border-[#4A5568]">
+                      <span className="text-white font-medium">File Sharing</span>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                         currentGroup?.settings?.allowFileSharing 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-green-900 text-green-400' 
+                          : 'bg-red-900 text-red-400'
                       }`}>
                         {currentGroup?.settings?.allowFileSharing ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-700 font-medium">Voice Messages</span>
+                    <div className="flex items-center justify-between p-3 bg-[#2D3748] rounded-lg border border-[#4A5568]">
+                      <span className="text-white font-medium">Voice Messages</span>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                         currentGroup?.settings?.allowVoiceMessages 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-green-900 text-green-400' 
+                          : 'bg-red-900 text-red-400'
                       }`}>
                         {currentGroup?.settings?.allowVoiceMessages ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-700 font-medium">Moderated Joining</span>
+                    <div className="flex items-center justify-between p-3 bg-[#2D3748] rounded-lg border border-[#4A5568]">
+                      <span className="text-white font-medium">Moderated Joining</span>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                         currentGroup?.settings?.moderatedJoining 
-                          ? 'bg-yellow-100 text-yellow-700' 
-                          : 'bg-green-100 text-green-700'
+                          ? 'bg-yellow-900 text-yellow-400' 
+                          : 'bg-green-900 text-green-400'
                       }`}>
                         {currentGroup?.settings?.moderatedJoining ? 'Required' : 'Open'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-700 font-medium">Invitations</span>
+                    <div className="flex items-center justify-between p-3 bg-[#2D3748] rounded-lg border border-[#4A5568]">
+                      <span className="text-white font-medium">Invitations</span>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                         currentGroup?.settings?.allowInvites 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-green-900 text-green-400' 
+                          : 'bg-red-900 text-red-400'
                       }`}>
                         {currentGroup?.settings?.allowInvites ? 'Allowed' : 'Disabled'}
                       </span>
@@ -664,13 +664,13 @@ export default function GroupDetails() {
 
             {/* Group Rules */}
             {currentGroup?.rules && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="bg-gradient-to-r from-red-50 to-pink-50 px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Group Rules</h3>
+              <div className="card-dark rounded-xl shadow-sm border border-[#4A5568]">
+                <div className="bg-gradient-to-r from-[#2D3748] to-[#4A5568] px-6 py-4 border-b border-[#4A5568]">
+                  <h3 className="text-lg font-semibold text-white">Group Rules</h3>
                 </div>
                 <div className="p-6">
-                  <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
-                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">{currentGroup.rules}</p>
+                  <div className="bg-[#2D3748] rounded-lg p-4 border-l-4 border-[#4299E1]">
+                    <p className="text-white whitespace-pre-line leading-relaxed">{currentGroup.rules}</p>
                   </div>
                 </div>
               </div>
@@ -678,9 +678,9 @@ export default function GroupDetails() {
 
             {/* Actions */}
             {!isCurrentUserAdmin && currentGroup?.createdBy !== user?.id && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="bg-gradient-to-r from-red-50 to-rose-50 px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Actions</h3>
+              <div className="card-dark rounded-xl shadow-sm border border-[#4A5568]">
+                <div className="bg-gradient-to-r from-[#2D3748] to-[#4A5568] px-6 py-4 border-b border-[#4A5568]">
+                  <h3 className="text-lg font-semibold text-white">Actions</h3>
                 </div>
                 <div className="p-6">
                   <button
@@ -689,7 +689,7 @@ export default function GroupDetails() {
                   >
                     Leave Group
                   </button>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-sm text-[#A0AEC0] mt-2">
                     This action cannot be undone. You'll need to request to join again.
                   </p>
                 </div>
@@ -701,10 +701,10 @@ export default function GroupDetails() {
           <div className="space-y-6">
             
             {/* Online Members */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">Online Now</h3>
-                <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+            <div className="card-dark rounded-xl shadow-sm border border-[#4A5568]">
+              <div className="bg-gradient-to-r from-[#2D3748] to-[#4A5568] px-4 py-3 border-b border-[#4A5568] flex items-center justify-between">
+                <h3 className="font-semibold text-white">Online Now</h3>
+                <span className="bg-green-900 text-green-400 px-2 py-1 rounded-full text-xs font-medium">
                   {onlineUsers.length}
                 </span>
               </div>
@@ -712,7 +712,7 @@ export default function GroupDetails() {
                 {onlineUsers.length > 0 ? (
                   <div className="space-y-3 max-h-48 overflow-y-auto">
                     {onlineUsers.map((member) => (
-                      <div key={member.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                      <div key={member.userId} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#2D3748] transition-colors">
                         <div className="relative">
                           <img
                             src={member.userAvatar}
@@ -722,15 +722,15 @@ export default function GroupDetails() {
                           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{member.userName}</p>
-                          <p className="text-xs text-green-600">Online</p>
+                          <p className="text-sm font-medium text-white truncate">{member.userName}</p>
+                          <p className="text-xs text-green-400">Online</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-gray-500">
-                    <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="text-center py-6 text-[#A0AEC0]">
+                    <svg className="w-8 h-8 mx-auto mb-2 text-[#4A5568]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <p className="text-sm">No members online</p>
@@ -740,23 +740,23 @@ export default function GroupDetails() {
             </div>
 
             {/* All Members */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">All Members</h3>
-                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+            <div className="card-dark rounded-xl shadow-sm border border-[#4A5568]">
+              <div className="bg-gradient-to-r from-[#2D3748] to-[#4A5568] px-4 py-3 border-b border-[#4A5568] flex items-center justify-between">
+                <h3 className="font-semibold text-white">All Members</h3>
+                <span className="bg-blue-900 text-blue-400 px-2 py-1 rounded-full text-xs font-medium">
                   {allMembers.length}
                 </span>
               </div>
               <div className="p-4">
                 {loadingMembers ? (
                   <div className="text-center py-6">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-2">Loading members...</p>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4299E1] mx-auto"></div>
+                    <p className="text-sm text-[#A0AEC0] mt-2">Loading members...</p>
                   </div>
                 ) : allMembers.length > 0 ? (
                   <div className="space-y-2 max-h-80 overflow-y-auto">
                     {allMembers.map((member) => (
-                      <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+                      <div key={member.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#2D3748] transition-colors">
                         <div className="relative">
                           <img
                             src={member.avatar}
@@ -771,24 +771,24 @@ export default function GroupDetails() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{member.name}</p>
+                          <p className="text-sm font-medium text-white truncate">{member.name}</p>
                           <div className="flex items-center gap-2">
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-[#A0AEC0]">
                               {member.isOnline ? 'Online' : 'Offline'}
                             </p>
                             {member.isHidden && (
-                              <span className="text-xs bg-purple-100 text-purple-700 px-1 py-0.5 rounded">Admin</span>
+                              <span className="text-xs bg-purple-900 text-purple-400 px-1 py-0.5 rounded">Admin</span>
                             )}
                           </div>
                           {member.bio && (
-                            <p className="text-xs text-gray-400 truncate">{member.bio}</p>
+                            <p className="text-xs text-[#A0AEC0] truncate">{member.bio}</p>
                           )}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-gray-500">
+                  <div className="text-center py-6 text-[#A0AEC0]">
                     <p className="text-sm">No members found</p>
                   </div>
                 )}
@@ -801,16 +801,16 @@ export default function GroupDetails() {
       {/* Invite Members Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-96 max-h-96 overflow-hidden">
+          <div className="card-dark rounded-xl shadow-xl p-6 w-96 max-h-96 overflow-hidden">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Invite Members</h3>
+              <h3 className="text-xl font-bold text-white">Invite Members</h3>
               <button
                 onClick={() => {
                   setShowInviteModal(false);
                   setSearchQuery('');
                   setSearchUsers([]);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-[#A0AEC0] hover:text-white transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -819,7 +819,7 @@ export default function GroupDetails() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-[#E0E0E0] mb-2">
                 Search for users to invite
               </label>
               <input
@@ -830,20 +830,20 @@ export default function GroupDetails() {
                   searchUsersToInvite(e.target.value);
                 }}
                 placeholder="Type name or email..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-dark w-full px-3 py-2 border border-[#4A5568] rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
               />
             </div>
 
             <div className="max-h-48 overflow-y-auto">
               {searching ? (
                 <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-sm text-gray-500 mt-2">Searching users...</p>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#4299E1] mx-auto"></div>
+                  <p className="text-sm text-[#A0AEC0] mt-2">Searching users...</p>
                 </div>
               ) : searchUsers.length > 0 ? (
                 <div className="space-y-2">
                   {searchUsers.map((searchUser) => (
-                    <div key={searchUser.id} className="flex items-center justify-between p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <div key={searchUser.id} className="flex items-center justify-between p-2 border border-[#4A5568] rounded-lg hover:bg-[#2D3748] transition-colors">
                       <div className="flex items-center gap-3">
                         <img
                           src={searchUser.avatar || 'https://randomuser.me/api/portraits/men/14.jpg'}
@@ -851,14 +851,14 @@ export default function GroupDetails() {
                           className="w-8 h-8 rounded-full object-cover"
                         />
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{searchUser.displayName}</p>
-                          <p className="text-xs text-gray-500">{searchUser.email}</p>
+                          <p className="text-sm font-medium text-white">{searchUser.displayName}</p>
+                          <p className="text-xs text-[#A0AEC0]">{searchUser.email}</p>
                         </div>
                       </div>
                       <button
                         onClick={() => handleInviteUser(searchUser)}
                         disabled={inviting}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                        className="btn-gradient-primary px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
                       >
                         {inviting ? 'Inviting...' : 'Invite'}
                       </button>
@@ -866,16 +866,16 @@ export default function GroupDetails() {
                   ))}
                 </div>
               ) : searchQuery.length >= 2 ? (
-                <div className="text-center py-4 text-gray-500">
-                  <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center py-4 text-[#A0AEC0]">
+                  <svg className="w-8 h-8 mx-auto mb-2 text-[#4A5568]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                   <p className="text-sm">No users found</p>
                 </div>
               ) : (
-                <div className="text-center py-4 text-gray-500">
-                  <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <div className="text-center py-4 text-[#A0AEC0]">
+                  <svg className="w-8 h-8 mx-auto mb-2 text-[#4A5568]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <p className="text-sm">Start typing to search for users</p>
                 </div>

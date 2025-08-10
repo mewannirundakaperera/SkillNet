@@ -320,51 +320,51 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
     switch (request.status) {
       case 'pending':
         return {
-          borderColor: 'border-yellow-300',
-          bgColor: 'bg-yellow-50',
-          statusColor: 'bg-yellow-100 text-yellow-800'
+          borderColor: 'border-yellow-500',
+          bgColor: 'bg-yellow-900',
+          statusColor: 'bg-yellow-800 text-yellow-200'
         };
       case 'voting_open':
         return {
-          borderColor: 'border-orange-300',
-          bgColor: 'bg-orange-50',
-          statusColor: 'bg-orange-100 text-orange-800'
+          borderColor: 'border-orange-500',
+          bgColor: 'bg-orange-900',
+          statusColor: 'bg-orange-800 text-orange-200'
         };
       case 'accepted':
         return {
-          borderColor: 'border-green-300',
-          bgColor: 'bg-green-50',
-          statusColor: 'bg-green-100 text-green-800'
+          borderColor: 'border-green-500',
+          bgColor: 'bg-green-900',
+          statusColor: 'bg-green-800 text-green-200'
         };
       case 'payment_complete':
         return {
           borderColor: 'border-yellow-400',
-          bgColor: 'bg-gradient-to-br from-yellow-100 to-yellow-200',
-          statusColor: 'bg-yellow-200 text-yellow-900'
+          bgColor: 'bg-gradient-to-br from-yellow-900 to-yellow-800',
+          statusColor: 'bg-yellow-700 text-yellow-100'
         };
       case 'in_progress':
         return {
-          borderColor: 'border-blue-400',
-          bgColor: 'bg-blue-50',
-          statusColor: 'bg-blue-100 text-blue-800'
+          borderColor: 'border-blue-500',
+          bgColor: 'bg-blue-900',
+          statusColor: 'bg-blue-800 text-blue-200'
         };
       case 'completed':
         return {
-          borderColor: 'border-gray-600',
-          bgColor: 'bg-gray-900 text-white',
-          statusColor: 'bg-gray-700 text-gray-200'
+          borderColor: 'border-slate-600',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-slate-700 text-slate-200'
         };
       case 'cancelled':
         return {
-          borderColor: 'border-red-400',
-          bgColor: 'bg-red-50',
-          statusColor: 'bg-red-100 text-red-800'
+          borderColor: 'border-red-500',
+          bgColor: 'bg-red-900',
+          statusColor: 'bg-red-800 text-red-200'
         };
       default:
         return {
-          borderColor: 'border-gray-200',
-          bgColor: 'bg-white',
-          statusColor: 'bg-gray-100 text-gray-700'
+          borderColor: 'border-slate-600',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-slate-700 text-slate-200'
         };
     }
   };
@@ -848,12 +848,12 @@ const AllGroupRequests = () => {
 
   if (loading) {
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
+        <div className="min-h-screen bg-slate-900 py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-center min-h-96">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading group requests...</p>
+                <p className="mt-4 text-slate-300">Loading group requests...</p>
               </div>
             </div>
           </div>
@@ -863,13 +863,13 @@ const AllGroupRequests = () => {
 
   if (error) {
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
+        <div className="min-h-screen bg-slate-900 py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-center min-h-96">
               <div className="text-center">
                 <div className="text-red-500 text-4xl mb-4">⚠️</div>
-                <h2 className="text-xl font-semibold text-gray-700 mb-2">Error Loading Requests</h2>
-                <p className="text-gray-600 mb-4">{error}</p>
+                <h2 className="text-xl font-semibold text-white mb-2">Error Loading Requests</h2>
+                <p className="text-slate-300 mb-4">{error}</p>
                 <div className="flex gap-2 justify-center">
                   <button
                       onClick={() => window.location.reload()}
@@ -892,14 +892,14 @@ const AllGroupRequests = () => {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-slate-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">All Group Requests</h1>
-                <p className="mt-2 text-sm text-gray-600">
+                <h1 className="text-3xl font-bold text-white">All Group Requests</h1>
+                <p className="mt-2 text-sm text-slate-300">
                   Browse and participate in group learning sessions
                 </p>
               </div>
@@ -920,14 +920,14 @@ const AllGroupRequests = () => {
           {/* Status Statistics */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
             {[
-              { key: 'all', label: 'Total', color: 'bg-gray-100 text-gray-700' },
-              { key: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-700' },
-              { key: 'voting_open', label: 'Voting', color: 'bg-orange-100 text-orange-700' },
-              { key: 'accepted', label: 'Accepted', color: 'bg-green-100 text-green-700' },
-              { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-200 text-yellow-800' },
-              { key: 'in_progress', label: 'Live', color: 'bg-blue-100 text-blue-700' },
-              { key: 'completed', label: 'Done', color: 'bg-gray-200 text-gray-800' },
-              { key: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-700' }
+              { key: 'all', label: 'Total', color: 'bg-slate-700 text-slate-200' },
+              { key: 'pending', label: 'Pending', color: 'bg-yellow-900 text-yellow-200' },
+              { key: 'voting_open', label: 'Voting', color: 'bg-orange-900 text-orange-200' },
+              { key: 'accepted', label: 'Accepted', color: 'bg-green-900 text-green-200' },
+              { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-800 text-yellow-100' },
+              { key: 'in_progress', label: 'Live', color: 'bg-blue-900 text-blue-200' },
+              { key: 'completed', label: 'Done', color: 'bg-slate-600 text-slate-100' },
+              { key: 'cancelled', label: 'Cancelled', color: 'bg-red-900 text-red-200' }
             ].map(({ key, label, color }) => (
                 <button
                     key={key}
@@ -943,27 +943,27 @@ const AllGroupRequests = () => {
           </div>
 
           {/* Filters */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="bg-slate-800 rounded-lg shadow-sm border border-slate-700 p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Search */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">Search</label>
                 <input
                     type="text"
                     placeholder="Search requests, skills, or names..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-slate-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent bg-slate-700 text-white placeholder-slate-400"
                 />
               </div>
 
               {/* Category Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">Category</label>
                 <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-slate-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent bg-slate-700 text-white"
                 >
                   {categories.map(category => (
                       <option key={category} value={category}>
@@ -975,11 +975,11 @@ const AllGroupRequests = () => {
 
               {/* Status Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">Status</label>
                 <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full border border-slate-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent bg-slate-700 text-white"
                 >
                   {statuses.map(status => (
                       <option key={status} value={status}>
@@ -993,7 +993,7 @@ const AllGroupRequests = () => {
 
           {/* Results Count */}
           <div className="mb-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-300">
               Showing {filteredRequests.length} of {groupRequests.length} requests
             </p>
           </div>
@@ -1013,13 +1013,13 @@ const AllGroupRequests = () => {
           {/* Empty State */}
           {filteredRequests.length === 0 && !loading && (
               <div className="text-center py-12">
-                <div className="text-gray-400 text-6xl mb-4">
+                <div className="text-slate-400 text-6xl mb-4">
                   {groupRequests.length === 0 ? '📚' : '🔍'}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                <h3 className="text-lg font-semibold text-white mb-2">
                   {groupRequests.length === 0 ? 'No group requests yet' : 'No requests found'}
                 </h3>
-                <p className="text-gray-500 mb-4">
+                <p className="text-slate-300 mb-4">
                   {groupRequests.length === 0
                       ? "No group learning requests available. Create the first one!"
                       : "Try adjusting your filters or search query to find more requests."
@@ -1033,7 +1033,7 @@ const AllGroupRequests = () => {
                             setSelectedCategory('all');
                             setSelectedStatus('all');
                           }}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
+                          className="text-blue-400 hover:text-blue-300 font-medium"
                       >
                         Clear all filters
                       </button>

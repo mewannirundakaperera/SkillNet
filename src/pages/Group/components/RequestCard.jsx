@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -65,6 +66,14 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       console.error('Error generating conference link:', error);
     }
   };
+=======
+import React, { useState } from "react";
+
+const RequestCard = ({ request, onRequestUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedRequest, setEditedRequest] = useState({ ...request });
+  const [showActions, setShowActions] = useState(false);
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
 
   // Handle input changes during editing
   const handleInputChange = (field, value) => {
@@ -110,6 +119,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     setShowActions(false);
   };
 
+<<<<<<< HEAD
   // Update request status
   const updateRequestStatus = async (newStatus, reason = null) => {
     try {
@@ -287,6 +297,15 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     }
   };
 
+=======
+  // Change status quickly
+  const handleStatusChange = (newStatus) => {
+    const updatedRequest = { ...request, status: newStatus };
+    onRequestUpdate(request.id, updatedRequest);
+    setShowActions(false);
+  };
+
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
   // Get status styling
   const getStatusStyle = (status) => {
     switch(status) {
@@ -325,6 +344,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     }
   };
 
+<<<<<<< HEAD
   // Get card styling based on status
   const getCardStyling = () => {
     switch (request.status) {
@@ -387,6 +407,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const isParticipating = request.participants?.includes(currentUserId);
   const hasPaid = request.paidParticipants?.includes(currentUserId);
 
+=======
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
   if (isEditing) {
     return (
         <div className="bg-white rounded-lg shadow-sm border-2 border-blue-300 p-6">
@@ -430,10 +452,10 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
             {/* Message/Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
               <textarea
-                  value={editedRequest.message || editedRequest.description || ''}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  value={editedRequest.message}
+                  onChange={(e) => handleInputChange('message', e.target.value)}
                   rows={3}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Request description"
@@ -478,7 +500,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rate</label>
                 <input
                     type="text"
-                    value={editedRequest.rate || ''}
+                    value={editedRequest.rate}
                     onChange={(e) => handleInputChange('rate', e.target.value)}
                     className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="$25/hour"
@@ -488,7 +510,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
                 <input
                     type="text"
-                    value={editedRequest.duration || ''}
+                    value={editedRequest.duration}
                     onChange={(e) => handleInputChange('duration', e.target.value)}
                     className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="1-2 hours"
@@ -501,7 +523,11 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Skills (comma-separated)</label>
               <input
                   type="text"
+<<<<<<< HEAD
                   value={editedRequest.skills?.join(', ') || ''}
+=======
+                  value={editedRequest.skills.join(', ')}
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                   onChange={(e) => handleSkillsChange(e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="React, JavaScript, UI/UX"
@@ -513,7 +539,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
               <input
                   type="text"
-                  value={editedRequest.category || ''}
+                  value={editedRequest.category}
                   onChange={(e) => handleInputChange('category', e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Programming"
@@ -539,10 +565,17 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // Display Mode
   return (
+<<<<<<< HEAD
       <div className={`rounded-lg shadow-sm border-2 p-6 hover:shadow-md transition-all relative ${styling.borderColor} ${styling.bgColor}`}>
         {/* Actions Menu */}
         {showActions && (
             <div className="absolute top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-2 min-w-[140px]">
+=======
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow relative">
+        {/* Actions Menu */}
+        {showActions && (
+            <div className="absolute top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-2 min-w-[120px]">
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
               <button
                   onClick={() => setIsEditing(true)}
                   className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
@@ -590,16 +623,25 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
             <img
+<<<<<<< HEAD
                 src={request.createdByAvatar || request.avatar}
                 alt={request.createdByName || request.name}
+=======
+                src={request.avatar}
+                alt={request.name}
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
                 className="w-12 h-12 rounded-full object-cover"
             />
             <div>
               <h3 className="font-semibold text-lg text-gray-900">{request.title}</h3>
+<<<<<<< HEAD
               <p className="text-sm text-gray-600">
                 {request.createdByName || request.name} • {request.time} •
                 {request.sessionType === 'group-session' ? ' Group Session' : ' Individual'}
               </p>
+=======
+              <p className="text-sm text-gray-600">{request.name} • {request.time}</p>
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
               <p className="text-xs text-gray-500">in {request.groupName}</p>
             </div>
           </div>
@@ -623,6 +665,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
         {/* Message */}
         <p className="text-gray-700 text-sm mb-4 line-clamp-3">
+<<<<<<< HEAD
           {request.message || request.description}
         </p>
 
@@ -825,12 +868,34 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           <span className={`px-2 py-1 rounded-full border ${getUrgencyStyle(request.urgency)}`}>
           {request.urgency || 'medium'} priority
         </span>
+=======
+          {request.message}
+        </p>
+
+        {/* Skills */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {request.skills.map((skill, index) => (
+              <span
+                  key={index}
+                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
+              >
+            {skill}
+          </span>
+          ))}
+        </div>
+
+        {/* Metadata */}
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+          <span>Duration: {request.duration}</span>
+          <span>Category: {request.category}</span>
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
           <span className={`text-xs px-2 py-1 rounded-full border ${getStatusStyle(request.status)}`}>
+<<<<<<< HEAD
             {request.status === 'voting_open' ? 'Voting Open' :
                 request.status === 'payment_complete' ? 'Ready to Start' :
                     request.status === 'in_progress' ? 'In Progress' :
@@ -849,6 +914,21 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                   Respond
                 </button>
             )}
+=======
+            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+          </span>
+            <span className={`text-xs px-2 py-1 rounded-full border ${getUrgencyStyle(request.urgency)}`}>
+            {request.urgency} priority
+          </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+              View Details
+            </button>
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+              Respond
+            </button>
+>>>>>>> 0aa3114f23082e3fce2183b3ccc35a9a9477ae60
           </div>
         </div>
       </div>

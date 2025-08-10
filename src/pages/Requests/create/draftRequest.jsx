@@ -177,11 +177,11 @@ const DraftRequests = () => {
 
     if (loading) {
         return (
-            <div className="p-8">
+            <div className="p-8 bg-slate-900 min-h-screen">
                 <div className="flex items-center justify-center min-h-96">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading your draft requests...</p>
+                        <p className="mt-4 text-slate-300">Loading your draft requests...</p>
                     </div>
                 </div>
             </div>
@@ -189,12 +189,12 @@ const DraftRequests = () => {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-8 bg-slate-900 min-h-screen">
             {/* Page Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Draft Requests</h1>
-                    <p className="text-gray-600">Requests you've started but haven't published yet</p>
+                    <h1 className="text-2xl font-bold text-white mb-2">Draft Requests</h1>
+                    <p className="text-slate-300">Requests you've started but haven't published yet</p>
                 </div>
                 <div className="flex gap-3">
                     <Link
@@ -214,54 +214,54 @@ const DraftRequests = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-4 gap-4 mb-8">
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
-                    <div className="text-lg font-bold text-gray-600">{statsData.total}</div>
-                    <div className="text-gray-500 text-sm">Total Drafts</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
+                    <div className="text-lg font-bold text-white">{statsData.total}</div>
+                    <div className="text-slate-300 text-sm">Total Drafts</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <div className="text-lg font-bold text-blue-600">{statsData.oneToOne}</div>
-                    <div className="text-gray-500 text-sm">One-to-One</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+                    <div className="text-lg font-bold text-blue-400">{statsData.oneToOne}</div>
+                    <div className="text-slate-300 text-sm">One-to-One</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-600">{statsData.group}</div>
-                    <div className="text-gray-500 text-sm">Group</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+                    <div className="text-lg font-bold text-purple-400">{statsData.group}</div>
+                    <div className="text-slate-300 text-sm">Group</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-600">0</div>
-                    <div className="text-gray-500 text-sm">Ready to Publish</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+                    <div className="text-lg font-bold text-green-400">0</div>
+                    <div className="text-slate-300 text-sm">Ready to Publish</div>
                 </div>
             </div>
 
             {/* Draft Requests List */}
             {allDrafts.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm">
-                    <div className="p-6 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold">
+                <div className="bg-slate-800 rounded-lg shadow-sm">
+                    <div className="p-6 border-b border-slate-700">
+                        <h2 className="text-lg font-semibold text-white">
                             Draft Requests ({allDrafts.length})
                         </h2>
                     </div>
 
-                    <div className="divide-y divide-gray-200">
+                    <div className="divide-y divide-slate-700">
                         {allDrafts.map((request) => (
-                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-gray-50 transition-colors">
+                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-slate-700 transition-colors">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="text-xl">{getStatusIcon()}</span>
-                                            <h3 className="text-lg font-semibold text-gray-900">{request.title}</h3>
+                                            <h3 className="text-lg font-semibold text-white">{request.title}</h3>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor()}`}>
                                                 draft
                                             </span>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                request.type === 'group' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                                request.type === 'group' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'
                                             }`}>
                                                 {request.type === 'group' ? '👥 Group' : '👤 1:1'}
                                             </span>
                                         </div>
 
-                                        <p className="text-gray-600 mb-3 line-clamp-2">{request.description || 'No description yet...'}</p>
+                                        <p className="text-slate-300 mb-3 line-clamp-2">{request.description || 'No description yet...'}</p>
 
-                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                                        <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
                                             {request.type === 'one-to-one' && (
                                                 <>
                                                     <span>📚 {request.subject || 'No subject'}</span>
@@ -284,7 +284,7 @@ const DraftRequests = () => {
                                         {request.tags && request.tags.length > 0 && (
                                             <div className="flex gap-2 mb-3">
                                                 {request.tags.map((tag, index) => (
-                                                    <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                                                    <span key={index} className="bg-slate-700 text-slate-200 px-2 py-1 rounded text-xs">
                                                         {tag}
                                                     </span>
                                                 ))}
@@ -294,14 +294,14 @@ const DraftRequests = () => {
                                         {request.skills && request.skills.length > 0 && (
                                             <div className="flex gap-2 mb-3">
                                                 {request.skills.map((skill, index) => (
-                                                    <span key={index} className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">
+                                                    <span key={index} className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
                                                         {skill}
                                                     </span>
                                                 ))}
                                             </div>
                                         )}
 
-                                        <div className="text-xs text-gray-400">
+                                        <div className="text-xs text-slate-500">
                                             Created {formatTimeAgo(request.createdAt)}
                                             {request.updatedAt && request.updatedAt > request.createdAt && (
                                                 <span> • Updated {formatTimeAgo(request.updatedAt)}</span>
@@ -312,7 +312,7 @@ const DraftRequests = () => {
                                     <div className="flex flex-col gap-2 ml-4">
                                         <Link
                                             to={`/requests/details/${request.id}?type=${request.type}`}
-                                            className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                                            className="bg-slate-700 text-slate-200 px-3 py-1 rounded text-sm font-medium hover:bg-slate-600 transition-colors text-center"
                                         >
                                             Preview
                                         </Link>
@@ -346,12 +346,12 @@ const DraftRequests = () => {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                    <div className="text-gray-400 text-4xl mb-4">📝</div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                <div className="bg-slate-800 rounded-lg shadow-sm p-12 text-center">
+                    <div className="text-slate-400 text-4xl mb-4">📝</div>
+                    <h3 className="text-lg font-semibold text-white mb-2">
                         No draft requests found
                     </h3>
-                    <p className="text-gray-500 mb-6">
+                    <p className="text-slate-300 mb-6">
                         You don't have any draft requests. Start creating a request and save it as a draft to work on it later.
                     </p>
                     <div className="flex gap-3 justify-center">
@@ -373,9 +373,9 @@ const DraftRequests = () => {
 
             {/* Tips for Draft Management */}
             {allDrafts.length > 0 && (
-                <div className="mt-8 bg-blue-50 rounded-lg p-6">
-                    <h3 className="font-semibold text-blue-900 mb-3">💡 Tips for Managing Drafts</h3>
-                    <ul className="text-sm text-blue-800 space-y-1">
+                <div className="mt-8 bg-blue-900 rounded-lg p-6">
+                    <h3 className="font-semibold text-blue-200 mb-3">💡 Tips for Managing Drafts</h3>
+                    <ul className="text-sm text-blue-100 space-y-1">
                         <li>• Complete all required fields before publishing</li>
                         <li>• Use clear, descriptive titles to help others find your request</li>
                         <li>• Set realistic deadlines and payment amounts</li>

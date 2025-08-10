@@ -342,10 +342,10 @@ export default function GroupChat() {
   // Loading state
   if (loading) {
     return (
-        <div className="h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center">
+        <div className="h-[calc(100vh-4rem)] bg-[#1A202C] flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading chat...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
+            <p className="mt-4 text-[#A0AEC0]">Loading chat...</p>
           </div>
         </div>
     );
@@ -354,14 +354,14 @@ export default function GroupChat() {
   // Error state
   if (error) {
     return (
-        <div className="h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center">
+        <div className="h-[calc(100vh-4rem)] bg-[#1A202C] flex items-center justify-center">
           <div className="text-center">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Error</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
+            <div className="text-red-400 text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold text-white mb-2">Error</h2>
+            <p className="text-[#A0AEC0] mb-4">{error}</p>
             <Link
                 to="/groups"
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                className="btn-gradient-primary px-4 py-2 rounded hover:bg-blue-700"
             >
               Back to Groups
             </Link>
@@ -371,7 +371,7 @@ export default function GroupChat() {
   }
 
   return (
-      <div className="h-[calc(100vh-4rem)] bg-gradient-to-br from-gray-50 to-gray-100 flex overflow-hidden">
+      <div className="h-[calc(100vh-4rem)] bg-gradient-to-br from-[#1A202C] to-[#2D3748] flex overflow-hidden">
         {/* LEFT SIDEBAR - MY GROUPS */}
         <MyGroupsSidebar
             userGroups={userGroups}

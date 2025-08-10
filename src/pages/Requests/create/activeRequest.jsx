@@ -116,11 +116,11 @@ const ActiveRequests = () => {
 
     if (loading) {
         return (
-            <div className="p-8">
+            <div className="p-8 bg-slate-900 min-h-screen">
                 <div className="flex items-center justify-center min-h-96">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading your active requests...</p>
+                        <p className="mt-4 text-slate-300">Loading your active requests...</p>
                     </div>
                 </div>
             </div>
@@ -129,11 +129,11 @@ const ActiveRequests = () => {
 
     if (error) {
         return (
-            <div className="p-8">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                    <div className="text-red-500 text-4xl mb-4">⚠️</div>
-                    <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Requests</h3>
-                    <p className="text-red-600 mb-4">{error}</p>
+            <div className="p-8 bg-slate-900 min-h-screen">
+                <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-center">
+                    <div className="text-red-400 text-4xl mb-4">⚠️</div>
+                    <h3 className="text-lg font-semibold text-red-200 mb-2">Error Loading Requests</h3>
+                    <p className="text-red-300 mb-4">{error}</p>
                     <button
                         onClick={() => window.location.reload()}
                         className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
@@ -146,12 +146,12 @@ const ActiveRequests = () => {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-8 bg-slate-900 min-h-screen">
             {/* Page Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Active Requests</h1>
-                    <p className="text-gray-600">Your currently published and ongoing requests</p>
+                    <h1 className="text-2xl font-bold text-white mb-2">Active Requests</h1>
+                    <p className="text-slate-300">Your currently published and ongoing requests</p>
                 </div>
                 <div className="flex gap-3">
                     <Link
@@ -165,63 +165,63 @@ const ActiveRequests = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-5 gap-4 mb-8">
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-gray-400">
-                    <div className="text-lg font-bold text-gray-700">{stats.total}</div>
-                    <div className="text-gray-500 text-sm">Total Requests</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-400">
+                    <div className="text-lg font-bold text-white">{stats.total}</div>
+                    <div className="text-slate-300 text-sm">Total Requests</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
-                    <div className="text-lg font-bold text-gray-600">{stats.byStatus?.draft || 0}</div>
-                    <div className="text-gray-500 text-sm">Draft</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
+                    <div className="text-lg font-bold text-slate-300">{stats.byStatus?.draft || 0}</div>
+                    <div className="text-slate-300 text-sm">Draft</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-600">{stats.active}</div>
-                    <div className="text-gray-500 text-sm">Active</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+                    <div className="text-lg font-bold text-green-400">{stats.active}</div>
+                    <div className="text-slate-300 text-sm">Active</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <div className="text-lg font-bold text-blue-600">{stats.completed}</div>
-                    <div className="text-gray-500 text-sm">Completed</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+                    <div className="text-lg font-bold text-blue-400">{stats.completed}</div>
+                    <div className="text-slate-300 text-sm">Completed</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-600">{stats.archived}</div>
-                    <div className="text-gray-500 text-sm">Archived</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+                    <div className="text-lg font-bold text-purple-400">{stats.archived}</div>
+                    <div className="text-slate-300 text-sm">Archived</div>
                 </div>
             </div>
 
             {/* Active Requests List */}
             {requests.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm">
-                    <div className="p-6 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold">
+                <div className="bg-slate-800 rounded-lg shadow-sm">
+                    <div className="p-6 border-b border-slate-700">
+                        <h2 className="text-lg font-semibold text-white">
                             Active Requests ({requests.length})
                         </h2>
                     </div>
 
-                    <div className="divide-y divide-gray-200">
+                    <div className="divide-y divide-slate-700">
                         {requests.map((request) => (
-                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-gray-50 transition-colors">
+                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-slate-700 transition-colors">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="text-xl">{getStatusIcon()}</span>
-                                            <h3 className="text-lg font-semibold text-gray-900">{request.title}</h3>
+                                            <h3 className="text-lg font-semibold text-white">{request.title}</h3>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor()}`}>
                                                 {request.status}
                                             </span>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                request.type === 'group' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                                request.type === 'group' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'
                                             }`}>
                                                 {request.type === 'group' ? '👥 Group' : '👤 1:1'}
                                             </span>
                                             {request.featured && (
-                                                <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
+                                                <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-900 text-yellow-200">
                                                     ⭐ Featured
                                                 </span>
                                             )}
                                         </div>
 
-                                        <p className="text-gray-600 mb-3 line-clamp-2">{request.description}</p>
+                                        <p className="text-slate-300 mb-3 line-clamp-2">{request.description}</p>
 
-                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                                        <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
                                             {request.type === 'one-to-one' && (
                                                 <>
                                                     <span>📚 {request.subject}</span>
@@ -249,7 +249,7 @@ const ActiveRequests = () => {
                                         {request.tags && request.tags.length > 0 && (
                                             <div className="flex gap-2 mb-3">
                                                 {request.tags.map((tag, index) => (
-                                                    <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                                                    <span key={index} className="bg-slate-700 text-slate-200 px-2 py-1 rounded text-xs">
                                                         {tag}
                                                     </span>
                                                 ))}
@@ -259,14 +259,14 @@ const ActiveRequests = () => {
                                         {request.skills && request.skills.length > 0 && (
                                             <div className="flex gap-2 mb-3">
                                                 {request.skills.map((skill, index) => (
-                                                    <span key={index} className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">
+                                                    <span key={index} className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
                                                         {skill}
                                                     </span>
                                                 ))}
                                             </div>
                                         )}
 
-                                        <div className="text-xs text-gray-400">
+                                        <div className="text-xs text-slate-500">
                                             Created {formatTimeAgo(request.createdAt)}
                                             {request.updatedAt && request.updatedAt > request.createdAt && (
                                                 <span> • Updated {formatTimeAgo(request.updatedAt)}</span>
@@ -277,7 +277,7 @@ const ActiveRequests = () => {
                                     <div className="flex flex-col gap-2 ml-4">
                                         <Link
                                             to={`/requests/details/${request.id}?type=${request.type}`}
-                                            className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                                            className="bg-slate-700 text-slate-200 px-3 py-1 rounded text-sm font-medium hover:bg-slate-600 transition-colors text-center"
                                         >
                                             View Details
                                         </Link>
@@ -319,12 +319,12 @@ const ActiveRequests = () => {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                    <div className="text-gray-400 text-4xl mb-4">🟢</div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                <div className="bg-slate-800 rounded-lg shadow-sm p-12 text-center">
+                    <div className="text-slate-400 text-4xl mb-4">🟢</div>
+                    <h3 className="text-lg font-semibold text-white mb-2">
                         No active requests found
                     </h3>
-                    <p className="text-gray-500 mb-6">
+                    <p className="text-slate-300 mb-6">
                         You don't have any active requests. Create one to start connecting with others!
                     </p>
                     <div className="flex gap-3 justify-center">
@@ -346,28 +346,28 @@ const ActiveRequests = () => {
 
             {/* Quick Stats Summary */}
             {requests.length > 0 && (
-                <div className="mt-8 bg-green-50 rounded-lg p-6">
-                    <h3 className="font-semibold text-green-900 mb-3">📊 Active Requests Summary</h3>
+                <div className="mt-8 bg-green-900 rounded-lg p-6">
+                    <h3 className="font-semibold text-green-200 mb-3">📊 Active Requests Summary</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div className="text-center">
-                            <div className="text-lg font-bold text-green-700">{stats.oneToOne}</div>
-                            <div className="text-green-600">One-to-One</div>
+                            <div className="text-lg font-bold text-green-300">{stats.oneToOne}</div>
+                            <div className="text-green-200">One-to-One</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-lg font-bold text-purple-700">{stats.group}</div>
-                            <div className="text-purple-600">Group Sessions</div>
+                            <div className="text-lg font-bold text-purple-300">{stats.group}</div>
+                            <div className="text-purple-200">Group Sessions</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-lg font-bold text-blue-700">
+                            <div className="text-lg font-bold text-blue-300">
                                 {requests.filter(r => r.participants?.length > 0).length}
                             </div>
-                            <div className="text-blue-600">With Participants</div>
+                            <div className="text-blue-200">With Participants</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-lg font-bold text-orange-700">
+                            <div className="text-lg font-bold text-orange-300">
                                 {requests.filter(r => r.views > 0).length}
                             </div>
-                            <div className="text-orange-600">With Views</div>
+                            <div className="text-orange-200">With Views</div>
                         </div>
                     </div>
                 </div>

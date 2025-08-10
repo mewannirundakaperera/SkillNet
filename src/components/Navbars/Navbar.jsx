@@ -20,6 +20,7 @@ export default function IntelligentNavbar() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
   const searchRef = useRef(null);
   const profileMenuRef = useRef(null);
@@ -98,73 +99,51 @@ export default function IntelligentNavbar() {
   // Handle search functionality
   const handleSearch = async (value) => {
     setSearchQuery(value);
-
-    if (value.trim().length < 2) {
-      setSearchResults([]);
+    if (value.length < 2) {
       setShowSearchResults(false);
+      setSearchResults([]);
       return;
     }
 
     setSearchLoading(true);
     setShowSearchResults(true);
 
-    try {
-      // Search users
-      const usersRef = collection(db, 'users');
-      const usersSnapshot = await getDocs(usersRef);
-      const users = usersSnapshot.docs
-        .map(doc => ({ id: doc.id, type: 'user', ...doc.data() }))
-        .filter(user =>
-          user.displayName?.toLowerCase().includes(value.toLowerCase()) ||
-          user.email?.toLowerCase().includes(value.toLowerCase())
-        )
-        .slice(0, 3);
+    // Simulate search delay
+    setTimeout(() => {
+      // Mock search results - replace with actual search logic
+      const mockResults = [
+        {
+          type: 'user',
+          id: '1',
+          displayName: 'John Doe',
+          email: 'john@example.com',
+          avatar: 'https://randomuser.me/api/portraits/men/1.jpg'
+        },
+        {
+          type: 'group',
+          id: '1',
+          name: 'React Developers',
+          memberCount: 150,
+          image: 'https://randomuser.me/api/portraits/men/2.jpg'
+        }
+      ];
 
-      // Search groups
-      const groupsRef = collection(db, 'groups');
-      const groupsSnapshot = await getDocs(groupsRef);
-      const groups = groupsSnapshot.docs
-        .map(doc => ({ id: doc.id, type: 'group', ...doc.data() }))
-        .filter(group =>
-          group.name?.toLowerCase().includes(value.toLowerCase()) ||
-          group.description?.toLowerCase().includes(value.toLowerCase())
-        )
-        .slice(0, 3);
-
-      // Search requests (if authenticated)
-      let requests = [];
-      if (isAuthenticated) {
-        const requestsRef = collection(db, 'requests');
-        const requestsSnapshot = await getDocs(requestsRef);
-        requests = requestsSnapshot.docs
-          .map(doc => ({ id: doc.id, type: 'request', ...doc.data() }))
-          .filter(request =>
-            request.title?.toLowerCase().includes(value.toLowerCase()) ||
-            request.description?.toLowerCase().includes(value.toLowerCase())
-          )
-          .slice(0, 2);
-      }
-
-      setSearchResults([...users, ...groups, ...requests]);
-    } catch (error) {
-      console.error("Search error:", error);
-      setSearchResults([]);
-    } finally {
+      setSearchResults(mockResults);
       setSearchLoading(false);
-    }
+    }, 500);
   };
 
   // Handle logout
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/", { replace: true });
+      navigate('/');
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error('Logout error:', error);
     }
   };
 
-  // Close dropdowns when clicking outside
+  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -179,7 +158,7 @@ export default function IntelligentNavbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Define navigation configurations based on page type and auth status
+  // Navigation configuration
   const getNavConfig = () => {
     const currentPath = location.pathname;
 
@@ -193,15 +172,15 @@ export default function IntelligentNavbar() {
           <div className="flex items-center space-x-4">
             <Link
               to="/login"
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-white hover:text-blue-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Sign In
             </Link>
             <Link
               to="/signup"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="btn-gradient-primary px-4 py-2 rounded-md text-sm font-medium transition-all duration-300"
             >
-              Get Started
+              Sign up/Login
             </Link>
           </div>
         ),
@@ -219,7 +198,7 @@ export default function IntelligentNavbar() {
         rightSection: (
           <Link
             to="/requests/create"
-            className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-blue-700 transition-colors text-sm"
+            className="btn-gradient-primary rounded-lg px-4 py-2 font-semibold transition-all duration-300 text-sm"
           >
             + Create Request
           </Link>
@@ -270,7 +249,7 @@ export default function IntelligentNavbar() {
         rightSection: (
           <Link
             to="/teach/become-teacher"
-            className="bg-purple-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-purple-700 transition-colors text-sm"
+            className="btn-gradient-primary rounded-lg px-4 py-2 font-semibold transition-all duration-300 text-sm"
           >
             Become a Teacher
           </Link>
@@ -309,13 +288,13 @@ export default function IntelligentNavbar() {
         <div className="flex gap-2">
           <Link
             to="/requests/create"
-            className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-blue-700 transition-colors text-sm"
+            className="btn-gradient-primary rounded-lg px-4 py-2 font-semibold transition-all duration-300 text-sm"
           >
             + Create Request
           </Link>
           <Link
             to="/group/join"
-            className="border border-blue-600 text-blue-600 rounded-lg px-4 py-2 font-semibold hover:bg-blue-50 transition-colors text-sm"
+            className="btn-secondary rounded-lg px-4 py-2 font-semibold transition-all duration-300 text-sm"
           >
             Join Groups
           </Link>
@@ -333,36 +312,190 @@ export default function IntelligentNavbar() {
 
   // Get active link styling
   const getLinkClass = (path) => {
-    const baseClass = "hover:text-indigo-600 transition-colors px-3 py-2 rounded-md text-sm font-medium";
+    const baseClass = "nav-link px-3 py-2 rounded-md text-sm font-medium";
     return location.pathname === path
-      ? `${baseClass} text-indigo-600 bg-indigo-50`
-      : `${baseClass} text-gray-700`;
+      ? `${baseClass} active`
+      : baseClass;
   };
 
   const navConfig = getNavConfig();
 
+  // Navigation items with dropdowns
+  const navigationItems = [
+    {
+      label: "Explora",
+      to: "/explore",
+      hasDropdown: true,
+      dropdownItems: [
+        {
+          section: "Subjects & Communities",
+          items: [
+            { label: "All Subjects", icon: "💻", to: "/subjects" },
+            { label: "Course-Based Communities", icon: "👥", to: "/communities" },
+            { label: "Common Community", icon: "🌐", to: "/common" },
+            { label: "Popular Topics", icon: "🔥", to: "/topics", isNew: true },
+            { label: "Browse Tutors", icon: "⭐", to: "/tutors" }
+          ]
+        },
+        {
+          section: "Skill Exchange",
+          items: [
+            { label: "Free Sessions", icon: "⚡", to: "/free-sessions" },
+            { label: "Paid Sessions", icon: "📄", to: "/paid-sessions" },
+            { label: "Upcoming Sessions", icon: "🕐", to: "/upcoming", isNew: true },
+            { label: "Most Requested", icon: "🏆", to: "/requested" },
+            { label: "Tutor Reviews", icon: "💬", to: "/reviews" }
+          ]
+        },
+        {
+          section: "Knowledge Boards",
+          items: [
+            { label: "Latest Questions", icon: "💡", to: "/questions" },
+            { label: "Paid Sessions", icon: "📄", to: "/paid" },
+            { label: "Trending Topics", icon: "🔥", to: "/trending", isNew: true },
+            { label: "Most Viewed Answers", icon: "📚", to: "/answers" },
+            { label: "New Teachers", icon: "🎓", to: "/teachers" }
+          ]
+        }
+      ]
+    },
+    {
+      label: "Teach",
+      to: "/teach",
+      hasDropdown: true,
+      dropdownItems: [
+        {
+          section: "Become a Tutor",
+          items: [
+            { label: "Register as Tutor", icon: "🎵", to: "/register-tutor" },
+            { label: "Set Available Subjects", icon: "📋", to: "/subjects" },
+            { label: "Add Time Slots", icon: "🕐", to: "/time-slots" },
+            { label: "Set Price (Optional)", icon: "💰", to: "/pricing" }
+          ]
+        },
+        {
+          section: "Manage Teaching",
+          items: [
+            { label: "Your Sessions", icon: "🔄", to: "/sessions" },
+            { label: "Earnings", icon: "💰", to: "/earnings" },
+            { label: "Student Feedback", icon: "💬", to: "/feedback", isNew: true },
+            { label: "Edit Tutor Profile", icon: "👤", to: "/edit-profile" }
+          ]
+        }
+      ]
+    },
+    {
+      label: "Learn",
+      to: "/learn",
+      hasDropdown: true,
+      dropdownItems: [
+        {
+          section: "Learning Options",
+          items: [
+            { label: "Request Knowledge", icon: "📄", to: "/request-knowledge" },
+            { label: "Request Help", icon: "🔧", to: "/request-help" },
+            { label: "One-on-One Learning", icon: "👥", to: "/one-on-one" },
+            { label: "Group Sessions", icon: "👥", to: "/group-sessions", isNew: true },
+            { label: "Join Upcoming Session", icon: "🕐", to: "/join-session" }
+          ]
+        },
+        {
+          section: "My Learning",
+          items: [
+            { label: "Enrolled Sessions", icon: "📋", to: "/enrolled" },
+            { label: "Learning History", icon: "📋", to: "/history" },
+            { label: "Notes", icon: "📄", to: "/notes" },
+            { label: "Ask a Tutor", icon: "💬", to: "/ask-tutor" }
+          ]
+        }
+      ]
+    },
+    { label: "Messages", to: "/messages", hasDropdown: false },
+    { label: "More", to: "/more", hasDropdown: false }
+  ];
+
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-[#1A202C] shadow-lg border-b border-[#4A5568] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left Section - Logo and Navigation */}
           <div className="flex items-center gap-8">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
-              <img src="/vite.svg" alt="Logo" className="h-8 w-8" />
-              <span className="font-bold text-xl text-indigo-700">NetworkPro</span>
+              <img src="/brain-logo.png" alt="Logo" className="h-8 w-8" />
+              <div className="flex items-center">
+                <span className="font-bold text-xl text-[#4299E1]">Skill</span>
+                <span className="font-bold text-xl text-white">-net</span>
+              </div>
             </Link>
 
-            {/* Desktop Navigation - moved to left */}
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              {navConfig.navItems.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={getLinkClass(item.to)}
-                >
-                  {item.label}
-                </Link>
+              {navigationItems.map((item) => (
+                <div key={item.label} className="relative">
+                  <button
+                    className={`nav-link px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1 ${
+                      activeDropdown === item.label ? 'text-[#4299E1]' : 'text-white'
+                    }`}
+                    onClick={() => setActiveDropdown(activeDropdown === item.label ? null : item.label)}
+                    onMouseEnter={() => item.hasDropdown && setActiveDropdown(item.label)}
+                    onMouseLeave={() => item.hasDropdown && setActiveDropdown(null)}
+                  >
+                    {item.label}
+                    {item.hasDropdown && (
+                      <svg
+                        className={`h-4 w-4 transition-transform ${
+                          activeDropdown === item.label ? 'rotate-180' : ''
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {item.hasDropdown && activeDropdown === item.label && (
+                    <div
+                      className="absolute top-full left-0 mt-2 w-96 dropdown-dark py-4 z-50"
+                      onMouseEnter={() => setActiveDropdown(item.label)}
+                      onMouseLeave={() => setActiveDropdown(null)}
+                    >
+                      <div className="grid grid-cols-3 gap-6 px-6">
+                        {item.dropdownItems.map((section, sectionIndex) => (
+                          <div key={sectionIndex}>
+                            <h3 className="font-bold text-sm text-[#2D3748] mb-3 uppercase tracking-wide">
+                              {section.section}
+                            </h3>
+                            <ul className="space-y-2">
+                              {section.items.map((subItem, itemIndex) => (
+                                <li key={itemIndex}>
+                                  <Link
+                                    to={subItem.to}
+                                    className="flex items-center gap-2 text-sm text-[#4A5568] hover:text-[#4299E1] transition-colors group"
+                                    onClick={() => setActiveDropdown(null)}
+                                  >
+                                    <span className="text-lg group-hover:scale-110 transition-transform">
+                                      {subItem.icon}
+                                    </span>
+                                    <span className="flex-1">{subItem.label}</span>
+                                    {subItem.isNew && (
+                                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                                        NEW
+                                      </span>
+                                    )}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -378,10 +511,10 @@ export default function IntelligentNavbar() {
                     placeholder={navConfig.searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    className="border border-gray-200 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-gray-600 w-64"
+                    className="input-dark w-64 pl-10 pr-4 py-2"
                   />
                   <svg
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#A0AEC0]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -392,10 +525,10 @@ export default function IntelligentNavbar() {
 
                 {/* Search Results Dropdown */}
                 {showSearchResults && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-80 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 dropdown-dark mt-1 max-h-80 overflow-y-auto">
                     {searchLoading ? (
                       <div className="p-4 text-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#4299E1] mx-auto"></div>
                       </div>
                     ) : searchResults.length > 0 ? (
                       <>
@@ -407,7 +540,7 @@ export default function IntelligentNavbar() {
                               result.type === 'group' ? `/groups/${result.id}` :
                               `/requests/details/${result.id}`
                             }
-                            className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                            className="flex items-center gap-3 p-3 hover:bg-[#2D3748] border-b border-[#4A5568] last:border-b-0"
                             onClick={() => {
                               setShowSearchResults(false);
                               setSearchQuery("");
@@ -423,16 +556,16 @@ export default function IntelligentNavbar() {
                               className="w-8 h-8 rounded-full object-cover"
                             />
                             <div>
-                              <div className="font-medium text-sm">
+                              <div className="font-medium text-sm text-[#2D3748]">
                                 {result.displayName || result.name || result.title}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-[#A0AEC0]">
                                 {result.type === 'user' ? result.email :
                                  result.type === 'group' ? `${result.memberCount || 0} members` :
                                  result.subject || 'Request'}
                               </div>
                             </div>
-                            <span className="ml-auto text-xs bg-gray-100 px-2 py-1 rounded">
+                            <span className="ml-auto text-xs bg-[#2D3748] px-2 py-1 rounded text-[#A0AEC0] border border-[#4A5568]">
                               {result.type === 'user' ? 'Person' :
                                result.type === 'group' ? 'Group' : 'Request'}
                             </span>
@@ -440,7 +573,7 @@ export default function IntelligentNavbar() {
                         ))}
                       </>
                     ) : searchQuery.length >= 2 ? (
-                      <div className="p-4 text-center text-gray-500">
+                      <div className="p-4 text-center text-[#A0AEC0]">
                         No results found for "{searchQuery}"
                       </div>
                     ) : null}
@@ -455,7 +588,7 @@ export default function IntelligentNavbar() {
             {/* Notifications (conditional) */}
             {navConfig.showNotifications && (
               <div className="relative">
-                <button className="relative p-2 text-gray-600 hover:text-indigo-600 transition-colors">
+                <button className="relative p-2 text-white hover:text-[#4299E1] transition-colors">
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-3.5-3.5a8.38 8.38 0 010-6L20 4h-5M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -473,18 +606,18 @@ export default function IntelligentNavbar() {
               <div className="relative" ref={profileMenuRef}>
                 <button
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                  className="flex items-center gap-2 hover:bg-[#2D3748] px-2 py-1 rounded transition-colors"
                 >
                   <img
                     src={userProfile.avatar}
                     alt={userProfile.displayName}
                     className="h-8 w-8 rounded-full object-cover border-2 border-white shadow"
                   />
-                  <span className="font-medium text-gray-700 text-sm">
+                  <span className="font-medium text-white text-sm">
                     {userProfile.displayName}
                   </span>
                   <svg
-                    className={`h-4 w-4 text-gray-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`}
+                    className={`h-4 w-4 text-[#A0AEC0] transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -495,50 +628,50 @@ export default function IntelligentNavbar() {
 
                 {/* Profile Dropdown */}
                 {profileMenuOpen && (
-                  <div className="absolute top-full right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 w-64 py-2">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <div className="font-medium text-sm">{userProfile.displayName}</div>
-                      <div className="text-xs text-gray-500">{userProfile.email}</div>
+                  <div className="absolute top-full right-0 dropdown-dark mt-1 w-64 py-2">
+                    <div className="px-4 py-2 border-b border-[#4A5568]">
+                      <div className="font-medium text-sm text-white">{userProfile.displayName}</div>
+                      <div className="text-xs text-[#A0AEC0]">{userProfile.email}</div>
                     </div>
 
                     <Link
                       to="/profile"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      <span className="text-sm">View Profile</span>
+                      <span className="text-sm text-[#2D3748]">View Profile</span>
                     </Link>
 
                     <Link
                       to="/settings"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span className="text-sm">Settings</span>
+                      <span className="text-sm text-[#2D3748]">Settings</span>
                     </Link>
 
                     <Link
                       to="/help"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-sm">Help & Support</span>
+                      <span className="text-sm text-[#2D3748]">Help & Support</span>
                     </Link>
 
-                    <div className="border-t border-gray-100 mt-2">
+                    <div className="border-t border-[#4A5568] mt-2">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors w-full text-left text-red-600"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors w-full text-left text-red-400"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -554,7 +687,7 @@ export default function IntelligentNavbar() {
 
           {/* Mobile Hamburger */}
           <button
-            className="md:hidden flex items-center p-2 text-indigo-700 focus:outline-none"
+            className="md:hidden flex items-center p-2 text-white focus:outline-none"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
@@ -566,7 +699,7 @@ export default function IntelligentNavbar() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
+          <div className="md:hidden border-t border-[#4A5568] py-4 mobile-nav">
             {/* Mobile Search */}
             {navConfig.showSearch && (
               <div className="px-4 mb-4">
@@ -575,22 +708,22 @@ export default function IntelligentNavbar() {
                   placeholder={navConfig.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-gray-600"
+                  className="w-full input-dark px-4 py-2 focus:outline-none"
                 />
               </div>
             )}
 
             {/* Mobile Profile Info */}
             {navConfig.showProfile && userProfile && (
-              <div className="flex items-center gap-3 px-4 mb-4 pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-3 px-4 mb-4 pb-4 border-b border-[#4A5568]">
                 <img
                   src={userProfile.avatar}
                   alt={userProfile.displayName}
-                  className="h-10 w-10 rounded-full object-cover border-2 border-indigo-100"
+                  className="h-10 w-10 rounded-full object-cover border-2 border-[#4299E1]"
                 />
                 <div>
-                  <div className="font-medium text-sm">{userProfile.displayName}</div>
-                  <div className="text-xs text-gray-500">{userProfile.email}</div>
+                  <div className="font-medium text-sm text-white">{userProfile.displayName}</div>
+                  <div className="text-xs text-[#A0AEC0]">{userProfile.email}</div>
                 </div>
               </div>
             )}
@@ -603,8 +736,8 @@ export default function IntelligentNavbar() {
                   to={item.to}
                   className={`block px-3 py-2 rounded-md text-sm font-medium ${
                     location.pathname === item.to
-                      ? 'text-indigo-600 bg-indigo-50'
-                      : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
+                      ? 'text-[#4299E1] bg-[#2D3748]'
+                      : 'text-white hover:text-[#4299E1] hover:bg-[#2D3748]'
                   } transition-colors`}
                   onClick={() => setMenuOpen(false)}
                 >
@@ -618,13 +751,13 @@ export default function IntelligentNavbar() {
               {isAuthenticated ? (
                 <>
                   {navConfig.rightSection && (
-                    <div className="pb-4 border-b border-gray-200">
+                    <div className="pb-4 border-b border-[#4A5568]">
                       {navConfig.rightSection}
                     </div>
                   )}
                   <button
                     onClick={handleLogout}
-                    className="w-full px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 font-semibold text-sm"
+                    className="w-full px-4 py-2 border border-red-600 text-red-400 rounded hover:bg-red-900 font-semibold text-sm"
                   >
                     Sign Out
                   </button>
@@ -633,14 +766,14 @@ export default function IntelligentNavbar() {
                 <>
                   <Link
                     to="/login"
-                    className="block w-full px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 font-semibold text-sm text-center"
+                    className="block w-full px-4 py-2 border border-[#4299E1] text-[#4299E1] rounded hover:bg-[#2D3748] font-semibold text-sm text-center"
                     onClick={() => setMenuOpen(false)}
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/signup"
-                    className="block w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-semibold text-sm text-center"
+                    className="block w-full px-4 py-2 btn-gradient-primary font-semibold text-sm text-center"
                     onClick={() => setMenuOpen(false)}
                   >
                     Get Started

@@ -48,29 +48,29 @@ export default function SetupUserProfiles() {
   };
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-lg max-w-2xl mx-auto mt-8">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
+    <div className="p-6 card-dark rounded-lg shadow-lg max-w-2xl mx-auto mt-8">
+      <h2 className="text-2xl font-bold mb-4 text-white">
         🔧 UserProfiles Collection Setup
       </h2>
 
       <div className="space-y-6">
         {/* Collection Status Check */}
-        <div className="border rounded-lg p-4">
-          <h3 className="text-lg font-semibold mb-2">1. Check Collection Status</h3>
-          <p className="text-gray-600 mb-3">
+        <div className="border border-[#4A5568] rounded-lg p-4">
+          <h3 className="text-lg font-semibold mb-2 text-white">1. Check Collection Status</h3>
+          <p className="text-[#A0AEC0] mb-3">
             First, let's check if the userProfiles collection already exists.
           </p>
 
           <button
             onClick={handleCheckCollection}
             disabled={checkingCollection}
-            className="bg-blue-600 text-white px-4 py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50"
+            className="btn-gradient-primary text-white px-4 py-2 rounded font-semibold disabled:opacity-50"
           >
             {checkingCollection ? 'Checking...' : 'Check Collection'}
           </button>
 
           {collectionExists !== null && (
-            <div className={`mt-3 p-3 rounded ${collectionExists ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+            <div className={`mt-3 p-3 rounded ${collectionExists ? 'bg-green-900 text-green-300 border border-green-700' : 'bg-yellow-900 text-yellow-300 border border-yellow-700'}`}>
               {collectionExists ?
                 '✅ userProfiles collection exists and has data!' :
                 '⚠️ userProfiles collection is empty or doesn\'t exist'
@@ -80,12 +80,12 @@ export default function SetupUserProfiles() {
         </div>
 
         {/* Migration Section */}
-        <div className="border rounded-lg p-4">
-          <h3 className="text-lg font-semibold mb-2">2. Run Migration</h3>
-          <p className="text-gray-600 mb-3">
+        <div className="border border-[#4A5568] rounded-lg p-4">
+          <h3 className="text-lg font-semibold mb-2 text-white">2. Run Migration</h3>
+          <p className="text-[#A0AEC0] mb-3">
             This will create public profiles for all existing users in your users collection.
             {collectionExists && (
-              <span className="text-yellow-600 font-semibold">
+              <span className="text-yellow-400 font-semibold">
                 {" "}Note: This will update existing profiles if they already exist.
               </span>
             )}
@@ -96,7 +96,7 @@ export default function SetupUserProfiles() {
             disabled={migrationStatus === 'running'}
             className={`px-4 py-2 rounded font-semibold ${
               migrationStatus === 'running' 
-                ? 'bg-gray-400 text-white cursor-not-allowed'
+                ? 'bg-[#4A5568] text-white cursor-not-allowed'
                 : migrationStatus === 'success'
                 ? 'bg-green-600 text-white hover:bg-green-700'
                 : 'bg-orange-600 text-white hover:bg-orange-700'
@@ -111,11 +111,11 @@ export default function SetupUserProfiles() {
 
         {/* Migration Results */}
         {migrationResult && (
-          <div className="border rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-2">Migration Results</h3>
+          <div className="border border-[#4A5568] rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-2 text-white">Migration Results</h3>
 
             {migrationResult.success ? (
-              <div className="bg-green-100 text-green-800 p-3 rounded">
+              <div className="bg-green-900 text-green-300 p-3 rounded border border-green-700">
                 <div className="font-semibold">✅ Migration Successful!</div>
                 <div className="text-sm mt-1">
                   • Migrated: {migrationResult.migratedCount} users<br/>
@@ -123,7 +123,7 @@ export default function SetupUserProfiles() {
                 </div>
               </div>
             ) : (
-              <div className="bg-red-100 text-red-800 p-3 rounded">
+              <div className="bg-red-900 text-red-300 p-3 rounded border border-red-700">
                 <div className="font-semibold">❌ Migration Failed</div>
                 <div className="text-sm mt-1">
                   Error: {migrationResult.error}
@@ -135,9 +135,9 @@ export default function SetupUserProfiles() {
 
         {/* Next Steps */}
         {migrationStatus === 'success' && (
-          <div className="border rounded-lg p-4 bg-blue-50">
-            <h3 className="text-lg font-semibold mb-2 text-blue-800">🎉 Next Steps</h3>
-            <div className="text-blue-700 space-y-2">
+          <div className="border border-[#4A5568] rounded-lg p-4 bg-[#2D3748]">
+            <h3 className="text-lg font-semibold mb-2 text-[#4299E1]">🎉 Next Steps</h3>
+            <div className="text-[#E0E0E0] space-y-2">
               <p>✅ Your userProfiles collection has been created successfully!</p>
               <p>✅ Profile editing should now work without errors</p>
               <p>✅ Search functionality will now use public profiles</p>
@@ -149,9 +149,9 @@ export default function SetupUserProfiles() {
         )}
 
         {/* Instructions */}
-        <div className="border rounded-lg p-4 bg-gray-50">
-          <h3 className="text-lg font-semibold mb-2">ℹ️ What This Does</h3>
-          <ul className="text-gray-700 space-y-1 text-sm">
+        <div className="border border-[#4A5568] rounded-lg p-4 bg-[#2D3748]">
+          <h3 className="text-lg font-semibold mb-2 text-white">ℹ️ What This Does</h3>
+          <ul className="text-[#A0AEC0] space-y-1 text-sm">
             <li>• Creates a <code>userProfiles</code> collection with public user data</li>
             <li>• Copies safe fields: displayName, bio, location, skills, interests, avatar</li>
             <li>• Excludes private data: email, settings, private stats</li>

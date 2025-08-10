@@ -22,62 +22,62 @@ export default function AcceptRequest() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 min-h-screen">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl mx-4 relative flex flex-col">
+      <div className="card-dark shadow-xl w-full max-w-3xl mx-4 relative flex flex-col">
         {/* Close Button */}
-        <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl" aria-label="Close">
+        <button className="absolute top-4 right-4 text-[#A0AEC0] hover:text-white text-2xl transition-colors" aria-label="Close">
           &times;
         </button>
         {/* Modal Content */}
         <div className="p-8 pb-4">
-          <h2 className="text-2xl font-bold mb-1">Accept New Request</h2>
-          <p className="text-gray-500 mb-6">Review the request details and proposed value. You can directly accept or adjust the value before accepting.</p>
-          <hr className="mb-6" />
+          <h2 className="text-2xl font-bold mb-1 text-white">Accept New Request</h2>
+          <p className="text-[#A0AEC0] mb-6">Review the request details and proposed value. You can directly accept or adjust the value before accepting.</p>
+          <hr className="mb-6 border-[#4A5568]" />
           {/* Proposed Value */}
           <div className="mb-6">
-            <label className="block font-medium mb-2">Proposed Value</label>
+            <label className="block font-medium mb-2 text-white">Proposed Value</label>
             <div className="flex gap-2 items-center">
-              <span className="text-gray-400">USD</span>
+              <span className="text-[#A0AEC0]">USD</span>
               <input
                 type="number"
                 min="0"
                 value={proposedValue}
                 onChange={e => setProposedValue(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-2 w-32 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                className="input-dark px-3 py-2 w-32"
               />
               <select
                 value={currency}
                 onChange={e => setCurrency(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                className="input-dark px-2 py-2"
               >
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
                 <option value="GBP">GBP</option>
               </select>
             </div>
-            <div className="text-xs text-gray-400 mt-2">This value represents the requested compensation for the session. Adjust as necessary.</div>
+            <div className="text-xs text-[#A0AEC0] mt-2">This value represents the requested compensation for the session. Adjust as necessary.</div>
           </div>
           {/* Teacher Availability Overview */}
           <div>
-            <h3 className="font-semibold text-lg mb-1">Teacher Availability Overview</h3>
-            <p className="text-xs text-gray-500 mb-3">Select a teacher from the list below to review their detailed availability for the upcoming week. Greyed-out slots are unavailable.</p>
+            <h3 className="font-semibold text-lg mb-1 text-white">Teacher Availability Overview</h3>
+            <p className="text-xs text-[#A0AEC0] mb-3">Select a teacher from the list below to review their detailed availability for the upcoming week. Greyed-out slots are unavailable.</p>
             <div className="overflow-x-auto">
-              <table className="min-w-full bg-gray-50 rounded-lg">
+              <table className="min-w-full bg-[#2D3748] rounded-lg border border-[#4A5568]">
                 <thead>
                   <tr>
-                    <th className="text-left px-4 py-2 bg-gray-100 font-medium text-sm">Teacher</th>
+                    <th className="text-left px-4 py-2 bg-[#4A5568] font-medium text-sm text-white">Teacher</th>
                     {days.map(day => (
-                      <th key={day} className="text-center px-4 py-2 bg-gray-100 font-medium text-sm">{day}</th>
+                      <th key={day} className="text-center px-4 py-2 bg-[#4A5568] font-medium text-sm text-white">{day}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     {/* Teacher Info */}
-                    <td className="px-4 py-2 flex items-center gap-2 bg-white">
+                    <td className="px-4 py-2 flex items-center gap-2 bg-[#2D3748]">
                       <img src={teacher.avatar} alt={teacher.name} className="w-10 h-10 rounded-full" />
                       <div>
-                        <div className="font-semibold text-sm">{teacher.name}</div>
-                        <div className="flex items-center text-xs text-yellow-500 gap-1">
+                        <div className="font-semibold text-sm text-white">{teacher.name}</div>
+                        <div className="flex items-center text-xs text-yellow-400 gap-1">
                           <span>★</span>
                           <span>{teacher.rating}</span>
                         </div>
@@ -88,7 +88,7 @@ export default function AcceptRequest() {
                       <td key={day} className="px-2 py-2 text-center align-top">
                         <div className="flex flex-col gap-2">
                           {slots[day].map(time => (
-                            <span key={time} className="bg-yellow-100 text-gray-700 rounded px-2 py-1 text-xs font-semibold inline-block">{time}</span>
+                            <span key={time} className="bg-yellow-900/30 text-yellow-300 rounded px-2 py-1 text-xs font-semibold inline-block border border-yellow-500/50">{time}</span>
                           ))}
                         </div>
                       </td>
@@ -100,8 +100,8 @@ export default function AcceptRequest() {
           </div>
         </div>
         {/* Footer */}
-        <footer className="text-xs text-gray-400 px-6 py-2 flex items-center gap-1 border-t bg-white rounded-b-xl">
-          Made with <span className="text-indigo-500 font-bold">Visily</span>
+        <footer className="text-xs text-[#A0AEC0] px-6 py-2 flex items-center gap-1 border-t border-[#4A5568] bg-[#2D3748] rounded-b-xl">
+          Made with <span className="text-[#8B5CF6] font-bold">Visily</span>
         </footer>
       </div>
     </div>

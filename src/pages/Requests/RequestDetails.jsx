@@ -356,10 +356,10 @@ export default function RequestDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading request details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
+          <p className="mt-4 text-[#A0AEC0]">Loading request details...</p>
         </div>
       </div>
     );
@@ -367,14 +367,14 @@ export default function RequestDetails() {
 
   if (error || !request) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Request Not Found</h2>
-          <p className="text-gray-600 mb-4">{error || "The requested item could not be found."}</p>
+          <div className="text-red-400 text-4xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-white mb-2">Request Not Found</h2>
+          <p className="text-[#A0AEC0] mb-4">{error || "The requested item could not be found."}</p>
           <Link
             to="/requests/group"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="btn-gradient-primary px-4 py-2 rounded"
           >
             Back to Requests
           </Link>
@@ -384,27 +384,27 @@ export default function RequestDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#1A202C] flex flex-col">
       {/* Main Content */}
       <main className="flex-1 flex gap-8 p-8">
         <section className="flex-1 flex flex-col gap-6">
           {/* Request Details */}
-          <div className="bg-white rounded-xl shadow p-6 mb-2">
+          <div className="card-dark p-6 mb-2">
             <div className="flex items-center gap-4 mb-2">
-              <h2 className="font-bold text-xl flex-1">{request.topic || request.title}</h2>
+              <h2 className="font-bold text-xl flex-1 text-white">{request.topic || request.title}</h2>
               <span className={`px-3 py-1 rounded text-xs font-semibold ${
-                request.status === 'open' ? 'bg-green-100 text-green-700' :
-                request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                request.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                request.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                'bg-gray-100 text-gray-700'
+                request.status === 'open' ? 'bg-green-900 text-green-400' :
+                request.status === 'pending' ? 'bg-yellow-900 text-yellow-400' :
+                request.status === 'completed' ? 'bg-blue-900 text-blue-400' :
+                request.status === 'cancelled' ? 'bg-red-900 text-red-400' :
+                'bg-[#4A5568] text-[#A0AEC0]'
               }`}>
                 {request.status}
               </span>
             </div>
 
             {requestCreator && (
-              <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+              <div className="flex items-center gap-2 mb-4 text-sm text-[#A0AEC0]">
                 <img
                   src={requestCreator.avatar}
                   alt={requestCreator.displayName}
@@ -414,44 +414,44 @@ export default function RequestDetails() {
               </div>
             )}
 
-            <div className="text-xs text-gray-400 mb-4">Details for this scheduling request.</div>
+            <div className="text-xs text-[#718096] mb-4">Details for this scheduling request.</div>
 
-            <div className="flex flex-col gap-2 text-sm mb-4">
+            <div className="flex flex-col gap-2 text-sm mb-4 text-[#E0E0E0]">
               <div className="flex items-start gap-2">
-                <span className="font-semibold">📝 Description:</span>
+                <span className="font-semibold text-[#4299E1]">📝 Description:</span>
                 <span>{request.description || 'No description provided'}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">📚 Subject:</span>
+                <span className="font-semibold text-[#4299E1]">📚 Subject:</span>
                 <span>{request.subject}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">📅 Date:</span>
+                <span className="font-semibold text-[#4299E1]">📅 Date:</span>
                 <span>{request.scheduledDate || 'Not specified'}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">⏰ Time:</span>
+                <span className="font-semibold text-[#4299E1]">⏰ Time:</span>
                 <span>{request.scheduledTime || 'Not specified'}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">⏱️ Duration:</span>
+                <span className="font-semibold text-[#4299E1]">⏱️ Duration:</span>
                 <span>{request.duration || '60'} minutes</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">💵 Payment:</span>
+                <span className="font-semibold text-[#4299E1]">💵 Payment:</span>
                 <span>Rs.{request.paymentAmount || '0.00'}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold">👥 Participants:</span>
+                <span className="font-semibold text-[#4299E1]">👥 Participants:</span>
                 <span>{request.participants?.length || 0}/{request.maxParticipants || 5}</span>
               </div>
             </div>
 
             {request.tags && request.tags.length > 0 && (
               <div className="mb-4">
-                <span className="font-semibold text-sm">Tags: </span>
+                <span className="font-semibold text-sm text-[#4299E1]">Tags: </span>
                 {request.tags.map((tag, index) => (
-                  <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs mr-2">
+                  <span key={index} className="bg-[#4A5568] text-[#E0E0E0] px-2 py-1 rounded text-xs mr-2">
                     {tag}
                   </span>
                 ))}
@@ -461,7 +461,7 @@ export default function RequestDetails() {
             <div className="flex gap-2 mt-6">
               <Link
                 to="/requests/group"
-                className="border rounded px-4 py-2 font-semibold hover:bg-gray-100"
+                className="btn-secondary px-4 py-2 font-semibold"
               >
                 Back to Requests
               </Link>
@@ -470,7 +470,7 @@ export default function RequestDetails() {
                 <>
                   <Link
                     to={`/requests/edit/${id}`}
-                    className="bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700"
+                    className="btn-gradient-primary rounded px-4 py-2 font-semibold"
                   >
                     Edit Request
                   </Link>
@@ -507,8 +507,8 @@ export default function RequestDetails() {
           </div>
 
           {/* Participants */}
-          <div className="bg-white rounded-xl shadow p-6 mb-2">
-            <h3 className="font-semibold mb-4">Participants ({participants.length})</h3>
+          <div className="card-dark p-6 mb-2">
+            <h3 className="font-semibold mb-4 text-white">Participants ({participants.length})</h3>
             {participants.length > 0 ? (
               <div className="flex gap-8 flex-wrap">
                 {participants.map((participant) => (
@@ -518,14 +518,14 @@ export default function RequestDetails() {
                       alt={participant.displayName}
                       className="w-14 h-14 rounded-full object-cover"
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-[#E0E0E0]">
                       {participant.displayName}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-[#A0AEC0]">
                 <div className="text-4xl mb-2">👥</div>
                 <p>No participants yet. Be the first to join!</p>
               </div>
@@ -533,8 +533,8 @@ export default function RequestDetails() {
           </div>
 
           {/* Messages */}
-          <div className="bg-white rounded-xl shadow p-6 mb-2">
-            <h3 className="font-semibold mb-4">Discussion</h3>
+          <div className="card-dark p-6 mb-2">
+            <h3 className="font-semibold mb-4 text-white">Discussion</h3>
             <div className="flex flex-col gap-3 max-h-56 overflow-y-auto mb-4">
               {messages.length > 0 ? (
                 messages.map((msg) => (
@@ -545,16 +545,16 @@ export default function RequestDetails() {
                       className="w-8 h-8 rounded-full object-cover mt-1"
                     />
                     <div>
-                      <div className="font-semibold text-sm text-gray-800">
+                      <div className="font-semibold text-sm text-white">
                         {msg.user}
-                        <span className="text-xs text-gray-400 font-normal ml-2">{msg.time}</span>
+                        <span className="text-xs text-[#718096] font-normal ml-2">{msg.time}</span>
                       </div>
-                      <div className="text-gray-700 text-sm">{msg.text}</div>
+                      <div className="text-[#E0E0E0] text-sm">{msg.text}</div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-4 text-gray-500">
+                <div className="text-center py-4 text-[#A0AEC0]">
                   <p className="text-sm">No messages yet. Start the conversation!</p>
                 </div>
               )}
@@ -564,7 +564,7 @@ export default function RequestDetails() {
               <form className="flex gap-2 mt-2" onSubmit={handleSendMessage}>
                 <input
                   type="text"
-                  className="flex-1 border rounded px-3 py-2 text-sm"
+                  className="input-dark flex-1 rounded px-3 py-2 text-sm"
                   placeholder="Type your message..."
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
@@ -573,7 +573,7 @@ export default function RequestDetails() {
                 <button
                   type="submit"
                   disabled={sending || !newMessage.trim()}
-                  className="bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-gradient-primary rounded px-4 py-2 font-semibold flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {sending ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -591,48 +591,48 @@ export default function RequestDetails() {
         {/* Right: Actions & Related */}
         <aside className="w-96 flex flex-col gap-6">
           {/* Request Status & Actions */}
-          <div className="bg-white rounded-xl shadow p-6 mb-2">
-            <h3 className="font-semibold mb-4">Request Status</h3>
+          <div className="card-dark p-6 mb-2">
+            <h3 className="font-semibold mb-4 text-white">Request Status</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Status:</span>
+                <span className="text-sm text-[#A0AEC0]">Status:</span>
                 <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  request.status === 'open' ? 'bg-green-100 text-green-700' :
-                  request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                  request.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                  request.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                  'bg-gray-100 text-gray-700'
+                  request.status === 'open' ? 'bg-green-900 text-green-400' :
+                  request.status === 'pending' ? 'bg-yellow-900 text-yellow-400' :
+                  request.status === 'completed' ? 'bg-blue-900 text-blue-400' :
+                  request.status === 'cancelled' ? 'bg-red-900 text-red-400' :
+                  'bg-[#4A5568] text-[#A0AEC0]'
                 }`}>
                   {request.status}
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Created:</span>
-                <span className="text-sm text-gray-900">
+                <span className="text-sm text-[#A0AEC0]">Created:</span>
+                <span className="text-sm text-white">
                   {request.createdAt?.toLocaleDateString()}
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Participants:</span>
-                <span className="text-sm text-gray-900">
+                <span className="text-sm text-[#A0AEC0]">Participants:</span>
+                <span className="text-sm text-white">
                   {request.participants?.length || 0}/{request.maxParticipants || 5}
                 </span>
               </div>
 
               {request.views && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Views:</span>
-                  <span className="text-sm text-gray-900">{request.views}</span>
+                  <span className="text-sm text-[#A0AEC0]">Views:</span>
+                  <span className="text-sm text-white">{request.views}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow p-6 mb-2">
-            <h3 className="font-semibold mb-4">Quick Actions</h3>
+          <div className="card-dark p-6 mb-2">
+            <h3 className="font-semibold mb-4 text-white">Quick Actions</h3>
             <div className="space-y-2">
               {canJoin && (
                 <button
@@ -658,7 +658,7 @@ export default function RequestDetails() {
                 <>
                   <Link
                     to={`/requests/edit/${id}`}
-                    className="w-full bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700 block text-center"
+                    className="btn-gradient-primary w-full rounded px-4 py-2 font-semibold block text-center"
                   >
                     ✏️ Edit Request
                   </Link>
@@ -674,7 +674,7 @@ export default function RequestDetails() {
 
               <Link
                 to="/requests/create"
-                className="w-full bg-purple-600 text-white rounded px-4 py-2 font-semibold hover:bg-purple-700 block text-center"
+                className="w-full bg-[#8B5CF6] text-white rounded px-4 py-2 font-semibold hover:bg-[#A78BFA] block text-center"
               >
                 📝 Create Similar Request
               </Link>
@@ -682,26 +682,26 @@ export default function RequestDetails() {
           </div>
 
           {/* Related Requests */}
-          <div className="bg-white rounded-xl shadow p-6 mb-2">
-            <h3 className="font-semibold mb-4">Related Requests</h3>
+          <div className="card-dark p-6 mb-2">
+            <h3 className="font-semibold mb-4 text-white">Related Requests</h3>
             {relatedRequests.length > 0 ? (
               <ul className="space-y-3">
                 {relatedRequests.map((relatedRequest) => (
                   <li key={relatedRequest.id}>
                     <Link
                       to={`/requests/details/${relatedRequest.id}`}
-                      className="block text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      className="block text-sm text-[#4299E1] hover:text-[#00BFFF] hover:underline"
                     >
                       📚 {relatedRequest.title}
                     </Link>
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-[#A0AEC0] mt-1">
                       {relatedRequest.subject}
                     </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="text-center py-4 text-gray-500">
+              <div className="text-center py-4 text-[#A0AEC0]">
                 <div className="text-2xl mb-2">🔍</div>
                 <p className="text-sm">No related requests found</p>
               </div>
@@ -710,8 +710,8 @@ export default function RequestDetails() {
 
           {/* Creator Info */}
           {requestCreator && !isCreator && (
-            <div className="bg-white rounded-xl shadow p-6 mb-2">
-              <h3 className="font-semibold mb-4">Request Creator</h3>
+            <div className="card-dark p-6 mb-2">
+              <h3 className="font-semibold mb-4 text-white">Request Creator</h3>
               <div className="flex items-center gap-3">
                 <img
                   src={requestCreator.avatar}
@@ -719,11 +719,11 @@ export default function RequestDetails() {
                   className="w-12 h-12 rounded-full object-cover"
                 />
                 <div>
-                  <div className="font-medium text-gray-900">
+                  <div className="font-medium text-white">
                     {requestCreator.displayName}
                   </div>
                   {requestCreator.bio && (
-                    <div className="text-xs text-gray-500 mt-1">
+                    <div className="text-xs text-[#A0AEC0] mt-1">
                       {requestCreator.bio.substring(0, 100)}
                       {requestCreator.bio.length > 100 && '...'}
                     </div>
@@ -733,7 +733,7 @@ export default function RequestDetails() {
               <div className="mt-3">
                 <Link
                   to={`/profile/${requestCreator.id}`}
-                  className="text-blue-600 text-sm hover:underline"
+                  className="text-[#4299E1] text-sm hover:text-[#00BFFF] transition-colors"
                 >
                   View Full Profile →
                 </Link>
@@ -742,24 +742,24 @@ export default function RequestDetails() {
           )}
 
           {/* Help & Support */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="font-semibold mb-3 text-gray-800">Need Help?</h3>
+          <div className="bg-[#2D3748] rounded-xl p-6 border border-[#4A5568]">
+            <h3 className="font-semibold mb-3 text-white">Need Help?</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-[#A0AEC0]">
                 <span>📧</span>
-                <a href="mailto:support@networkpro.com" className="hover:text-blue-600">
+                <a href="mailto:support@networkpro.com" className="hover:text-[#4299E1] transition-colors">
                   Contact Support
                 </a>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-[#A0AEC0]">
                 <span>❓</span>
-                <Link to="/help" className="hover:text-blue-600">
+                <Link to="/help" className="hover:text-[#4299E1] transition-colors">
                   Help Center
                 </Link>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-[#A0AEC0]">
                 <span>🚩</span>
-                <button className="hover:text-red-600">
+                <button className="hover:text-red-400 transition-colors">
                   Report Request
                 </button>
               </div>
@@ -769,8 +769,8 @@ export default function RequestDetails() {
       </main>
 
       {/* Footer */}
-      <footer className="text-xs text-gray-400 px-6 py-2 flex items-center gap-1 border-t">
-        Made with <span className="text-indigo-500 font-bold">NetworkPro</span>
+      <footer className="text-xs text-[#718096] px-6 py-2 flex items-center gap-1 border-t border-[#4A5568]">
+        Made with <span className="text-[#8B5CF6] font-bold">Skill-Net</span>
       </footer>
     </div>
   );

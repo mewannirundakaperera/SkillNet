@@ -68,7 +68,7 @@ export default function Settings() {
             ...user,
             ...result.userData,
             displayName: result.userData.displayName || result.userData.name || user.name || "User",
-            bio: result.userData.bio || "Welcome to NetworkPro! Connect with like-minded professionals and grow your network.",
+            bio: result.userData.bio || "Welcome to Skill-Net! Connect with like-minded professionals and grow your network.",
             avatar: result.userData.avatar || result.userData.photoURL || "https://randomuser.me/api/portraits/men/14.jpg"
           };
 
@@ -92,7 +92,7 @@ export default function Settings() {
           const fallbackData = {
             ...user,
             displayName: user.name || "User",
-            bio: "Welcome to NetworkPro!",
+            bio: "Welcome to Skill-Net!",
             avatar: "https://randomuser.me/api/portraits/men/14.jpg"
           };
           setUserProfile(fallbackData);
@@ -245,39 +245,39 @@ export default function Settings() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading settings...</p>
+                          <p className="mt-4 text-[#A0AEC0]">Loading settings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-[#1A202C] min-h-screen">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Settings</h1>
-        <p className="text-gray-600">Manage your account settings and preferences</p>
+        <h1 className="text-2xl font-bold text-white mb-2">Settings</h1>
+        <p className="text-[#E0E0E0]">Manage your account settings and preferences</p>
       </div>
 
       <div className="flex gap-8">
         {/* Sidebar Navigation */}
-        <aside className="w-64 bg-white rounded-lg shadow p-6 h-fit">
+        <aside className="w-64 card-dark p-6 h-fit">
           <nav className="flex flex-col gap-2">
-            <a href="#profile" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-100 text-blue-600 font-semibold">
+            <a href="#profile" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#4299E1] to-[#00BFFF] text-white font-semibold">
               Profile Settings
             </a>
-            <a href="#privacy" onClick={handlePrivacyClick} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+            <a href="#privacy" onClick={handlePrivacyClick} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
               Privacy Settings
             </a>
-            <a href="#security" onClick={handleSecurityClick} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+            <a href="#security" onClick={handleSecurityClick} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
               Security Settings
             </a>
-            <a href="#account" onClick={handleAccountClick} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700">
+            <a href="#account" onClick={handleAccountClick} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
               Account Management
             </a>
           </nav>
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <Link to="/Profile" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 text-sm">
+          <div className="mt-6 pt-4 border-t border-[#4A5568]">
+            <Link to="/Profile" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#2D3748] text-[#E0E0E0] text-sm transition-colors">
               ← Back to Profile
             </Link>
           </div>
@@ -286,14 +286,14 @@ export default function Settings() {
         {/* Main Content */}
         <main className="flex-1 flex flex-col gap-6">
           {/* Profile Information */}
-          <section id="profile" className="bg-white rounded-xl shadow p-6">
-            <h2 className="font-semibold mb-4">Profile Information</h2>
+          <section id="profile" className="card-dark p-6">
+            <h2 className="font-semibold mb-4 text-white">Profile Information</h2>
             <div className="flex items-center gap-6 mb-4">
               <div className="relative">
                 <img
                   src={profileForm.avatar}
                   alt={profileForm.displayName}
-                  className="w-20 h-20 rounded-full object-cover border-4 border-white shadow"
+                  className="w-20 h-20 rounded-full object-cover border-4 border-[#4299E1] shadow-lg"
                 />
                 <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
                      onClick={() => fileInputRef.current?.click()}>
@@ -314,11 +314,11 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <div className="font-bold text-lg">{profileForm.displayName}</div>
-                <div className="text-gray-500 text-sm mb-2">{profileForm.email}</div>
+                <div className="font-bold text-lg text-white">{profileForm.displayName}</div>
+                <div className="text-[#A0AEC0] text-sm mb-2">{profileForm.email}</div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="border rounded px-3 py-1 text-xs font-semibold hover:bg-gray-100"
+                  className="border border-[#4A5568] rounded px-3 py-1 text-xs font-semibold hover:bg-[#2D3748] text-[#E0E0E0] transition-colors"
                   disabled={uploadingImage}
                 >
                   {uploadingImage ? "Uploading..." : "Upload new photo"}
@@ -327,28 +327,28 @@ export default function Settings() {
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs font-semibold mb-1">Full Name</label>
+                <label className="block text-xs font-semibold mb-1 text-white">Full Name</label>
                 <input
                   type="text"
-                  className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  className="input-dark w-full rounded px-3 py-2 text-sm focus:outline-none"
                   value={profileForm.displayName}
                   onChange={(e) => handleProfileChange('displayName', e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">Email Address</label>
+                <label className="block text-xs font-semibold mb-1 text-white">Email Address</label>
                 <input
                   type="text"
-                  className="w-full border rounded px-3 py-2 text-sm bg-gray-100"
+                  className="w-full border border-[#4A5568] rounded px-3 py-2 text-sm bg-[#2D3748] text-[#E0E0E0]"
                   value={profileForm.email}
                   readOnly
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1">Bio</label>
+              <label className="block text-xs font-semibold mb-1 text-white">Bio</label>
               <textarea
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                className="input-dark w-full rounded px-3 py-2 text-sm focus:outline-none"
                 rows={3}
                 value={profileForm.bio}
                 onChange={(e) => handleProfileChange('bio', e.target.value)}
@@ -359,7 +359,7 @@ export default function Settings() {
               <button
                 onClick={handleSaveProfile}
                 disabled={saving}
-                className="bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700 disabled:opacity-50"
+                className="btn-gradient-primary px-4 py-2 font-semibold disabled:opacity-50 transition-all duration-200"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
@@ -367,39 +367,39 @@ export default function Settings() {
           </section>
 
           {/* Privacy Controls */}
-          <section ref={privacyRef} id="privacy" className="bg-white rounded-xl shadow p-6">
-            <h2 className="font-semibold mb-4">Privacy Controls</h2>
+          <section ref={privacyRef} id="privacy" className="card-dark p-6">
+            <h2 className="font-semibold mb-4 text-white">Privacy Controls</h2>
             <div className="space-y-4">
               <div>
-                <div className="font-semibold text-sm mb-2">Profile Visibility</div>
+                <div className="font-semibold text-sm mb-2 text-white">Profile Visibility</div>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-[#E0E0E0]">
                     <input
                       type="radio"
                       name="visibility"
                       checked={settings.profileVisibility === 'public'}
                       onChange={() => handleSettingChange('profileVisibility', 'public')}
-                      className="accent-blue-500"
+                      className="accent-[#4299E1]"
                     />
                     Public
                   </label>
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-[#E0E0E0]">
                     <input
                       type="radio"
                       name="visibility"
                       checked={settings.profileVisibility === 'friends'}
                       onChange={() => handleSettingChange('profileVisibility', 'friends')}
-                      className="accent-blue-500"
+                      className="accent-[#4299E1]"
                     />
                     Friends Only
                   </label>
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-[#E0E0E0]">
                     <input
                       type="radio"
                       name="visibility"
                       checked={settings.profileVisibility === 'private'}
                       onChange={() => handleSettingChange('profileVisibility', 'private')}
-                      className="accent-blue-500"
+                      className="accent-[#4299E1]"
                     />
                     Private
                   </label>
@@ -411,10 +411,10 @@ export default function Settings() {
                   type="checkbox"
                   checked={settings.shareUsageData}
                   onChange={(e) => handleSettingChange('shareUsageData', e.target.checked)}
-                  className="accent-blue-500"
+                  className="accent-[#4299E1]"
                 />
-                <span>Share Usage Data</span>
-                <span className="text-xs text-gray-400">Help us improve by sharing anonymous usage data.</span>
+                <span className="text-white">Share Usage Data</span>
+                <span className="text-xs text-[#A0AEC0]">Help us improve by sharing anonymous usage data.</span>
               </label>
 
               <label className="flex items-center gap-2">
@@ -422,27 +422,27 @@ export default function Settings() {
                   type="checkbox"
                   checked={settings.personalizedAds}
                   onChange={(e) => handleSettingChange('personalizedAds', e.target.checked)}
-                  className="accent-blue-500"
+                  className="accent-[#4299E1]"
                 />
-                <span>Personalized Ads</span>
-                <span className="text-xs text-gray-400">Receive ads tailored to your interests.</span>
+                <span className="text-white">Personalized Ads</span>
+                <span className="text-xs text-[#A0AEC0]">Receive ads tailored to your interests.</span>
               </label>
             </div>
           </section>
 
           {/* Notification Settings */}
-          <section className="bg-white rounded-xl shadow p-6">
-            <h2 className="font-semibold mb-4">Notification Preferences</h2>
+          <section className="card-dark p-6">
+            <h2 className="font-semibold mb-4 text-white">Notification Preferences</h2>
             <div className="space-y-3">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={settings.emailNotifications}
                   onChange={(e) => handleSettingChange('emailNotifications', e.target.checked)}
-                  className="accent-blue-500"
+                  className="accent-[#4299E1]"
                 />
-                <span>Email Notifications</span>
-                <span className="text-xs text-gray-400">Receive important updates via email</span>
+                <span className="text-white">Email Notifications</span>
+                <span className="text-xs text-[#A0AEC0]">Receive important updates via email</span>
               </label>
 
               <label className="flex items-center gap-2">
@@ -450,10 +450,10 @@ export default function Settings() {
                   type="checkbox"
                   checked={settings.smsNotifications}
                   onChange={(e) => handleSettingChange('smsNotifications', e.target.checked)}
-                  className="accent-blue-500"
+                  className="accent-[#4299E1]"
                 />
-                <span>SMS Notifications</span>
-                <span className="text-xs text-gray-400">Receive text messages for urgent updates</span>
+                <span className="text-white">SMS Notifications</span>
+                <span className="text-xs text-[#A0AEC0]">Receive text messages for urgent updates</span>
               </label>
 
               <label className="flex items-center gap-2">
@@ -461,10 +461,10 @@ export default function Settings() {
                   type="checkbox"
                   checked={settings.desktopNotifications}
                   onChange={(e) => handleSettingChange('desktopNotifications', e.target.checked)}
-                  className="accent-blue-500"
+                  className="accent-[#4299E1]"
                 />
-                <span>Desktop Notifications</span>
-                <span className="text-xs text-gray-400">Show notifications in your browser</span>
+                <span className="text-white">Desktop Notifications</span>
+                <span className="text-xs text-[#A0AEC0]">Show notifications in your browser</span>
               </label>
 
               <label className="flex items-center gap-2">
@@ -472,10 +472,10 @@ export default function Settings() {
                   type="checkbox"
                   checked={settings.marketingEmails}
                   onChange={(e) => handleSettingChange('marketingEmails', e.target.checked)}
-                  className="accent-blue-500"
+                  className="accent-[#4299E1]"
                 />
-                <span>Marketing Emails</span>
-                <span className="text-xs text-gray-400">Receive promotional content and offers</span>
+                <span className="text-white">Marketing Emails</span>
+                <span className="text-xs text-[#A0AEC0]">Receive promotional content and offers</span>
               </label>
 
               <label className="flex items-center gap-2">
@@ -483,24 +483,24 @@ export default function Settings() {
                   type="checkbox"
                   checked={settings.newsletter}
                   onChange={(e) => handleSettingChange('newsletter', e.target.checked)}
-                  className="accent-blue-500"
+                  className="accent-[#4299E1]"
                 />
-                <span>Newsletter</span>
-                <span className="text-xs text-gray-400">Weekly newsletter with tips and updates</span>
+                <span className="text-white">Newsletter</span>
+                <span className="text-xs text-[#A0AEC0]">Weekly newsletter with tips and updates</span>
               </label>
             </div>
           </section>
 
           {/* Account Security */}
-          <section ref={securityRef} id="security" className="bg-white rounded-xl shadow p-6">
-            <h2 className="font-semibold mb-4">Account Security</h2>
+          <section ref={securityRef} id="security" className="card-dark p-6">
+            <h2 className="font-semibold mb-4 text-white">Account Security</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-semibold">Change Password</span>
-                  <p className="text-xs text-gray-400">Update your account password</p>
+                  <span className="font-semibold text-white">Change Password</span>
+                  <p className="text-xs text-[#A0AEC0]">Update your account password</p>
                 </div>
-                <button className="border rounded px-3 py-1 text-xs font-semibold hover:bg-gray-100">
+                <button className="border border-[#4A5568] rounded px-3 py-1 text-xs font-semibold hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
                   Change Password
                 </button>
               </div>
@@ -510,18 +510,18 @@ export default function Settings() {
                   type="checkbox"
                   checked={settings.twoFactorAuth}
                   onChange={(e) => handleSettingChange('twoFactorAuth', e.target.checked)}
-                  className="accent-blue-500"
+                  className="accent-[#4299E1]"
                 />
-                <span>Two-Factor Authentication</span>
-                <span className="text-xs text-gray-400">Add an extra layer of security to your account.</span>
+                <span className="text-white">Two-Factor Authentication</span>
+                <span className="text-xs text-[#A0AEC0]">Add an extra layer of security to your account.</span>
               </label>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-semibold">Active Sessions</span>
-                  <p className="text-xs text-gray-400">Manage your logged-in devices</p>
+                  <span className="font-semibold text-white">Active Sessions</span>
+                  <p className="text-xs text-[#A0AEC0]">Manage your logged-in devices</p>
                 </div>
-                <button className="border rounded px-3 py-1 text-xs font-semibold hover:bg-gray-100">
+                <button className="border border-[#4A5568] rounded px-3 py-1 text-xs font-semibold hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
                   View Sessions
                 </button>
               </div>
@@ -529,18 +529,18 @@ export default function Settings() {
           </section>
 
           {/* Account Management */}
-          <section ref={accountRef} id="account" className="bg-white rounded-xl shadow p-6">
-            <h2 className="font-semibold mb-4">Account Management</h2>
+          <section ref={accountRef} id="account" className="card-dark p-6">
+            <h2 className="font-semibold mb-4 text-white">Account Management</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-semibold">Language</span>
-                  <p className="text-xs text-gray-400">Choose your preferred language</p>
+                  <span className="font-semibold text-white">Language</span>
+                  <p className="text-xs text-[#A0AEC0]">Choose your preferred language</p>
                 </div>
                 <select
                   value={settings.language}
                   onChange={(e) => handleSettingChange('language', e.target.value)}
-                  className="border rounded px-3 py-1 text-sm"
+                  className="input-dark px-3 py-1 text-sm"
                 >
                   <option value="en">English</option>
                   <option value="si">Sinhala</option>
@@ -550,13 +550,13 @@ export default function Settings() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-semibold">Currency</span>
-                  <p className="text-xs text-gray-400">Default currency for payments</p>
+                  <span className="font-semibold text-white">Currency</span>
+                  <p className="text-xs text-[#A0AEC0]">Default currency for payments</p>
                 </div>
                 <select
                   value={settings.currency}
                   onChange={(e) => handleSettingChange('currency', e.target.value)}
-                  className="border rounded px-3 py-1 text-sm"
+                  className="input-dark px-3 py-1 text-sm"
                 >
                   <option value="LKR">LKR (Sri Lankan Rupee)</option>
                   <option value="USD">USD (US Dollar)</option>
@@ -564,10 +564,10 @@ export default function Settings() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex items-center justify-between pt-4 border-t border-[#4A5568]">
                 <button
                   onClick={handleSignOut}
-                  className="border border-gray-300 rounded px-4 py-2 font-semibold hover:bg-gray-100 transition-colors"
+                  className="border border-[#4A5568] rounded px-4 py-2 font-semibold hover:bg-[#2D3748] text-[#E0E0E0] transition-colors"
                 >
                   Sign Out
                 </button>
@@ -586,7 +586,7 @@ export default function Settings() {
             <button
               onClick={handleSaveProfile}
               disabled={saving}
-              className="bg-blue-600 text-white rounded px-6 py-3 font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="btn-gradient-primary px-6 py-3 font-semibold disabled:opacity-50 transition-all duration-200"
             >
               {saving ? "Saving All Settings..." : "Save All Settings"}
             </button>

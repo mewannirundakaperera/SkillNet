@@ -548,29 +548,29 @@ export default function GroupsList() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <aside className="w-80 bg-white border-r border-gray-200 p-6 flex flex-col">
+      <div className="min-h-screen bg-[#1A202C] flex">
+        <aside className="w-80 card-dark border-r border-[#4A5568] p-6 flex flex-col">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Groups</h2>
+            <h2 className="text-xl font-bold text-white">Groups</h2>
             {/* ✅ ADMIN ONLY: Show Create button only for admin users */}
             {isCurrentUserAdmin && (
-              <Link to="/groups/create" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm">
+              <Link to="/groups/create" className="btn-gradient-primary px-4 py-2 rounded-lg font-semibold transition-colors text-sm">
                 + Create
               </Link>
             )}
           </div>
           <div className="flex items-center justify-center flex-1">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600 text-sm">Loading groups...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4299E1] mx-auto"></div>
+              <p className="mt-2 text-[#A0AEC0] text-sm">Loading groups...</p>
             </div>
           </div>
         </aside>
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-gray-400 text-6xl mb-4">💬</div>
-            <h1 className="text-2xl font-bold text-gray-700 mb-2">Loading Groups...</h1>
-            <p className="text-gray-500">Please wait while we load your groups</p>
+            <div className="text-[#A0AEC0] text-6xl mb-4">💬</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Loading Groups...</h1>
+            <p className="text-[#A0AEC0]">Please wait while we load your groups</p>
           </div>
         </main>
       </div>
@@ -580,24 +580,24 @@ export default function GroupsList() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <aside className="w-80 bg-white border-r border-gray-200 p-6 flex flex-col">
+      <div className="min-h-screen bg-[#1A202C] flex">
+        <aside className="w-80 card-dark border-r border-[#4A5568] p-6 flex flex-col">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Groups</h2>
-            <Link to="/groups/create" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm">
+            <h2 className="text-xl font-bold text-white">Groups</h2>
+            <Link to="/groups/create" className="btn-gradient-primary px-4 py-2 rounded-lg font-semibold transition-colors text-sm">
               + Create
             </Link>
           </div>
 
           <div className="text-center py-8">
-            <div className="text-red-500 text-4xl mb-4">⚠️</div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Error Loading Groups</h3>
-            <p className="text-gray-600 mb-4 text-sm">{error}</p>
+            <div className="text-red-400 text-4xl mb-4">⚠️</div>
+            <h3 className="text-lg font-semibold text-white mb-2">Error Loading Groups</h3>
+            <p className="text-[#E0E0E0] mb-4 text-sm">{error}</p>
 
             <div className="space-y-2">
               <button
                 onClick={() => window.location.reload()}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                className="w-full btn-gradient-primary px-4 py-2 rounded hover:bg-[#3182CE] text-sm"
               >
                 Try Again
               </button>
@@ -613,13 +613,13 @@ export default function GroupsList() {
 
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-gray-400 text-6xl mb-4">❌</div>
-            <h1 className="text-2xl font-bold text-gray-700 mb-2">Unable to Load Groups</h1>
-            <p className="text-gray-500 mb-4">{error}</p>
+            <div className="text-[#A0AEC0] text-6xl mb-4">❌</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Unable to Load Groups</h1>
+            <p className="text-[#A0AEC0] mb-4">{error}</p>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-left max-w-md">
-              <h3 className="font-semibold text-yellow-800 mb-2">Possible Solutions:</h3>
-              <ul className="text-sm text-yellow-700 space-y-1">
+            <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-4 mb-6 text-left max-w-md">
+              <h3 className="font-semibold text-yellow-400 mb-2">Possible Solutions:</h3>
+              <ul className="text-sm text-yellow-300 space-y-1">
                 <li>• Check your internet connection</li>
                 <li>• Verify you're logged in properly</li>
                 <li>• Check browser console for detailed errors</li>
@@ -629,7 +629,7 @@ export default function GroupsList() {
 
             <button
               onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold hover:bg-[#3182CE] transition-colors"
             >
               Retry Loading
             </button>
@@ -641,21 +641,21 @@ export default function GroupsList() {
 
   // Success state - render normal groups list
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-[#1A202C] flex">
       {/* Left Sidebar - Groups */}
-      <aside className="w-80 bg-white border-r border-gray-200 p-6 flex flex-col">
+      <aside className="w-80 card-dark border-r border-[#4A5568] p-6 flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Groups</h2>
+            <h2 className="text-xl font-bold text-white">Groups</h2>
             {isCurrentUserAdmin && (
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Admin</span>
+              <span className="text-xs bg-purple-900 text-purple-300 px-2 py-1 rounded">Admin</span>
             )}
           </div>
           {/* ✅ ADMIN ONLY: Show Create button only for admin users */}
           {isCurrentUserAdmin && (
             <Link
               to="/groups/create"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
+              className="btn-gradient-primary px-4 py-2 rounded-lg font-semibold transition-colors text-sm"
             >
               + Create
             </Link>
@@ -665,7 +665,7 @@ export default function GroupsList() {
         {/* My Groups Section */}
         {userGroups.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+            <h3 className="text-sm font-semibold text-[#A0AEC0] uppercase tracking-wide mb-3">
               My Groups ({userGroups.length})
             </h3>
             <div className="space-y-2">
@@ -673,23 +673,23 @@ export default function GroupsList() {
                 <Link
                   key={group.id}
                   to={`/chat/${group.id}`}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#2D3748] transition-colors group"
                 >
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-[#2D3748] rounded-lg flex items-center justify-center flex-shrink-0 border border-[#4A5568]">
                     {group.image ? (
                       <img src={group.image} alt={group.name} className="w-10 h-10 rounded-lg object-cover" />
                     ) : (
-                      <span className="text-blue-600 font-bold">
+                      <span className="text-[#4299E1] font-bold">
                         {group.name?.charAt(0) || '?'}
                       </span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 truncate">{group.name || 'Unnamed Group'}</h4>
-                    <p className="text-xs text-gray-500">{group.memberCount || 0} members</p>
+                    <h4 className="font-medium text-white truncate">{group.name || 'Unnamed Group'}</h4>
+                    <p className="text-xs text-[#A0AEC0]">{group.memberCount || 0} members</p>
                   </div>
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-[#4A5568]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
@@ -701,17 +701,17 @@ export default function GroupsList() {
 
         {/* Available Groups Section */}
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+          <h3 className="text-sm font-semibold text-[#A0AEC0] uppercase tracking-wide mb-3">
             Available Groups ({publicGroups.length})
           </h3>
 
           {publicGroups.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-gray-400 text-3xl mb-3">🏢</div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">
+              <div className="text-[#A0AEC0] text-3xl mb-3">🏢</div>
+              <h4 className="text-sm font-semibold text-white mb-2">
                 {userGroups.length > 0 ? 'No new groups available' : 'No groups found'}
               </h4>
-              <p className="text-xs text-gray-500 mb-4">
+              <p className="text-xs text-[#A0AEC0] mb-4">
                 {userGroups.length > 0
                   ? "You've joined all available groups!"
                   : isCurrentUserAdmin
@@ -734,25 +734,25 @@ export default function GroupsList() {
               {publicGroups.map((group) => (
                 <div
                   key={group.id}
-                  className="p-3 rounded-lg border border-gray-200 hover:border-green-300 transition-colors"
+                  className="p-3 rounded-lg border border-[#4A5568] hover:border-green-400 transition-colors bg-[#2D3748]"
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-[#2D3748] rounded-lg flex items-center justify-center flex-shrink-0 border border-[#4A5568]">
                       {group.image ? (
                         <img src={group.image} alt={group.name} className="w-8 h-8 rounded-lg object-cover" />
                       ) : (
-                        <span className="text-green-600 font-bold text-sm">
+                        <span className="text-green-400 font-bold text-sm">
                           {group.name?.charAt(0) || '?'}
                         </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate text-sm">{group.name || 'Unnamed Group'}</h4>
-                      <p className="text-xs text-gray-500">{group.memberCount || 0} members</p>
+                      <h4 className="font-medium text-white truncate text-sm">{group.name || 'Unnamed Group'}</h4>
+                      <p className="text-xs text-[#A0AEC0]">{group.memberCount || 0} members</p>
                     </div>
                   </div>
 
-                  <p className="text-xs text-gray-600 mb-3 line-clamp-2">{group.description || 'No description available'}</p>
+                  <p className="text-xs text-[#E0E0E0] mb-3 line-clamp-2">{group.description || 'No description available'}</p>
 
                   <button
                     onClick={() => handleJoinGroup(group.id, group.name)}
@@ -769,14 +769,14 @@ export default function GroupsList() {
 
         {/* Debug section for development */}
         {import.meta.env.DEV && (
-          <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
-            <p><strong>Debug Info:</strong></p>
-            <p>User Groups: {userGroups.length}</p>
-            <p>Public Groups: {publicGroups.length}</p>
-            <p>Is Admin: {isCurrentUserAdmin ? 'Yes' : 'No'}</p>
+          <div className="mt-4 p-3 bg-[#2D3748] rounded text-xs border border-[#4A5568]">
+            <p className="text-white"><strong>Debug Info:</strong></p>
+            <p className="text-[#E0E0E0]">User Groups: {userGroups.length}</p>
+            <p className="text-[#E0E0E0]">Public Groups: {publicGroups.length}</p>
+            <p className="text-[#E0E0E0]">Is Admin: {isCurrentUserAdmin ? 'Yes' : 'No'}</p>
             <button
               onClick={testFirebaseConnection}
-              className="w-full mt-2 bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+              className="w-full mt-2 btn-gradient-primary px-3 py-1 rounded text-xs hover:bg-[#3182CE]"
             >
               🔍 Test Firebase Connection
             </button>
@@ -793,16 +793,16 @@ export default function GroupsList() {
       {/* Main Content - ✅ REMOVED: Create Group action buttons from right side */}
       <main className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-gray-400 text-6xl mb-4">💬</div>
-          <h1 className="text-2xl font-bold text-gray-700 mb-2">Select a Group to Start Chatting</h1>
-          <p className="text-gray-500 mb-6">Choose a group from the sidebar to join the conversation</p>
+          <div className="text-[#A0AEC0] text-6xl mb-4">💬</div>
+          <h1 className="text-2xl font-bold text-white mb-2">Select a Group to Start Chatting</h1>
+          <p className="text-[#A0AEC0] mb-6">Choose a group from the sidebar to join the conversation</p>
 
           <div className="flex gap-4 justify-center">
             {/* ✅ REMOVED: Create New Group button from main content area */}
             {userGroups.length > 0 && (
               <Link
                 to={`/chat/${userGroups[0].id}`}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold hover:bg-[#3182CE] transition-colors"
               >
                 Open Recent Group
               </Link>
@@ -810,9 +810,9 @@ export default function GroupsList() {
           </div>
 
           {isCurrentUserAdmin && (
-            <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-              <p className="text-purple-700 text-sm font-medium">🔧 Admin Mode Active</p>
-              <p className="text-purple-600 text-xs">You have special access to groups and can see additional information</p>
+            <div className="mt-6 p-4 bg-purple-900 border border-purple-700 rounded-lg">
+              <p className="text-purple-300 text-sm font-medium">🔧 Admin Mode Active</p>
+              <p className="text-purple-400 text-xs">You have special access to groups and can see additional information</p>
             </div>
           )}
         </div>

@@ -410,15 +410,15 @@ const StudentConnect = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      'open': 'text-green-600',
-      'active': 'text-blue-600',
-      'pending': 'text-yellow-600',
-      'completed': 'text-gray-600',
-      'draft': 'text-gray-400',
-      'accepted': 'text-green-600',
-      'declined': 'text-red-600'
+      'open': 'text-green-400',
+      'active': 'text-[#4299E1]',
+      'pending': 'text-yellow-400',
+      'completed': 'text-[#A0AEC0]',
+      'draft': 'text-[#718096]',
+      'accepted': 'text-green-400',
+      'declined': 'text-red-400'
     };
-    return colors[status] || 'text-gray-400';
+    return colors[status] || 'text-[#A0AEC0]';
   };
 
   const getActivityIcon = (type) => {
@@ -433,11 +433,11 @@ const StudentConnect = () => {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-8 bg-[#1A202C]">
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading dashboard...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
+            <p className="mt-4 text-[#A0AEC0]">Loading dashboard...</p>
           </div>
         </div>
       </div>
@@ -445,20 +445,20 @@ const StudentConnect = () => {
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-8 bg-[#1A202C] min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
           <img
             src={userProfile?.avatar || "https://randomuser.me/api/portraits/men/14.jpg"}
             alt={userProfile?.displayName || "User"}
-            className="w-16 h-16 rounded-full object-cover border-4 border-blue-100"
+            className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1]"
           />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-white">
               Welcome back, {userProfile?.displayName || "User"}! 👋
             </h1>
-            <p className="text-gray-600">Here's an overview of all your request activities</p>
+            <p className="text-[#A0AEC0]">Here's an overview of all your request activities</p>
           </div>
         </div>
       </div>
@@ -466,112 +466,112 @@ const StudentConnect = () => {
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* My Requests Overview */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+        <div className="card-dark p-6 border-l-4 border-[#4299E1]">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">My Requests</h3>
-            <span className="text-blue-500 text-2xl">📝</span>
+            <h3 className="font-semibold text-white">My Requests</h3>
+            <span className="text-[#4299E1] text-2xl">📝</span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-2xl font-bold text-blue-600">{dashboardData.myRequests.total}</span>
-              <Link to="/requests/my-requests" className="text-blue-600 text-sm hover:underline">View All</Link>
+              <span className="text-2xl font-bold text-[#4299E1]">{dashboardData.myRequests.total}</span>
+              <Link to="/requests/my-requests" className="text-[#4299E1] text-sm hover:text-[#00BFFF] transition-colors">View All</Link>
             </div>
-            <div className="text-sm text-gray-600 space-y-1">
+            <div className="text-sm text-[#A0AEC0] space-y-1">
               <div className="flex justify-between">
                 <span>Active:</span>
-                <span className="font-medium text-green-600">{dashboardData.myRequests.active}</span>
+                <span className="font-medium text-green-400">{dashboardData.myRequests.active}</span>
               </div>
               <div className="flex justify-between">
                 <span>Draft:</span>
-                <span className="font-medium text-gray-500">{dashboardData.myRequests.draft}</span>
+                <span className="font-medium text-[#718096]">{dashboardData.myRequests.draft}</span>
               </div>
               <div className="flex justify-between">
                 <span>Completed:</span>
-                <span className="font-medium text-blue-600">{dashboardData.myRequests.completed}</span>
+                <span className="font-medium text-[#4299E1]">{dashboardData.myRequests.completed}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Received Requests Overview */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+        <div className="card-dark p-6 border-l-4 border-green-400">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">Received Offers</h3>
-            <span className="text-green-500 text-2xl">💬</span>
+            <h3 className="font-semibold text-white">Received Offers</h3>
+            <span className="text-green-400 text-2xl">💬</span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-2xl font-bold text-green-600">{dashboardData.receivedRequests.total}</span>
-              <Link to="/OneToOneRequests" className="text-green-600 text-sm hover:underline">View All</Link>
+              <span className="text-2xl font-bold text-green-400">{dashboardData.receivedRequests.total}</span>
+              <Link to="/OneToOneRequests" className="text-green-400 text-sm hover:text-green-300 transition-colors">View All</Link>
             </div>
-            <div className="text-sm text-gray-600 space-y-1">
+            <div className="text-sm text-[#A0AEC0] space-y-1">
               <div className="flex justify-between">
                 <span>Pending:</span>
-                <span className="font-medium text-yellow-600">{dashboardData.receivedRequests.pending}</span>
+                <span className="font-medium text-yellow-400">{dashboardData.receivedRequests.pending}</span>
               </div>
               <div className="flex justify-between">
                 <span>Accepted:</span>
-                <span className="font-medium text-green-600">{dashboardData.receivedRequests.accepted}</span>
+                <span className="font-medium text-green-400">{dashboardData.receivedRequests.accepted}</span>
               </div>
               <div className="flex justify-between">
                 <span>Declined:</span>
-                <span className="font-medium text-red-600">{dashboardData.receivedRequests.declined}</span>
+                <span className="font-medium text-red-400">{dashboardData.receivedRequests.declined}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Available Requests Overview */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+        <div className="card-dark p-6 border-l-4 border-[#8B5CF6]">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">Available Requests</h3>
-            <span className="text-purple-500 text-2xl">🔍</span>
+            <h3 className="font-semibold text-white">Available Requests</h3>
+            <span className="text-[#8B5CF6] text-2xl">🔍</span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-2xl font-bold text-purple-600">{dashboardData.allRequests.available}</span>
-              <Link to="/requests/group" className="text-purple-600 text-sm hover:underline">Browse</Link>
+              <span className="text-2xl font-bold text-[#8B5CF6]">{dashboardData.allRequests.available}</span>
+              <Link to="/requests/group" className="text-[#8B5CF6] text-sm hover:text-[#A78BFA] transition-colors">Browse</Link>
             </div>
-            <div className="text-sm text-gray-600 space-y-1">
+            <div className="text-sm text-[#A0AEC0] space-y-1">
               <div className="flex justify-between">
                 <span>Tutoring:</span>
-                <span className="font-medium text-blue-600">{dashboardData.allRequests.tutoring}</span>
+                <span className="font-medium text-[#4299E1]">{dashboardData.allRequests.tutoring}</span>
               </div>
               <div className="flex justify-between">
                 <span>Study Groups:</span>
-                <span className="font-medium text-green-600">{dashboardData.allRequests.studyGroups}</span>
+                <span className="font-medium text-green-400">{dashboardData.allRequests.studyGroups}</span>
               </div>
               <div className="flex justify-between">
                 <span>Projects:</span>
-                <span className="font-medium text-purple-600">{dashboardData.allRequests.projects}</span>
+                <span className="font-medium text-[#8B5CF6]">{dashboardData.allRequests.projects}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Weekly Activity Overview */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+        <div className="card-dark p-6 border-l-4 border-orange-400">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900">This Week</h3>
-            <span className="text-orange-500 text-2xl">📊</span>
+            <h3 className="font-semibold text-white">This Week</h3>
+            <span className="text-orange-400 text-2xl">📊</span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-2xl font-bold text-orange-600">{dashboardData.weeklyStats.requestsCreated}</span>
-              <span className="text-orange-600 text-sm">Requests Created</span>
+              <span className="text-2xl font-bold text-orange-400">{dashboardData.weeklyStats.requestsCreated}</span>
+              <span className="text-orange-400 text-sm">Requests Created</span>
             </div>
-            <div className="text-sm text-gray-600 space-y-1">
+            <div className="text-sm text-[#A0AEC0] space-y-1">
               <div className="flex justify-between">
                 <span>Joined:</span>
-                <span className="font-medium">{dashboardData.weeklyStats.requestsJoined}</span>
+                <span className="font-medium text-white">{dashboardData.weeklyStats.requestsJoined}</span>
               </div>
               <div className="flex justify-between">
                 <span>Completed:</span>
-                <span className="font-medium">{dashboardData.weeklyStats.sessionsCompleted}</span>
+                <span className="font-medium text-white">{dashboardData.weeklyStats.sessionsCompleted}</span>
               </div>
               <div className="flex justify-between">
                 <span>Responses:</span>
-                <span className="font-medium">{dashboardData.weeklyStats.responsesSent}</span>
+                <span className="font-medium text-white">{dashboardData.weeklyStats.responsesSent}</span>
               </div>
             </div>
           </div>
@@ -582,24 +582,24 @@ const StudentConnect = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Activity */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+          <div className="card-dark p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
-              <Link to="/RequestHistory" className="text-blue-600 text-sm hover:underline">View History</Link>
+              <h2 className="text-xl font-bold text-white">Recent Activity</h2>
+              <Link to="/RequestHistory" className="text-[#4299E1] text-sm hover:text-[#00BFFF] transition-colors">View History</Link>
             </div>
 
             {dashboardData.recentActivity.length > 0 ? (
               <div className="space-y-4">
                 {dashboardData.recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div key={activity.id} className="flex items-start gap-3 p-3 bg-[#4A5568] rounded-lg">
                     <div className="text-lg">{getActivityIcon(activity.type)}</div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                      <p className="text-sm font-medium text-white">{activity.title}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-xs font-medium ${getStatusColor(activity.status)}`}>
                           {activity.status}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-[#A0AEC0]">
                           {formatTimeAgo(activity.timestamp)}
                         </span>
                       </div>
@@ -608,10 +608,10 @@ const StudentConnect = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-[#A0AEC0]">
                 <div className="text-4xl mb-2">📱</div>
                 <p>No recent activity</p>
-                <Link to="/requests/create" className="text-blue-600 hover:underline text-sm">
+                <Link to="/requests/create" className="text-[#4299E1] hover:text-[#00BFFF] transition-colors text-sm">
                   Create your first request
                 </Link>
               </div>
@@ -619,40 +619,40 @@ const StudentConnect = () => {
           </div>
 
           {/* Recent Requests Feed */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="card-dark p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Latest Requests</h2>
-              <Link to="/requests/group" className="text-blue-600 text-sm hover:underline">Browse All</Link>
+              <h2 className="text-xl font-bold text-white">Latest Requests</h2>
+              <Link to="/requests/group" className="text-[#4299E1] text-sm hover:text-[#00BFFF] transition-colors">Browse All</Link>
             </div>
 
             {recentRequests.length > 0 ? (
               <div className="space-y-4">
                 {recentRequests.slice(0, 4).map((request) => (
-                  <div key={request.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div key={request.id} className="border border-[#4A5568] rounded-lg p-4 hover:bg-[#4A5568] transition-colors bg-[#2D3748]">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium text-gray-900 line-clamp-1">{request.title}</h3>
-                      <span className={`text-xs px-2 py-1 rounded ${getStatusColor(request.status)} bg-gray-100`}>
+                      <h3 className="font-medium text-white line-clamp-1">{request.title}</h3>
+                      <span className={`text-xs px-2 py-1 rounded ${getStatusColor(request.status)} bg-[#4A5568]`}>
                         {request.status}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600 mb-2">
+                    <div className="text-sm text-[#A0AEC0] mb-2">
                       <span>📚 {request.subject}</span>
                       <span className="mx-2">•</span>
                       <span>👤 {request.creator}</span>
                       {request.paymentAmount && (
                         <>
                           <span className="mx-2">•</span>
-                          <span className="text-green-600 font-medium">Rs.{request.paymentAmount}</span>
+                          <span className="text-green-400 font-medium">Rs.{request.paymentAmount}</span>
                         </>
                       )}
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-[#718096]">
                         {formatTimeAgo(request.createdAt)}
                       </span>
                       <Link
                         to={`/requests/details/${request.id}`}
-                        className="text-blue-600 text-xs hover:underline"
+                        className="text-[#4299E1] text-xs hover:text-[#00BFFF] transition-colors"
                       >
                         View Details
                       </Link>
@@ -661,7 +661,7 @@ const StudentConnect = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-[#A0AEC0]">
                 <div className="text-4xl mb-2">🔍</div>
                 <p>No recent requests available</p>
               </div>
@@ -672,24 +672,24 @@ const StudentConnect = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="card-dark p-6">
+            <h3 className="font-bold text-white mb-4">Quick Actions</h3>
             <div className="space-y-3">
               <Link
                 to="/requests/create"
-                className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg text-center font-medium hover:bg-blue-700 transition-colors block"
+                className="btn-gradient-primary w-full px-4 py-3 rounded-lg text-center font-medium block"
               >
                 📝 Create New Request
               </Link>
               <Link
                 to="/requests/group"
-                className="w-full bg-gray-100 text-gray-700 px-4 py-3 rounded-lg text-center font-medium hover:bg-gray-200 transition-colors block"
+                className="btn-secondary w-full px-4 py-3 rounded-lg text-center font-medium block"
               >
                 🔍 Browse Requests
               </Link>
               <Link
                 to="/groups"
-                className="w-full bg-green-100 text-green-700 px-4 py-3 rounded-lg text-center font-medium hover:bg-green-200 transition-colors block"
+                className="w-full bg-[#2D3748] text-green-400 px-4 py-3 rounded-lg text-center font-medium hover:bg-[#4A5568] transition-colors block border border-green-400"
               >
                 👥 Join Study Groups
               </Link>
@@ -697,28 +697,28 @@ const StudentConnect = () => {
           </div>
 
           {/* Trending Subjects */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Trending Subjects</h3>
+          <div className="card-dark p-6">
+            <h3 className="font-bold text-white mb-4">Trending Subjects</h3>
             {trendingSubjects.length > 0 ? (
               <div className="space-y-2">
                 {trendingSubjects.map((item, index) => (
                   <div key={index} className="flex justify-between items-center py-2">
-                    <span className="text-sm text-gray-700">{item.subject}</span>
-                    <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                    <span className="text-sm text-[#E0E0E0]">{item.subject}</span>
+                    <span className="text-xs bg-[#4A5568] text-[#4299E1] px-2 py-1 rounded">
                       {item.count} requests
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No trending subjects yet</p>
+              <p className="text-sm text-[#A0AEC0]">No trending subjects yet</p>
             )}
           </div>
 
           {/* Tips */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6">
-            <h3 className="font-bold text-gray-900 mb-3">💡 Tips for Success</h3>
-            <ul className="text-sm text-gray-700 space-y-2">
+          <div className="bg-gradient-to-br from-[#2D3748] to-[#4A5568] rounded-xl p-6 border border-[#4299E1]">
+            <h3 className="font-bold text-white mb-3">💡 Tips for Success</h3>
+            <ul className="text-sm text-[#E0E0E0] space-y-2">
               <li>• Be specific in your request descriptions</li>
               <li>• Set realistic deadlines and expectations</li>
               <li>• Respond promptly to received offers</li>
