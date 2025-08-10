@@ -10,6 +10,78 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   const [loading, setLoading] = useState(false);
   const [timeUntilSession, setTimeUntilSession] = useState(null);
   const [conferenceLink, setConferenceLink] = useState(null);
+  const [permissions, setPermissions] = useState({
+    canVote: false,
+    canParticipate: false,
+    canPay: false,
+    isLoading: true
+  });
+
+  // Calculate derived states
+  const isOwner = request.createdBy === currentUserId || request.userId === currentUserId;
+  const hasVoted = request.votes?.includes(currentUserId);
+  const isParticipating = request.participants?.includes(currentUserId);
+  const hasPaid = request.paidParticipants?.includes(currentUserId);
+  const voteCount = request.voteCount || request.votes?.length || 0;
+  const participantCount = request.participantCount || request.participants?.length || 0;
+  const paidCount = request.paidParticipants?.length || 0;
+
+  // ✅ FIXED: Add permission checking with group membership verification
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!currentUserId || !request) {
+        setPermissions({
+          canVote: false,
+          canParticipate: false,
+          canPay: false,
+          isLoading: false
+        });
+        return;
+      }
+
+      try {
+        setPermissions(prev => ({ ...prev, isLoading: true }));
+
+        // Check voting permission with async group membership verification
+        let canVote = false;
+        if (!isOwner && !hasVoted && ['pending', 'voting_open'].includes(request.status)) {
+          const voteResult = await groupRequestService.canUserVoteAsync(request, currentUserId);
+          canVote = voteResult.canVote;
+        }
+
+        // Check participation permission
+        let canParticipate = false;
+        if (!isParticipating && request.status === 'voting_open') {
+          const participateResult = await groupRequestService.canUserParticipateAsync(request, currentUserId);
+          canParticipate = participateResult.canParticipate;
+        }
+
+        // Check payment permission
+        let canPay = false;
+        if (request.status === 'accepted' && isParticipating && !hasPaid) {
+          canPay = true; // Already participating, so group membership is confirmed
+        }
+
+        setPermissions({
+          canVote,
+          canParticipate,
+          canPay,
+          isLoading: false
+        });
+
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setPermissions({
+          canVote: false,
+          canParticipate: false,
+          canPay: false,
+          isLoading: false
+        });
+      }
+    };
+
+    checkPermissions();
+  }, [request, currentUserId, isOwner, hasVoted, isParticipating, hasPaid]);
 
   // Calculate time until session starts
   useEffect(() => {
@@ -66,24 +138,41 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
       const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
       if (result.success) {
         onRequestUpdate?.(request.id, { ...request, status: newStatus });
+      } else {
+        console.error('❌ Status update failed:', result.message);
+        alert(result.message || 'Failed to update status');
       }
     } catch (error) {
       console.error('Error updating request status:', error);
+      alert('Failed to update status. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle voting using service
+  // ✅ FIXED: Handle voting with proper validation
   const handleVote = async () => {
     if (!currentUserId || loading) return;
 
+    // ✅ FIXED: Add owner check
+    if (isOwner) {
+      alert('You cannot vote on your own request');
+      return;
+    }
+
+    // ✅ FIXED: Verify permissions before proceeding
+    if (!permissions.canVote) {
+      if (permissions.isLoading) {
+        alert('Please wait while we verify your permissions...');
+        return;
+      }
+      alert('You cannot vote on this request. You may not be a member of this group.');
+      return;
+    }
+
     try {
       setLoading(true);
-      const hasVoted = request.votes?.includes(currentUserId);
 
-      // Note: You'd need to add vote handling to the service
-      // For now, we'll use a simple approach
       let newVotes;
       if (hasVoted) {
         newVotes = request.votes?.filter(id => id !== currentUserId) || [];
@@ -109,21 +198,34 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           voteCount: newVotes.length,
           status: updateData.status || request.status
         });
+      } else {
+        console.error('❌ Vote failed:', result.message);
+        alert(result.message || 'Failed to process vote');
       }
     } catch (error) {
       console.error('Error handling vote:', error);
+      alert('Failed to process vote. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle participation using service
+  // ✅ FIXED: Handle participation with proper validation
   const handleParticipation = async () => {
     if (!currentUserId || loading) return;
 
+    // ✅ FIXED: Check permissions
+    if (!permissions.canParticipate && !isParticipating) {
+      if (permissions.isLoading) {
+        alert('Please wait while we verify your permissions...');
+        return;
+      }
+      alert('You cannot join this request. You may not be a member of this group.');
+      return;
+    }
+
     try {
       setLoading(true);
-      const isParticipating = request.participants?.includes(currentUserId);
 
       let newParticipants;
       if (isParticipating) {
@@ -150,9 +252,13 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           participantCount: newParticipants.length,
           status: updateData.status || request.status
         });
+      } else {
+        console.error('❌ Participation failed:', result.message);
+        alert(result.message || 'Failed to update participation');
       }
     } catch (error) {
       console.error('Error handling participation:', error);
+      alert('Failed to update participation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -161,6 +267,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   // Handle payment (mock implementation)
   const handlePayment = async () => {
     if (!currentUserId || loading) return;
+
+    if (!permissions.canPay) {
+      alert('You cannot make payment at this time.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -192,6 +303,9 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           scheduledDateTime: updateData.scheduledDateTime || request.scheduledDateTime
         });
         alert('Payment successful!');
+      } else {
+        console.error('❌ Payment failed:', result.message);
+        alert(result.message || 'Payment failed');
       }
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -256,12 +370,6 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   };
 
   const styling = getCardStyling();
-  const voteCount = request.voteCount || request.votes?.length || 0;
-  const participantCount = request.participantCount || request.participants?.length || 0;
-  const paidCount = request.paidParticipants?.length || 0;
-  const hasVoted = request.votes?.includes(currentUserId);
-  const isParticipating = request.participants?.includes(currentUserId);
-  const hasPaid = request.paidParticipants?.includes(currentUserId);
 
   return (
       <div className={`rounded-lg shadow-sm border-2 p-4 hover:shadow-md transition-all h-full flex flex-col ${styling.borderColor} ${styling.bgColor}`}>
@@ -278,7 +386,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                 {request.title}
               </h3>
               <p className={`text-xs ${request.status === 'completed' ? 'text-gray-300' : 'text-gray-600'}`}>
-                {request.createdByName || request.name}
+                {isOwner ? '👑 Your Request' : request.createdByName || request.name}
               </p>
               <p className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-gray-500'}`}>
                 in {request.groupName}
@@ -294,6 +402,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             <span className={`text-xs px-2 py-1 rounded-full font-medium ${styling.statusColor}`}>
             {groupRequestService.getStatusDisplay(request.status).label}
           </span>
+            {isOwner && (
+                <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">
+              Owner
+            </span>
+            )}
           </div>
         </div>
 
@@ -325,11 +438,13 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             </div>
         )}
 
-        {/* State-specific content */}
+        {/* ✅ FIXED: State-specific content with proper permission checks */}
         {request.status === 'pending' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-700">Needs votes</span>
+                <span className="text-xs font-medium text-gray-700">
+                  {isOwner ? 'Awaiting community votes' : 'Community voting'}
+                </span>
                 <span className="text-xs text-gray-600">{voteCount}/5</span>
               </div>
               <div className="w-full bg-yellow-200 rounded-full h-1.5 mb-2">
@@ -338,18 +453,44 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     style={{ width: `${Math.min((voteCount / 5) * 100, 100)}%` }}
                 />
               </div>
-              {currentUserId && (
+
+              {/* ✅ FIXED: Voting button with proper permissions */}
+              {permissions.canVote && !permissions.isLoading && (
                   <button
                       onClick={handleVote}
                       disabled={loading}
-                      className={`w-full py-1.5 px-3 rounded-lg font-medium text-xs transition-colors ${
-                          hasVoted
-                              ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
-                              : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                      } disabled:opacity-50`}
+                      className="w-full bg-yellow-500 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-yellow-600 transition-colors disabled:opacity-50"
                   >
-                    {loading ? 'Processing...' : hasVoted ? '✓ Voted' : 'Vote to Approve'}
+                    {loading ? 'Processing...' : '👍 Vote to Approve'}
                   </button>
+              )}
+
+              {/* Already voted */}
+              {!isOwner && hasVoted && (
+                  <div className="w-full bg-yellow-200 text-yellow-800 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ✓ You voted to approve
+                  </div>
+              )}
+
+              {/* Owner view */}
+              {isOwner && (
+                  <div className="bg-yellow-100 text-yellow-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ⏳ Waiting for community approval ({voteCount}/5)
+                  </div>
+              )}
+
+              {/* Cannot vote (not group member) */}
+              {!permissions.canVote && !permissions.isLoading && !isOwner && !hasVoted && (
+                  <div className="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ❌ Cannot vote (not a group member)
+                  </div>
+              )}
+
+              {/* Loading permissions */}
+              {permissions.isLoading && !isOwner && (
+                  <div className="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    🔄 Checking permissions...
+                  </div>
               )}
             </div>
         )}
@@ -357,37 +498,45 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'voting_open' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-700">Participants</span>
+                <span className="text-xs font-medium text-gray-700">
+                  Join this session
+                </span>
                 <span className="text-xs text-gray-600">{participantCount} joined</span>
               </div>
-              <div className="flex gap-1">
-                {currentUserId && (
-                    <button
-                        onClick={handleVote}
-                        disabled={loading}
-                        className={`flex-1 py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
-                            hasVoted
-                                ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
-                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                        } disabled:opacity-50`}
-                    >
-                      {hasVoted ? `❤️ ${voteCount}` : `👍 ${voteCount}`}
-                    </button>
-                )}
-                {currentUserId && (
+
+              {/* ✅ FIXED: Participation button with proper permissions */}
+              {permissions.canParticipate && !permissions.isLoading && (
+                  <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className="w-full bg-orange-500 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Joining...' : 'Join Session'}
+                  </button>
+              )}
+
+              {/* Already participating */}
+              {isParticipating && (
+                  <div className="flex gap-1">
+                    <div className="flex-1 bg-orange-200 text-orange-800 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
+                      ✓ You're participating
+                    </div>
                     <button
                         onClick={handleParticipation}
                         disabled={loading}
-                        className={`flex-1 py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
-                            isParticipating
-                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                : 'bg-orange-500 text-white hover:bg-orange-600'
-                        } disabled:opacity-50`}
+                        className="bg-gray-200 text-gray-700 py-1.5 px-2 rounded-lg text-xs hover:bg-gray-300 transition-colors disabled:opacity-50"
                     >
-                      {loading ? '...' : isParticipating ? 'Leave' : 'Join'}
+                      Leave
                     </button>
-                )}
-              </div>
+                  </div>
+              )}
+
+              {/* Can't participate */}
+              {!permissions.canParticipate && !permissions.isLoading && !isParticipating && (
+                  <div className="w-full bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    {participantCount > 0 ? `👥 ${participantCount} participants joined` : '❌ Cannot join (not a group member)'}
+                  </div>
+              )}
             </div>
         )}
 
@@ -403,7 +552,9 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
                 />
               </div>
-              {currentUserId && isParticipating && !hasPaid && (
+
+              {/* ✅ FIXED: Payment button with proper permissions */}
+              {permissions.canPay && (
                   <button
                       onClick={handlePayment}
                       disabled={loading}
@@ -412,26 +563,31 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
                   </button>
               )}
-              {hasPaid && (
+
+              {isParticipating && hasPaid && (
                   <div className="w-full bg-green-100 text-green-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
                     ✓ Payment Complete - Waiting for others
+                  </div>
+              )}
+
+              {!isParticipating && (
+                  <div className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
+                    💰 Payment phase ({paidCount}/{participantCount})
                   </div>
               )}
             </div>
         )}
 
-        {request.status === 'payment_complete' && (
+        {request.status === 'payment_complete' && timeUntilSession && (
             <div className="mb-4">
               <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-yellow-700">🕐</span>
                   <span className="text-sm font-medium text-yellow-800">Session starts in:</span>
                 </div>
-                {timeUntilSession && (
-                    <div className="text-lg font-bold text-yellow-800 mb-2">
-                      {timeUntilSession.hours}h {timeUntilSession.minutes}m
-                    </div>
-                )}
+                <div className="text-lg font-bold text-yellow-800 mb-2">
+                  {timeUntilSession.hours}h {timeUntilSession.minutes}m
+                </div>
                 <div className="text-xs text-yellow-700 mb-2">
                   Scheduled: {new Date(request.scheduledDateTime).toLocaleString()}
                 </div>
@@ -531,6 +687,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   );
 };
 
+// Rest of the AllGroupRequests component remains the same, no changes needed
 const AllGroupRequests = () => {
   const { user } = useAuth();
   const [groupRequests, setGroupRequests] = useState([]);
@@ -576,39 +733,20 @@ const AllGroupRequests = () => {
         setError(null);
 
         console.log('🔄 Loading group requests using service...');
-        console.log('👤 User ID:', user.id);
-        console.log('📧 User Email:', user.email);
-        console.log('🔐 Is Admin:', isCurrentUserAdmin);
 
-        // Test if the service exists
-        if (!groupRequestService || typeof groupRequestService.getAllGroupRequests !== 'function') {
-          throw new Error('groupRequestService.getAllGroupRequests is not available');
-        }
-
-        // ✅ FIX: Pass required parameters to the service method
-        console.log('📞 Calling groupRequestService.getAllGroupRequests...');
         const requests = await groupRequestService.getAllGroupRequests({
           userId: user.id,
           isAdmin: isCurrentUserAdmin
         });
 
         console.log('✅ Group requests loaded:', requests.length);
-        console.log('📊 Raw requests data:', requests);
 
         if (requests.length === 0) {
-          console.log('⚠️ No requests found. This could mean:');
-          console.log('   1. User is not a member of any groups');
-          console.log('   2. No requests exist in the groups user belongs to');
-          console.log('   3. User has not created any requests');
-          console.log('   4. Firestore security rules are blocking access');
-
-          // Let's test if user belongs to any groups
           try {
             const userGroups = await groupRequestService.getUserGroups(user.id);
             console.log('👥 User belongs to groups:', userGroups);
 
             if (userGroups.length === 0) {
-              console.log('⚠️ User is not a member of any groups - this explains why no requests are visible');
               setError('You need to join groups to see group requests. Visit the Groups page to join some groups!');
               setLoading(false);
               return;
@@ -619,55 +757,32 @@ const AllGroupRequests = () => {
         }
 
         // Process and format the requests
-        const formattedRequests = requests.map((request, index) => {
-          console.log(`📝 Processing request ${index + 1}:`, {
-            id: request.id,
-            title: request.title,
-            status: request.status,
-            createdBy: request.createdBy || request.userId,
-            targetGroupId: request.targetGroupId || request.groupId
-          });
-
+        const formattedRequests = requests.map((request) => {
           return {
             ...request,
-            // Ensure required fields exist
             votes: request.votes || [],
             participants: request.participants || [],
             paidParticipants: request.paidParticipants || [],
             skills: request.skills || [],
-            // Compatibility fields
             name: request.createdByName || request.userName || 'Unknown User',
             avatar: request.createdByAvatar || request.userAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`,
             message: request.description || request.message || '',
-            // Ensure status exists
             status: request.status || 'pending',
             voteCount: request.voteCount || request.votes?.length || 0,
             participantCount: request.participantCount || request.participants?.length || 0
           };
         });
 
-        console.log('✅ Formatted requests:', formattedRequests.length);
-        console.log('📊 Formatted requests data:', formattedRequests);
-
         setGroupRequests(formattedRequests);
 
       } catch (error) {
         console.error('❌ Error loading group requests:', error);
-        console.error('❌ Error details:', {
-          message: error.message,
-          code: error.code,
-          stack: error.stack
-        });
 
-        // Provide more specific error messages
         let errorMessage = 'Failed to load group requests';
-
         if (error.code === 'permission-denied') {
           errorMessage = 'Permission denied. Please check your authentication and group memberships.';
         } else if (error.code === 'unavailable') {
           errorMessage = 'Database temporarily unavailable. Please try again later.';
-        } else if (error.message.includes('not available')) {
-          errorMessage = 'Service not properly initialized. Please refresh the page.';
         } else if (error.message) {
           errorMessage = error.message;
         }
@@ -679,130 +794,7 @@ const AllGroupRequests = () => {
     };
 
     loadGroupRequests();
-  }, [user, isCurrentUserAdmin]); // ✅ Include both dependencies
-
-  // Test group request service function
-  const testGroupRequestService = async () => {
-    console.log('🧪 Testing groupRequestService...');
-
-    try {
-      // Test 1: Check if service exists
-      console.log('✅ groupRequestService exists:', !!groupRequestService);
-      console.log('✅ getAllGroupRequests method exists:', typeof groupRequestService.getAllGroupRequests);
-
-      // Test 2: Check user groups
-      if (groupRequestService.getUserGroups) {
-        const userGroups = await groupRequestService.getUserGroups(user?.id);
-        console.log('👥 User groups:', userGroups);
-      }
-
-      // Test 3: Try the main call
-      const requests = await groupRequestService.getAllGroupRequests({
-        userId: user?.id,
-        isAdmin: isCurrentUserAdmin
-      });
-      console.log('📊 Test requests result:', requests);
-
-      alert('✅ Service test completed! Check console for results.');
-
-    } catch (error) {
-      console.error('❌ Test failed:', error);
-      alert('❌ Service test failed: ' + error.message);
-    }
-  };
-
-  // Test database structure function
-  const testDatabaseStructure = async () => {
-    console.log('🧪 Testing database structure...');
-
-    try {
-      console.log('📋 Testing collections:');
-
-      // Test grouprequests collection
-      try {
-        const groupRequestsRef = collection(db, 'grouprequests');
-        const snapshot = await getDocs(query(groupRequestsRef, limit(3)));
-        console.log('✅ grouprequests collection exists, found', snapshot.size, 'documents');
-
-        if (snapshot.size > 0) {
-          console.log('📊 Sample grouprequest documents:');
-          snapshot.forEach((doc, index) => {
-            const data = doc.data();
-            console.log(`Document ${index + 1}:`, {
-              id: doc.id,
-              title: data.title,
-              status: data.status,
-              userId: data.userId,
-              createdBy: data.createdBy,
-              targetGroupId: data.targetGroupId,
-              groupId: data.groupId,
-              createdAt: data.createdAt,
-              updatedAt: data.updatedAt
-            });
-          });
-        } else {
-          console.log('⚠️ No documents found in grouprequests collection');
-        }
-      } catch (groupRequestsError) {
-        console.error('❌ Error accessing grouprequests collection:', groupRequestsError);
-      }
-
-      // Test groups collection
-      try {
-        const groupsRef = collection(db, 'groups');
-        const groupsSnapshot = await getDocs(query(groupsRef, limit(3)));
-        console.log('✅ groups collection exists, found', groupsSnapshot.size, 'documents');
-
-        if (groupsSnapshot.size > 0) {
-          console.log('📊 Sample group documents:');
-          groupsSnapshot.forEach((doc, index) => {
-            const data = doc.data();
-            console.log(`Group ${index + 1}:`, {
-              id: doc.id,
-              name: data.name,
-              members: data.members?.length || 0,
-              hiddenMembers: data.hiddenMembers?.length || 0,
-              isPublic: data.isPublic,
-              createdBy: data.createdBy
-            });
-          });
-
-          // Check if current user is a member of any groups
-          const userGroups = [];
-          groupsSnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.members?.includes(user?.id) || data.hiddenMembers?.includes(user?.id)) {
-              userGroups.push({ id: doc.id, name: data.name });
-            }
-          });
-
-          if (userGroups.length > 0) {
-            console.log('✅ User is member of groups:', userGroups);
-          } else {
-            console.log('⚠️ User is not a member of any groups - this explains why no requests are visible!');
-            console.log('💡 Solution: User needs to join groups first');
-          }
-        }
-      } catch (groupsError) {
-        console.error('❌ Error accessing groups collection:', groupsError);
-      }
-
-      // Test admin status
-      try {
-        const adminRef = doc(db, 'admin', user?.id);
-        const adminSnap = await getDoc(adminRef);
-        console.log('👑 User admin status:', adminSnap.exists());
-      } catch (adminError) {
-        console.error('❌ Error checking admin status:', adminError);
-      }
-
-      alert('✅ Database test completed! Check console for detailed results.');
-
-    } catch (error) {
-      console.error('❌ Database test failed:', error);
-      alert('❌ Database test failed: ' + error.message);
-    }
-  };
+  }, [user, isCurrentUserAdmin]);
 
   // Handle request updates
   const handleRequestUpdate = (requestId, updatedRequest) => {
@@ -924,24 +916,6 @@ const AllGroupRequests = () => {
               )}
             </div>
           </div>
-
-          {/* Debug Buttons (Development Only) */}
-          {import.meta.env.DEV && (
-              <div className="mb-6 flex gap-2">
-                <button
-                    onClick={testGroupRequestService}
-                    className="bg-purple-600 text-white px-4 py-2 rounded text-sm hover:bg-purple-700"
-                >
-                  🧪 Test Service
-                </button>
-                <button
-                    onClick={testDatabaseStructure}
-                    className="bg-orange-600 text-white px-4 py-2 rounded text-sm hover:bg-orange-700"
-                >
-                  🗄️ Test Database
-                </button>
-              </div>
-          )}
 
           {/* Status Statistics */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">

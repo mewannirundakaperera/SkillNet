@@ -1,24 +1,28 @@
 // src/hooks/useUser.js
 import { useState, useEffect } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/config/firebase';
+import { useAuth } from '@/hooks/useAuth'; // ✅ FIXED: Use consistent auth hook
 import { UserCollectionService } from '@services/user.js';
 
 // Hook for managing current user data
 export const useCurrentUser = () => {
-  const [user, loading, error] = useAuthState(auth);
+  // ✅ FIXED: Use consistent auth hook instead of useAuthState
+  const { user: authUser, loading: authLoading, isAuthenticated } = useAuth();
   const [userData, setUserData] = useState(null);
   const [userLoading, setUserLoading] = useState(true);
   const [userError, setUserError] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (user && user.uid) {
+      // ✅ FIXED: Use authUser.id instead of authUser.uid
+      if (authUser && authUser.id) {
         try {
           setUserLoading(true);
-          const fetchedUserData = await UserCollectionService.getUserById(user.uid);
+          setUserError(null);
+          // ✅ FIXED: Pass authUser.id consistently
+          const fetchedUserData = await UserCollectionService.getUserById(authUser.id);
           setUserData(fetchedUserData);
         } catch (err) {
+          console.error('❌ Error fetching user data:', err);
           setUserError(err);
         } finally {
           setUserLoading(false);
@@ -30,98 +34,147 @@ export const useCurrentUser = () => {
     };
 
     fetchUserData();
-  }, [user]);
+  }, [authUser]);
 
   const updateUser = async (updateData) => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use authUser.id instead of authUser.uid
+    if (!authUser?.id) {
+      const error = new Error('User not authenticated');
+      setUserError(error);
+      return Promise.reject(error);
+    }
 
     try {
-      const updatedData = await UserCollectionService.updateUser(user.uid, updateData);
+      setUserError(null);
+      // ✅ FIXED: Pass authUser.id consistently
+      const updatedData = await UserCollectionService.updateUser(authUser.id, updateData);
       setUserData(prev => ({ ...prev, ...updatedData }));
       return updatedData;
     } catch (err) {
+      console.error('❌ Error updating user:', err);
       setUserError(err);
       throw err;
     }
   };
 
   const addSkill = async (skill) => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use authUser.id instead of authUser.uid
+    if (!authUser?.id) {
+      const error = new Error('User not authenticated');
+      setUserError(error);
+      return Promise.reject(error);
+    }
 
     try {
-      await UserCollectionService.addSkill(user.uid, skill);
+      setUserError(null);
+      // ✅ FIXED: Pass authUser.id consistently
+      await UserCollectionService.addSkill(authUser.id, skill);
       setUserData(prev => ({
         ...prev,
         skills: [...(prev.skills || []), skill]
       }));
     } catch (err) {
+      console.error('❌ Error adding skill:', err);
       setUserError(err);
       throw err;
     }
   };
 
   const removeSkill = async (skill) => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use authUser.id instead of authUser.uid
+    if (!authUser?.id) {
+      const error = new Error('User not authenticated');
+      setUserError(error);
+      return Promise.reject(error);
+    }
 
     try {
-      await UserCollectionService.removeSkill(user.uid, skill);
+      setUserError(null);
+      // ✅ FIXED: Pass authUser.id consistently
+      await UserCollectionService.removeSkill(authUser.id, skill);
       setUserData(prev => ({
         ...prev,
         skills: prev.skills?.filter(s => s !== skill) || []
       }));
     } catch (err) {
+      console.error('❌ Error removing skill:', err);
       setUserError(err);
       throw err;
     }
   };
 
   const addInterest = async (interest) => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use authUser.id instead of authUser.uid
+    if (!authUser?.id) {
+      const error = new Error('User not authenticated');
+      setUserError(error);
+      return Promise.reject(error);
+    }
 
     try {
-      await UserCollectionService.addInterest(user.uid, interest);
+      setUserError(null);
+      // ✅ FIXED: Pass authUser.id consistently
+      await UserCollectionService.addInterest(authUser.id, interest);
       setUserData(prev => ({
         ...prev,
         interests: [...(prev.interests || []), interest]
       }));
     } catch (err) {
+      console.error('❌ Error adding interest:', err);
       setUserError(err);
       throw err;
     }
   };
 
   const updateStats = async (statsUpdate) => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use authUser.id instead of authUser.uid
+    if (!authUser?.id) {
+      const error = new Error('User not authenticated');
+      setUserError(error);
+      return Promise.reject(error);
+    }
 
     try {
-      await UserCollectionService.updateStats(user.uid, statsUpdate);
+      setUserError(null);
+      // ✅ FIXED: Pass authUser.id consistently
+      await UserCollectionService.updateStats(authUser.id, statsUpdate);
       setUserData(prev => ({
         ...prev,
         stats: { ...prev.stats, ...statsUpdate }
       }));
     } catch (err) {
+      console.error('❌ Error updating stats:', err);
       setUserError(err);
       throw err;
     }
   };
 
   const markProfileComplete = async () => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use authUser.id instead of authUser.uid
+    if (!authUser?.id) {
+      const error = new Error('User not authenticated');
+      setUserError(error);
+      return Promise.reject(error);
+    }
 
     try {
-      await UserCollectionService.markProfileComplete(user.uid);
+      setUserError(null);
+      // ✅ FIXED: Pass authUser.id consistently
+      await UserCollectionService.markProfileComplete(authUser.id);
       setUserData(prev => ({ ...prev, profileComplete: true }));
     } catch (err) {
+      console.error('❌ Error marking profile complete:', err);
       setUserError(err);
       throw err;
     }
   };
 
   return {
-    authUser: user,
+    authUser,
     userData,
-    loading: loading || userLoading,
-    error: error || userError,
+    loading: authLoading || userLoading,
+    error: userError,
+    isAuthenticated,
     updateUser,
     addSkill,
     removeSkill,
@@ -147,9 +200,11 @@ export const usePublicProfile = (userId) => {
 
       try {
         setLoading(true);
+        setError(null);
         const fetchedProfile = await UserCollectionService.getPublicProfile(userId);
         setProfile(fetchedProfile);
       } catch (err) {
+        console.error('❌ Error fetching public profile:', err);
         setError(err);
       } finally {
         setLoading(false);
@@ -176,6 +231,7 @@ export const useUserSearch = () => {
       setResults(searchResults);
       return searchResults;
     } catch (err) {
+      console.error('❌ Error searching by skills:', err);
       setError(err);
       throw err;
     } finally {
@@ -191,6 +247,7 @@ export const useUserSearch = () => {
       setResults(searchResults);
       return searchResults;
     } catch (err) {
+      console.error('❌ Error searching by interests:', err);
       setError(err);
       throw err;
     } finally {
@@ -206,6 +263,7 @@ export const useUserSearch = () => {
       setResults(searchResults);
       return searchResults;
     } catch (err) {
+      console.error('❌ Error searching by location:', err);
       setError(err);
       throw err;
     } finally {
@@ -221,6 +279,7 @@ export const useUserSearch = () => {
       setResults(profiles);
       return profiles;
     } catch (err) {
+      console.error('❌ Error getting all profiles:', err);
       setError(err);
       throw err;
     } finally {
@@ -257,6 +316,7 @@ export const useUserRegistration = () => {
       const newUser = await UserCollectionService.createUser(userData);
       return newUser;
     } catch (err) {
+      console.error('❌ Error creating user:', err);
       setError(err);
       throw err;
     } finally {

@@ -2,14 +2,84 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { groupRequestService } from "@/services/groupRequestService";
-import { collection, getDocs, limit, query, doc, getDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
 
-// Enhanced Group Request Card Component (Same as before)
+// Enhanced Group Request Card Component with FIXED voting logic
 const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [timeUntilSession, setTimeUntilSession] = useState(null);
   const [conferenceLink, setConferenceLink] = useState(null);
+  const [permissions, setPermissions] = useState({
+    canVote: false,
+    canParticipate: false,
+    canPay: false,
+    isLoading: true
+  });
+
+  // Calculate derived states
+  const isOwner = request.createdBy === currentUserId || request.userId === currentUserId;
+  const hasVoted = request.votes?.includes(currentUserId);
+  const isParticipating = request.participants?.includes(currentUserId);
+  const hasPaid = request.paidParticipants?.includes(currentUserId);
+  const voteCount = request.voteCount || request.votes?.length || 0;
+  const participantCount = request.participantCount || request.participants?.length || 0;
+  const paidCount = request.paidParticipants?.length || 0;
+
+  // ✅ FIXED: Add permission checking with group membership verification
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!currentUserId || !request) {
+        setPermissions({
+          canVote: false,
+          canParticipate: false,
+          canPay: false,
+          isLoading: false
+        });
+        return;
+      }
+
+      try {
+        setPermissions(prev => ({ ...prev, isLoading: true }));
+
+        // ✅ FIXED: Check voting permission - allow in BOTH 'pending' AND 'voting_open' states
+        let canVote = false;
+        if (!isOwner && !hasVoted && ['pending', 'voting_open'].includes(request.status)) {
+          const voteResult = await groupRequestService.canUserVoteAsync(request, currentUserId);
+          canVote = voteResult.canVote;
+        }
+
+        // Check participation permission
+        let canParticipate = false;
+        if (!isParticipating && request.status === 'voting_open') {
+          const participateResult = await groupRequestService.canUserParticipateAsync(request, currentUserId);
+          canParticipate = participateResult.canParticipate;
+        }
+
+        // Check payment permission
+        let canPay = false;
+        if (request.status === 'accepted' && isParticipating && !hasPaid) {
+          canPay = true; // Already participating, so group membership is confirmed
+        }
+
+        setPermissions({
+          canVote,
+          canParticipate,
+          canPay,
+          isLoading: false
+        });
+
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setPermissions({
+          canVote: false,
+          canParticipate: false,
+          canPay: false,
+          isLoading: false
+        });
+      }
+    };
+
+    checkPermissions();
+  }, [request, currentUserId, isOwner, hasVoted, isParticipating, hasPaid]);
 
   // Calculate time until session starts
   useEffect(() => {
@@ -66,21 +136,40 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
       const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
       if (result.success) {
         onRequestUpdate?.(request.id, { ...request, status: newStatus });
+      } else {
+        console.error('❌ Status update failed:', result.message);
+        alert(result.message || 'Failed to update status');
       }
     } catch (error) {
       console.error('Error updating request status:', error);
+      alert('Failed to update status. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle voting using service
+  // ✅ FIXED: Handle voting (approving a request) - owners cannot vote on their own requests
   const handleVote = async () => {
     if (!currentUserId || loading) return;
 
+    // ✅ FIXED: Check if user is owner
+    if (isOwner) {
+      alert('You cannot vote on your own request');
+      return;
+    }
+
+    // ✅ FIXED: Verify permissions before proceeding
+    if (!permissions.canVote) {
+      if (permissions.isLoading) {
+        alert('Please wait while we verify your permissions...');
+        return;
+      }
+      alert('You cannot vote on this request. You may not be a member of this group.');
+      return;
+    }
+
     try {
       setLoading(true);
-      const hasVoted = request.votes?.includes(currentUserId);
 
       let newVotes;
       if (hasVoted) {
@@ -94,7 +183,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         voteCount: newVotes.length
       };
 
-      // Auto-transition to voting_open if enough votes
+      // Auto-transition to voting_open if enough votes (5 votes required)
       if (newVotes.length >= 5 && request.status === 'pending') {
         updateData.status = 'voting_open';
       }
@@ -107,21 +196,34 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           voteCount: newVotes.length,
           status: updateData.status || request.status
         });
+      } else {
+        console.error('❌ Vote failed:', result.message);
+        alert(result.message || 'Failed to process vote');
       }
     } catch (error) {
       console.error('Error handling vote:', error);
+      alert('Failed to process vote. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle participation using service
+  // ✅ FIXED: Handle participation (joining a request) - owners can participate in their own requests
   const handleParticipation = async () => {
     if (!currentUserId || loading) return;
 
+    // ✅ FIXED: Check permissions for non-participants
+    if (!permissions.canParticipate && !isParticipating) {
+      if (permissions.isLoading) {
+        alert('Please wait while we verify your permissions...');
+        return;
+      }
+      alert('You cannot join this request. You may not be a member of this group.');
+      return;
+    }
+
     try {
       setLoading(true);
-      const isParticipating = request.participants?.includes(currentUserId);
 
       let newParticipants;
       if (isParticipating) {
@@ -148,9 +250,13 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           participantCount: newParticipants.length,
           status: updateData.status || request.status
         });
+      } else {
+        console.error('❌ Participation failed:', result.message);
+        alert(result.message || 'Failed to update participation');
       }
     } catch (error) {
       console.error('Error handling participation:', error);
+      alert('Failed to update participation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -159,6 +265,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   // Handle payment (mock implementation)
   const handlePayment = async () => {
     if (!currentUserId || loading) return;
+
+    if (!permissions.canPay) {
+      alert('You cannot make payment at this time.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -190,6 +301,9 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           scheduledDateTime: updateData.scheduledDateTime || request.scheduledDateTime
         });
         alert('Payment successful!');
+      } else {
+        console.error('❌ Payment failed:', result.message);
+        alert(result.message || 'Payment failed');
       }
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -254,13 +368,6 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   };
 
   const styling = getCardStyling();
-  const voteCount = request.voteCount || request.votes?.length || 0;
-  const participantCount = request.participantCount || request.participants?.length || 0;
-  const paidCount = request.paidParticipants?.length || 0;
-  const hasVoted = request.votes?.includes(currentUserId);
-  const isParticipating = request.participants?.includes(currentUserId);
-  const hasPaid = request.paidParticipants?.includes(currentUserId);
-  const isOwner = request.createdBy === currentUserId || request.userId === currentUserId;
 
   return (
       <div className={`rounded-lg shadow-sm border-2 p-4 hover:shadow-md transition-all h-full flex flex-col ${styling.borderColor} ${styling.bgColor}`}>
@@ -329,12 +436,12 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             </div>
         )}
 
-        {/* State-specific content based on status and ownership */}
+        {/* ✅ FIXED: State-specific content based on status with proper permission checks */}
         {request.status === 'pending' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-gray-700">
-                  {isOwner ? 'Awaiting votes' : 'Needs votes'}
+                  {isOwner ? 'Awaiting community votes' : 'Community voting'}
                 </span>
                 <span className="text-xs text-gray-600">{voteCount}/5</span>
               </div>
@@ -344,22 +451,43 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     style={{ width: `${Math.min((voteCount / 5) * 100, 100)}%` }}
                 />
               </div>
-              {!isOwner && groupRequestService.canUserVote(request, currentUserId) && (
+
+              {/* ✅ FIXED: Voting button - only for non-owners with proper permissions */}
+              {permissions.canVote && !permissions.isLoading && (
                   <button
                       onClick={handleVote}
                       disabled={loading}
-                      className={`w-full py-1.5 px-3 rounded-lg font-medium text-xs transition-colors ${
-                          hasVoted
-                              ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
-                              : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                      } disabled:opacity-50`}
+                      className="w-full bg-yellow-500 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-yellow-600 transition-colors disabled:opacity-50"
                   >
-                    {loading ? 'Processing...' : hasVoted ? '✓ Voted' : 'Vote to Approve'}
+                    {loading ? 'Processing...' : '👍 Vote to Approve'}
                   </button>
               )}
+
+              {/* Already voted */}
+              {!isOwner && hasVoted && (
+                  <div className="w-full bg-yellow-200 text-yellow-800 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ✓ You voted to approve
+                  </div>
+              )}
+
+              {/* Owner view */}
               {isOwner && (
                   <div className="bg-yellow-100 text-yellow-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-                    ⏳ Waiting for approval ({voteCount}/5)
+                    ⏳ Waiting for community approval ({voteCount}/5)
+                  </div>
+              )}
+
+              {/* Cannot vote (not group member) */}
+              {!permissions.canVote && !permissions.isLoading && !isOwner && !hasVoted && (
+                  <div className="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ❌ Cannot vote (not a group member)
+                  </div>
+              )}
+
+              {/* Loading permissions */}
+              {permissions.isLoading && !isOwner && (
+                  <div className="bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    🔄 Checking permissions...
                   </div>
               )}
             </div>
@@ -369,43 +497,44 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-gray-700">
-                  {isOwner ? 'Participants' : 'Join session'}
+                  Join this session
                 </span>
                 <span className="text-xs text-gray-600">{participantCount} joined</span>
               </div>
-              <div className="flex gap-1">
-                {!isOwner && groupRequestService.canUserVote(request, currentUserId) && (
-                    <button
-                        onClick={handleVote}
-                        disabled={loading}
-                        className={`flex-1 py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
-                            hasVoted
-                                ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
-                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                        } disabled:opacity-50`}
-                    >
-                      {hasVoted ? `❤️ ${voteCount}` : `👍 ${voteCount}`}
-                    </button>
-                )}
-                {!isOwner && groupRequestService.canUserParticipate(request, currentUserId) && (
+
+              {/* ✅ FIXED: Participation button - anyone can join including owner with proper permissions */}
+              {permissions.canParticipate && !permissions.isLoading && (
+                  <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className="w-full bg-orange-500 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Joining...' : 'Join Session'}
+                  </button>
+              )}
+
+              {/* Already participating */}
+              {isParticipating && (
+                  <div className="flex gap-1">
+                    <div className="flex-1 bg-orange-200 text-orange-800 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
+                      ✓ You're participating
+                    </div>
                     <button
                         onClick={handleParticipation}
                         disabled={loading}
-                        className={`flex-1 py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
-                            isParticipating
-                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                : 'bg-orange-500 text-white hover:bg-orange-600'
-                        } disabled:opacity-50`}
+                        className="bg-gray-200 text-gray-700 py-1.5 px-2 rounded-lg text-xs hover:bg-gray-300 transition-colors disabled:opacity-50"
                     >
-                      {loading ? '...' : isParticipating ? 'Leave' : 'Join'}
+                      Leave
                     </button>
-                )}
-                {isOwner && (
-                    <div className="w-full bg-orange-100 text-orange-700 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
-                      👥 {participantCount} joined
-                    </div>
-                )}
-              </div>
+                  </div>
+              )}
+
+              {/* Can't participate */}
+              {!permissions.canParticipate && !permissions.isLoading && !isParticipating && (
+                  <div className="w-full bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    {participantCount > 0 ? `👥 ${participantCount} participants joined` : '❌ Cannot join (not a group member)'}
+                  </div>
+              )}
             </div>
         )}
 
@@ -413,7 +542,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium text-gray-700">
-                  {isOwner ? 'Payment' : 'Payment required'}
+                  Payment required
                 </span>
                 <span className="text-xs text-gray-600">{paidCount}/{participantCount}</span>
               </div>
@@ -423,7 +552,9 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
                 />
               </div>
-              {!isOwner && isParticipating && !hasPaid && (
+
+              {/* Payment button */}
+              {permissions.canPay && (
                   <button
                       onClick={handlePayment}
                       disabled={loading}
@@ -432,20 +563,79 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     {loading ? 'Processing...' : `Pay ${request.rate || 'Now'}`}
                   </button>
               )}
-              {!isOwner && hasPaid && (
+
+              {/* Already paid */}
+              {isParticipating && hasPaid && (
                   <div className="w-full bg-green-100 text-green-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-                    ✓ Paid - Waiting for others
+                    ✓ Payment completed - Waiting for others
                   </div>
               )}
-              {isOwner && (
-                  <div className="w-full bg-green-100 text-green-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-                    💰 Collecting ({paidCount}/{participantCount})
+
+              {/* Not participating */}
+              {!isParticipating && (
+                  <div className="w-full bg-gray-100 text-gray-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    💰 Payment phase ({paidCount}/{participantCount})
                   </div>
               )}
             </div>
         )}
 
-        {/* Additional status blocks (payment_complete, in_progress, completed, cancelled) remain the same... */}
+        {request.status === 'payment_complete' && (
+            <div className="mb-3">
+              <div className="bg-yellow-200 text-yellow-900 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
+                🎉 Session starting soon!
+              </div>
+              {timeUntilSession && (
+                  <div className="text-xs text-center text-yellow-800 mb-2">
+                    Starts in {timeUntilSession.hours}h {timeUntilSession.minutes}m
+                  </div>
+              )}
+              {conferenceLink && (
+                  <a
+                      href={conferenceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-blue-600 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-blue-700 transition-colors text-center block"
+                  >
+                    🎥 Join Meeting
+                  </a>
+              )}
+            </div>
+        )}
+
+        {request.status === 'in_progress' && (
+            <div className="mb-3">
+              <div className="bg-blue-100 text-blue-800 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
+                🔴 Session in progress
+              </div>
+              {conferenceLink && (
+                  <a
+                      href={conferenceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-blue-600 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-blue-700 transition-colors text-center block"
+                  >
+                    🎥 Join Now
+                  </a>
+              )}
+            </div>
+        )}
+
+        {request.status === 'completed' && (
+            <div className="mb-3">
+              <div className="bg-gray-700 text-gray-200 py-2 px-3 rounded-lg text-center text-xs font-medium">
+                ✅ Session completed
+              </div>
+            </div>
+        )}
+
+        {request.status === 'cancelled' && (
+            <div className="mb-3">
+              <div className="bg-red-100 text-red-700 py-2 px-3 rounded-lg text-center text-xs font-medium">
+                ❌ Request cancelled
+              </div>
+            </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
@@ -477,6 +667,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   );
 };
 
+// Rest of the GroupRequests component
 const GroupRequests = () => {
   const { user } = useAuth();
   const [groupRequests, setGroupRequests] = useState([]);

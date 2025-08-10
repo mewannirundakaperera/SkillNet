@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../config/firebase';
+import { useAuth } from '@/hooks/useAuth'; // ✅ FIXED: Use consistent auth hook
 import {
   ConnectionsService,
   CONNECTION_TYPES,
@@ -9,7 +8,8 @@ import {
 
 // Hook for managing connections
 export const useConnections = () => {
-  const [user] = useAuthState(auth);
+  // ✅ FIXED: Use consistent auth hook instead of useAuthState
+  const { user } = useAuth(); // This returns user.id consistently
   const [connections, setConnections] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,12 +17,14 @@ export const useConnections = () => {
 
   // Load user's connections
   const loadConnections = async (status = CONNECTION_STATUS.ACCEPTED) => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use user.id instead of user.uid
+    if (!user?.id) return;
 
     try {
       setLoading(true);
       setError(null);
-      const userConnections = await ConnectionsService.getUserConnections(user.uid, status);
+      // ✅ FIXED: Pass user.id consistently
+      const userConnections = await ConnectionsService.getUserConnections(user.id, status);
       setConnections(userConnections);
     } catch (err) {
       setError(err);
@@ -33,10 +35,12 @@ export const useConnections = () => {
 
   // Load pending requests
   const loadPendingRequests = async () => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use user.id instead of user.uid
+    if (!user?.id) return;
 
     try {
-      const requests = await ConnectionsService.getPendingRequests(user.uid);
+      // ✅ FIXED: Pass user.id consistently
+      const requests = await ConnectionsService.getPendingRequests(user.id);
       setPendingRequests(requests);
     } catch (err) {
       setError(err);
@@ -45,11 +49,13 @@ export const useConnections = () => {
 
   // Send connection request
   const sendConnectionRequest = async (targetUserId, connectionType, message = '') => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use user.id instead of user.uid
+    if (!user?.id) return;
 
     try {
       const connectionData = {
-        userId: user.uid,
+        // ✅ FIXED: Use user.id consistently
+        userId: user.id,
         targetUserId,
         connectionType,
         message
@@ -110,10 +116,12 @@ export const useConnections = () => {
 
   // Check if connection exists
   const checkConnectionExists = async (targetUserId, connectionType = null) => {
-    if (!user?.uid) return false;
+    // ✅ FIXED: Use user.id instead of user.uid
+    if (!user?.id) return false;
 
     try {
-      const exists = await ConnectionsService.checkConnectionExists(user.uid, targetUserId, connectionType);
+      // ✅ FIXED: Pass user.id consistently
+      const exists = await ConnectionsService.checkConnectionExists(user.id, targetUserId, connectionType);
       return exists;
     } catch (err) {
       setError(err);
@@ -123,10 +131,12 @@ export const useConnections = () => {
 
   // Block user
   const blockUser = async (targetUserId, reason = '') => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use user.id instead of user.uid
+    if (!user?.id) return;
 
     try {
-      await ConnectionsService.blockUser(user.uid, targetUserId, reason);
+      // ✅ FIXED: Pass user.id consistently
+      await ConnectionsService.blockUser(user.id, targetUserId, reason);
       // Refresh connections to reflect the block
       await loadConnections();
     } catch (err) {
@@ -137,10 +147,12 @@ export const useConnections = () => {
 
   // Unblock user
   const unblockUser = async (targetUserId) => {
-    if (!user?.uid) return;
+    // ✅ FIXED: Use user.id instead of user.uid
+    if (!user?.id) return;
 
     try {
-      await ConnectionsService.unblockUser(user.uid, targetUserId);
+      // ✅ FIXED: Pass user.id consistently
+      await ConnectionsService.unblockUser(user.id, targetUserId);
       // Refresh connections to reflect the unblock
       await loadConnections();
     } catch (err) {
@@ -200,4 +212,3 @@ export const useFollowers = () => useConnectionsByType(CONNECTION_TYPES.FOLLOW);
 export const useMentors = () => useConnectionsByType(CONNECTION_TYPES.MENTOR);
 export const useMentees = () => useConnectionsByType(CONNECTION_TYPES.MENTEE);
 export const useBlockedUsers = () => useConnectionsByType(CONNECTION_TYPES.BLOCK);
-
