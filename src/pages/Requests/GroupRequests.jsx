@@ -2,14 +2,84 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { groupRequestService } from "@/services/groupRequestService";
-import { collection, getDocs, limit, query, doc, getDoc } from "firebase/firestore";
-import { db } from "@/config/firebase";
 
-// Enhanced Group Request Card Component (Same as before)
+// Enhanced Group Request Card Component with FIXED voting logic
 const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [timeUntilSession, setTimeUntilSession] = useState(null);
   const [conferenceLink, setConferenceLink] = useState(null);
+  const [permissions, setPermissions] = useState({
+    canVote: false,
+    canParticipate: false,
+    canPay: false,
+    isLoading: true
+  });
+
+  // Calculate derived states
+  const isOwner = request.createdBy === currentUserId || request.userId === currentUserId;
+  const hasVoted = request.votes?.includes(currentUserId);
+  const isParticipating = request.participants?.includes(currentUserId);
+  const hasPaid = request.paidParticipants?.includes(currentUserId);
+  const voteCount = request.voteCount || request.votes?.length || 0;
+  const participantCount = request.participantCount || request.participants?.length || 0;
+  const paidCount = request.paidParticipants?.length || 0;
+
+  // ✅ FIXED: Add permission checking with group membership verification
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!currentUserId || !request) {
+        setPermissions({
+          canVote: false,
+          canParticipate: false,
+          canPay: false,
+          isLoading: false
+        });
+        return;
+      }
+
+      try {
+        setPermissions(prev => ({ ...prev, isLoading: true }));
+
+        // ✅ FIXED: Check voting permission - allow in BOTH 'pending' AND 'voting_open' states
+        let canVote = false;
+        if (!isOwner && !hasVoted && ['pending', 'voting_open'].includes(request.status)) {
+          const voteResult = await groupRequestService.canUserVoteAsync(request, currentUserId);
+          canVote = voteResult.canVote;
+        }
+
+        // Check participation permission
+        let canParticipate = false;
+        if (!isParticipating && request.status === 'voting_open') {
+          const participateResult = await groupRequestService.canUserParticipateAsync(request, currentUserId);
+          canParticipate = participateResult.canParticipate;
+        }
+
+        // Check payment permission
+        let canPay = false;
+        if (request.status === 'accepted' && isParticipating && !hasPaid) {
+          canPay = true; // Already participating, so group membership is confirmed
+        }
+
+        setPermissions({
+          canVote,
+          canParticipate,
+          canPay,
+          isLoading: false
+        });
+
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setPermissions({
+          canVote: false,
+          canParticipate: false,
+          canPay: false,
+          isLoading: false
+        });
+      }
+    };
+
+    checkPermissions();
+  }, [request, currentUserId, isOwner, hasVoted, isParticipating, hasPaid]);
 
   // Calculate time until session starts
   useEffect(() => {
@@ -66,21 +136,40 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
       const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
       if (result.success) {
         onRequestUpdate?.(request.id, { ...request, status: newStatus });
+      } else {
+        console.error('❌ Status update failed:', result.message);
+        alert(result.message || 'Failed to update status');
       }
     } catch (error) {
       console.error('Error updating request status:', error);
+      alert('Failed to update status. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle voting using service
+  // ✅ FIXED: Handle voting (approving a request) - owners cannot vote on their own requests
   const handleVote = async () => {
     if (!currentUserId || loading) return;
 
+    // ✅ FIXED: Check if user is owner
+    if (isOwner) {
+      alert('You cannot vote on your own request');
+      return;
+    }
+
+    // ✅ FIXED: Verify permissions before proceeding
+    if (!permissions.canVote) {
+      if (permissions.isLoading) {
+        alert('Please wait while we verify your permissions...');
+        return;
+      }
+      alert('You cannot vote on this request. You may not be a member of this group.');
+      return;
+    }
+
     try {
       setLoading(true);
-      const hasVoted = request.votes?.includes(currentUserId);
 
       let newVotes;
       if (hasVoted) {
@@ -94,7 +183,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         voteCount: newVotes.length
       };
 
-      // Auto-transition to voting_open if enough votes
+      // Auto-transition to voting_open if enough votes (5 votes required)
       if (newVotes.length >= 5 && request.status === 'pending') {
         updateData.status = 'voting_open';
       }
@@ -107,21 +196,34 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           voteCount: newVotes.length,
           status: updateData.status || request.status
         });
+      } else {
+        console.error('❌ Vote failed:', result.message);
+        alert(result.message || 'Failed to process vote');
       }
     } catch (error) {
       console.error('Error handling vote:', error);
+      alert('Failed to process vote. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle participation using service
+  // ✅ FIXED: Handle participation (joining a request) - owners can participate in their own requests
   const handleParticipation = async () => {
     if (!currentUserId || loading) return;
 
+    // ✅ FIXED: Check permissions for non-participants
+    if (!permissions.canParticipate && !isParticipating) {
+      if (permissions.isLoading) {
+        alert('Please wait while we verify your permissions...');
+        return;
+      }
+      alert('You cannot join this request. You may not be a member of this group.');
+      return;
+    }
+
     try {
       setLoading(true);
-      const isParticipating = request.participants?.includes(currentUserId);
 
       let newParticipants;
       if (isParticipating) {
@@ -148,9 +250,13 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           participantCount: newParticipants.length,
           status: updateData.status || request.status
         });
+      } else {
+        console.error('❌ Participation failed:', result.message);
+        alert(result.message || 'Failed to update participation');
       }
     } catch (error) {
       console.error('Error handling participation:', error);
+      alert('Failed to update participation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -159,6 +265,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   // Handle payment (mock implementation)
   const handlePayment = async () => {
     if (!currentUserId || loading) return;
+
+    if (!permissions.canPay) {
+      alert('You cannot make payment at this time.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -190,6 +301,9 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           scheduledDateTime: updateData.scheduledDateTime || request.scheduledDateTime
         });
         alert('Payment successful!');
+      } else {
+        console.error('❌ Payment failed:', result.message);
+        alert(result.message || 'Payment failed');
       }
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -204,63 +318,56 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
     switch (request.status) {
       case 'pending':
         return {
-          borderColor: 'border-yellow-500',
-          bgColor: 'bg-[#2D3748]',
-          statusColor: 'bg-yellow-900 text-yellow-400'
+          borderColor: 'border-yellow-300',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-yellow-900 text-yellow-200'
         };
       case 'voting_open':
         return {
-          borderColor: 'border-orange-500',
-          bgColor: 'bg-[#2D3748]',
-          statusColor: 'bg-orange-900 text-orange-400'
+          borderColor: 'border-orange-300',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-orange-900 text-orange-200'
         };
-                  case 'accepted':
-              return {
-                borderColor: 'border-green-500',
-                bgColor: 'bg-[#2D3748]',
-                statusColor: 'bg-green-900 text-green-400'
-              };
+      case 'accepted':
+        return {
+          borderColor: 'border-green-300',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-green-900 text-green-200'
+        };
       case 'payment_complete':
         return {
-          borderColor: 'border-yellow-500',
-          bgColor: 'bg-[#2D3748]',
-          statusColor: 'bg-yellow-800 text-yellow-300'
+          borderColor: 'border-yellow-400',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-yellow-800 text-yellow-100'
         };
       case 'in_progress':
         return {
-          borderColor: 'border-blue-500',
-          bgColor: 'bg-[#2D3748]',
-          statusColor: 'bg-blue-900 text-blue-400'
+          borderColor: 'border-blue-400',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-blue-900 text-blue-200'
         };
       case 'completed':
         return {
-          borderColor: 'border-gray-500',
-          bgColor: 'bg-[#2D3748]',
-          statusColor: 'bg-[#4A5568] text-white'
+          borderColor: 'border-slate-600',
+          bgColor: 'bg-slate-800 text-white',
+          statusColor: 'bg-slate-700 text-slate-200'
         };
       case 'cancelled':
         return {
-          borderColor: 'border-red-500',
-          bgColor: 'bg-[#2D3748]',
-          statusColor: 'bg-red-900 text-red-400'
+          borderColor: 'border-red-400',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-red-900 text-red-200'
         };
       default:
         return {
-          borderColor: 'border-[#4A5568]',
-          bgColor: 'bg-[#2D3748]',
-          statusColor: 'bg-[#4A5568] text-white'
+          borderColor: 'border-slate-700',
+          bgColor: 'bg-slate-800',
+          statusColor: 'bg-slate-700 text-slate-200'
         };
     }
   };
 
   const styling = getCardStyling();
-  const voteCount = request.voteCount || request.votes?.length || 0;
-  const participantCount = request.participantCount || request.participants?.length || 0;
-  const paidCount = request.paidParticipants?.length || 0;
-  const hasVoted = request.votes?.includes(currentUserId);
-  const isParticipating = request.participants?.includes(currentUserId);
-  const hasPaid = request.paidParticipants?.includes(currentUserId);
-  const isOwner = request.createdBy === currentUserId || request.userId === currentUserId;
 
   return (
       <div className={`rounded-lg shadow-sm border-2 p-4 hover:shadow-md transition-all h-full flex flex-col ${styling.borderColor} ${styling.bgColor}`}>
@@ -273,20 +380,20 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                 className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <h3 className={`font-semibold text-base line-clamp-1 ${request.status === 'completed' ? 'text-white' : 'text-white'}`}>
+              <h3 className={`font-semibold text-base line-clamp-1 text-white`}>
                 {request.title}
               </h3>
-              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-300' : 'text-[#E0E0E0]'}`}>
+              <p className={`text-xs text-slate-300`}>
                 {isOwner ? '👑 Your Request' : request.createdByName || request.name}
               </p>
-              <p className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-[#A0AEC0]'}`}>
+              <p className={`text-xs text-slate-400`}>
                 in {request.groupName}
               </p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             {request.rate && (
-                <span className="text-xs bg-[#2D3748] text-[#4299E1] px-2 py-1 rounded-full font-medium border border-[#4299E1]">
+                <span className="text-xs bg-blue-900 text-blue-200 px-2 py-1 rounded-full font-medium">
               {request.rate}
             </span>
             )}
@@ -294,7 +401,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
             {groupRequestService.getStatusDisplay(request.status).label}
           </span>
             {isOwner && (
-                <span className="text-xs bg-[#2D3748] text-[#8B5CF6] px-1.5 py-0.5 rounded-full font-medium border border-[#8B5CF6]">
+                <span className="text-xs bg-purple-900 text-purple-200 px-1.5 py-0.5 rounded-full font-medium">
               Owner
             </span>
             )}
@@ -302,7 +409,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         </div>
 
         {/* Description */}
-        <p className={`text-sm mb-3 line-clamp-2 ${request.status === 'completed' ? 'text-gray-300' : 'text-white'}`}>
+        <p className={`text-sm mb-3 line-clamp-2 text-slate-300`}>
           {request.description}
         </p>
 
@@ -312,54 +419,71 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
               {request.skills.slice(0, 3).map((skill, index) => (
                   <span
                       key={index}
-                      className={`text-xs px-2 py-0.5 rounded-full border ${
-                          request.status === 'completed'
-                              ? 'bg-gray-800 text-gray-300 border-gray-600'
-                              : 'bg-[#2D3748] text-white border-[#4A5568]'
-                      }`}
+                      className={`text-xs px-2 py-0.5 rounded-full border bg-slate-700 text-slate-200 border-slate-600`}
                   >
               {skill}
             </span>
               ))}
               {request.skills.length > 3 && (
-                  <span className="text-xs text-[#A0AEC0]">
+                  <span className="text-xs text-slate-400">
                     +{request.skills.length - 3} more
                   </span>
               )}
             </div>
         )}
 
-        {/* State-specific content based on status and ownership */}
+        {/* ✅ FIXED: State-specific content based on status with proper permission checks */}
         {request.status === 'pending' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-white">
-                  {isOwner ? 'Awaiting votes' : 'Needs votes'}
+                <span className="text-xs font-medium text-slate-200">
+                  {isOwner ? 'Awaiting community votes' : 'Community voting'}
                 </span>
-                <span className="text-xs text-[#A0AEC0]">{voteCount}/5</span>
+                <span className="text-xs text-slate-300">{voteCount}/5</span>
               </div>
-              <div className="w-full bg-yellow-200 rounded-full h-1.5 mb-2">
+              <div className="w-full bg-yellow-800 rounded-full h-1.5 mb-2">
                 <div
                     className="bg-yellow-500 h-1.5 rounded-full transition-all duration-300"
                     style={{ width: `${Math.min((voteCount / 5) * 100, 100)}%` }}
                 />
               </div>
-              {!isOwner && groupRequestService.canUserVote(request, currentUserId) && (
+
+              {/* ✅ FIXED: Voting button - only for non-owners with proper permissions */}
+              {permissions.canVote && !permissions.isLoading && (
                   <button
                       onClick={handleVote}
                       disabled={loading}
-                      className={`w-full py-1.5 px-3 rounded-lg font-medium text-xs transition-colors ${
-                          hasVoted
-                              ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
-                              : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                      } disabled:opacity-50`}
+                      className="w-full bg-yellow-500 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-yellow-600 transition-colors disabled:opacity-50"
                   >
-                    {loading ? 'Processing...' : hasVoted ? '✓ Voted' : 'Vote to Approve'}
+                    {loading ? 'Processing...' : '👍 Vote to Approve'}
                   </button>
               )}
+
+              {/* Already voted */}
+              {!isOwner && hasVoted && (
+                  <div className="w-full bg-yellow-800 text-yellow-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ✓ You voted to approve
+                  </div>
+              )}
+
+              {/* Owner view */}
               {isOwner && (
-                  <div className="bg-yellow-100 text-yellow-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-                    ⏳ Waiting for approval ({voteCount}/5)
+                  <div className="bg-yellow-800 text-yellow-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ⏳ Waiting for community approval ({voteCount}/5)
+                  </div>
+              )}
+
+              {/* Cannot vote (not group member) */}
+              {!permissions.canVote && !permissions.isLoading && !isOwner && !hasVoted && (
+                  <div className="bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ❌ Cannot vote (not a group member)
+                  </div>
+              )}
+
+              {/* Loading permissions */}
+              {permissions.isLoading && !isOwner && (
+                  <div className="bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    🔄 Checking permissions...
                   </div>
               )}
             </div>
@@ -368,62 +492,65 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         {request.status === 'voting_open' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-white">
-                  {isOwner ? 'Participants' : 'Join session'}
+                <span className="text-xs font-medium text-slate-200">
+                  Join this session
                 </span>
-                <span className="text-xs text-[#A0AEC0]">{participantCount} joined</span>
+                <span className="text-xs text-slate-300">{participantCount} joined</span>
               </div>
-              <div className="flex gap-1">
-                {!isOwner && groupRequestService.canUserVote(request, currentUserId) && (
-                    <button
-                        onClick={handleVote}
-                        disabled={loading}
-                        className={`flex-1 py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
-                            hasVoted
-                                ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
-                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                        } disabled:opacity-50`}
-                    >
-                      {hasVoted ? `❤️ ${voteCount}` : `👍 ${voteCount}`}
-                    </button>
-                )}
-                {!isOwner && groupRequestService.canUserParticipate(request, currentUserId) && (
+
+              {/* ✅ FIXED: Participation button - anyone can join including owner with proper permissions */}
+              {permissions.canParticipate && !permissions.isLoading && (
+                  <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className="w-full bg-orange-500 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Joining...' : 'Join Session'}
+                  </button>
+              )}
+
+              {/* Already participating */}
+              {isParticipating && (
+                  <div className="flex gap-1">
+                    <div className="flex-1 bg-orange-800 text-orange-100 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
+                      ✓ You're participating
+                    </div>
                     <button
                         onClick={handleParticipation}
                         disabled={loading}
-                        className={`flex-1 py-1.5 px-2 rounded-lg font-medium text-xs transition-colors ${
-                            isParticipating
-                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                : 'bg-orange-500 text-white hover:bg-orange-600'
-                        } disabled:opacity-50`}
+                        className="bg-slate-600 text-slate-200 py-1.5 px-2 rounded-lg text-xs hover:bg-slate-700 transition-colors disabled:opacity-50"
                     >
-                      {loading ? '...' : isParticipating ? 'Leave' : 'Join'}
+                      Leave
                     </button>
-                )}
-                {isOwner && (
-                    <div className="w-full bg-orange-100 text-orange-700 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
-                      👥 {participantCount} joined
-                    </div>
-                )}
-              </div>
+                  </div>
+              )}
+
+              {/* Can't participate */}
+              {!permissions.canParticipate && !permissions.isLoading && !isParticipating && (
+                  <div className="w-full bg-slate-700 text-slate-300 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    {participantCount > 0 ? `👥 ${participantCount} participants joined` : '❌ Cannot join (not a group member)'}
+                  </div>
+              )}
             </div>
         )}
 
         {request.status === 'accepted' && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-white">
-                  {isOwner ? 'Payment' : 'Payment required'}
+                <span className="text-xs font-medium text-slate-200">
+                  Payment required
                 </span>
-                <span className="text-xs text-[#A0AEC0]">{paidCount}/{participantCount}</span>
+                <span className="text-xs text-slate-300">{paidCount}/{participantCount}</span>
               </div>
-              <div className="w-full bg-green-200 rounded-full h-1.5 mb-2">
+              <div className="w-full bg-green-800 rounded-full h-1.5 mb-2">
                 <div
                     className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
                     style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
                 />
               </div>
-              {!isOwner && isParticipating && !hasPaid && (
+
+              {/* Payment button */}
+              {permissions.canPay && (
                   <button
                       onClick={handlePayment}
                       disabled={loading}
@@ -432,41 +559,96 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     {loading ? 'Processing...' : `Pay ${request.rate || 'Now'}`}
                   </button>
               )}
-              {!isOwner && hasPaid && (
-                  <div className="w-full bg-green-100 text-green-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-                    ✓ Paid - Waiting for others
+
+              {/* Already paid */}
+              {isParticipating && hasPaid && (
+                  <div className="w-full bg-green-800 text-green-100 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    ✓ Payment completed - Waiting for others
                   </div>
               )}
-              {isOwner && (
-                  <div className="w-full bg-green-100 text-green-700 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-                    💰 Collecting ({paidCount}/{participantCount})
+
+              {/* Not participating */}
+              {!isParticipating && (
+                  <div className="w-full bg-slate-700 text-slate-200 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                    💰 Payment phase ({paidCount}/{participantCount})
                   </div>
               )}
             </div>
         )}
 
-        {/* Additional status blocks (payment_complete, in_progress, completed, cancelled) remain the same... */}
+        {request.status === 'payment_complete' && (
+            <div className="mb-3">
+              <div className="bg-yellow-800 text-yellow-100 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
+                🎉 Session starting soon!
+              </div>
+              {timeUntilSession && (
+                  <div className="text-xs text-center text-yellow-200 mb-2">
+                    Starts in {timeUntilSession.hours}h {timeUntilSession.minutes}m
+                  </div>
+              )}
+              {conferenceLink && (
+                  <a
+                      href={conferenceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-blue-600 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-blue-700 transition-colors text-center block"
+                  >
+                    🎥 Join Meeting
+                  </a>
+              )}
+            </div>
+        )}
+
+        {request.status === 'in_progress' && (
+            <div className="mb-3">
+              <div className="bg-blue-800 text-blue-100 py-2 px-3 rounded-lg text-center text-xs font-medium mb-2">
+                🔴 Session in progress
+              </div>
+              {conferenceLink && (
+                  <a
+                      href={conferenceLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-blue-600 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-blue-700 transition-colors text-center block"
+                  >
+                    🎥 Join Now
+                  </a>
+              )}
+            </div>
+        )}
+
+        {request.status === 'completed' && (
+            <div className="mb-3">
+              <div className="bg-slate-700 text-slate-200 py-2 px-3 rounded-lg text-center text-xs font-medium">
+                ✅ Session completed
+              </div>
+            </div>
+        )}
+
+        {request.status === 'cancelled' && (
+            <div className="mb-3">
+              <div className="bg-red-800 text-red-100 py-2 px-3 rounded-lg text-center text-xs font-medium">
+                ❌ Request cancelled
+              </div>
+            </div>
+        )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-[#4A5568]">
-          <div className={`text-xs ${request.status === 'completed' ? 'text-gray-400' : 'text-[#A0AEC0]'}`}>
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-700">
+          <div className={`text-xs text-slate-400`}>
             {new Date(request.createdAt?.toDate?.() || request.createdAt).toLocaleDateString()}
           </div>
           <div className="flex items-center gap-1">
             <Link
                 to={`/requests/details/${request.id}`}
-                className={`text-xs font-medium hover:underline ${
-                    request.status === 'completed'
-                        ? 'text-gray-300 hover:text-white'
-                        : 'text-[#4299E1] hover:text-[#00BFFF]'
-                }`}
+                className={`text-xs font-medium hover:underline text-blue-400 hover:text-blue-300`}
             >
               Details
             </Link>
             {isOwner && ['pending', 'voting_open', 'accepted'].includes(request.status) && (
                 <Link
                     to={`/requests/edit-group/${request.id}`}
-                    className="text-xs font-medium text-[#8B5CF6] hover:text-[#A78BFA] hover:underline ml-2"
+                    className="text-xs font-medium text-purple-400 hover:text-purple-300 hover:underline ml-2"
                 >
                   Edit
                 </Link>
@@ -477,6 +659,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   );
 };
 
+// Rest of the GroupRequests component
 const GroupRequests = () => {
   const { user } = useAuth();
   const [groupRequests, setGroupRequests] = useState([]);
@@ -603,11 +786,11 @@ const GroupRequests = () => {
 
   if (loading) {
     return (
-        <div className="p-8 bg-[#1A202C] min-h-screen">
+        <div className="p-8 bg-slate-900">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
-              <p className="mt-4 text-[#A0AEC0]">Loading your group requests...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-slate-300">Loading your group requests...</p>
             </div>
           </div>
         </div>
@@ -616,16 +799,16 @@ const GroupRequests = () => {
 
   if (error) {
     return (
-        <div className="p-8 bg-[#1A202C] min-h-screen">
+        <div className="p-8 bg-slate-900">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
-              <div className="text-red-400 text-4xl mb-4">⚠️</div>
+              <div className="text-red-500 text-4xl mb-4">⚠️</div>
               <h2 className="text-xl font-semibold text-white mb-2">Error Loading Requests</h2>
-              <p className="text-[#A0AEC0] mb-4">{error}</p>
+              <p className="text-slate-300 mb-4">{error}</p>
               <div className="flex gap-2 justify-center">
                 <button
                     onClick={() => window.location.reload()}
-                    className="btn-gradient-primary px-4 py-2 rounded"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                   Try Again
                 </button>
@@ -643,19 +826,19 @@ const GroupRequests = () => {
   }
 
   return (
-      <div className="p-8 bg-[#1A202C] min-h-screen">
+      <div className="p-8 bg-slate-900 min-h-screen">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white">Group Requests</h1>
-              <p className="mt-2 text-sm text-[#A0AEC0]">
+              <p className="mt-2 text-sm text-slate-300">
                 Browse and participate in group learning requests from your communities
               </p>
             </div>
             <Link
                 to="/group/create-group-request"
-                className="btn-gradient-primary rounded-lg px-6 py-3 font-semibold transition-colors flex items-center gap-2"
+                className="bg-blue-600 text-white rounded-lg px-6 py-3 font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -668,20 +851,20 @@ const GroupRequests = () => {
         {/* Status Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
           {[
-            { key: 'all', label: 'Total', color: 'bg-[#4A5568] text-white' },
-            { key: 'pending', label: 'Pending', color: 'bg-yellow-900 text-yellow-400' },
-            { key: 'voting_open', label: 'Voting', color: 'bg-orange-900 text-orange-400' },
-            { key: 'accepted', label: 'Accepted', color: 'bg-green-900 text-green-400' },
-            { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-800 text-yellow-300' },
-            { key: 'in_progress', label: 'Live', color: 'bg-blue-900 text-blue-400' },
-            { key: 'completed', label: 'Done', color: 'bg-[#2D3748] text-white' },
-            { key: 'cancelled', label: 'Cancelled', color: 'bg-red-900 text-red-400' }
+            { key: 'all', label: 'Total', color: 'bg-slate-700 text-slate-200' },
+            { key: 'pending', label: 'Pending', color: 'bg-yellow-900 text-yellow-200' },
+            { key: 'voting_open', label: 'Voting', color: 'bg-orange-900 text-orange-200' },
+            { key: 'accepted', label: 'Accepted', color: 'bg-green-900 text-green-200' },
+            { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-800 text-yellow-100' },
+            { key: 'in_progress', label: 'Live', color: 'bg-blue-900 text-blue-200' },
+            { key: 'completed', label: 'Done', color: 'bg-slate-600 text-slate-100' },
+            { key: 'cancelled', label: 'Cancelled', color: 'bg-red-900 text-red-200' }
           ].map(({ key, label, color }) => (
               <button
                   key={key}
                   onClick={() => setSelectedStatus(key)}
                   className={`p-3 rounded-lg text-center transition-colors ${
-                      selectedStatus === key ? `${color} ring-2 ring-[#4299E1]` : `${color} hover:opacity-75`
+                      selectedStatus === key ? `${color} ring-2 ring-blue-500` : `${color} hover:opacity-75`
                   }`}
               >
                 <div className="text-lg font-bold">{statusStats[key] || 0}</div>
@@ -691,27 +874,27 @@ const GroupRequests = () => {
         </div>
 
         {/* Filters */}
-        <div className="card-dark p-6 mb-6">
+        <div className="bg-slate-800 rounded-lg shadow-sm border border-slate-700 p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Search</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Search</label>
               <input
                   type="text"
                   placeholder="Search requests, skills, or groups..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-dark w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
+                  className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
               />
             </div>
 
             {/* Category Filter */}
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Category</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Category</label>
               <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="input-dark w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
+                  className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
               >
                 {categories.map(category => (
                     <option key={category} value={category}>
@@ -723,11 +906,11 @@ const GroupRequests = () => {
 
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium text-white mb-2">Status</label>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Status</label>
               <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="input-dark w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
+                  className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
               >
                 {statuses.map(status => (
                     <option key={status} value={status}>
@@ -741,7 +924,7 @@ const GroupRequests = () => {
 
         {/* Results Count */}
         <div className="mb-4">
-          <p className="text-sm text-[#A0AEC0]">
+          <p className="text-sm text-slate-300">
             Showing {filteredRequests.length} of {groupRequests.length} requests
           </p>
         </div>
@@ -761,13 +944,13 @@ const GroupRequests = () => {
         {/* Empty State */}
         {filteredRequests.length === 0 && !loading && (
             <div className="text-center py-12">
-              <div className="text-[#718096] text-6xl mb-4">
+              <div className="text-slate-400 text-6xl mb-4">
                 {groupRequests.length === 0 ? '📚' : '🔍'}
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">
                 {groupRequests.length === 0 ? 'No group requests yet' : 'No requests found'}
               </h3>
-              <p className="text-[#A0AEC0] mb-4">
+              <p className="text-slate-300 mb-4">
                 {groupRequests.length === 0
                     ? "No group requests available in your communities yet. Join more groups or create the first request!"
                     : "Try adjusting your filters or search query to find more requests."
@@ -781,14 +964,14 @@ const GroupRequests = () => {
                           setSelectedCategory('all');
                           setSelectedStatus('all');
                         }}
-                        className="text-[#4299E1] hover:text-[#00BFFF] font-medium transition-colors"
+                        className="text-blue-400 hover:text-blue-300 font-medium"
                     >
                       Clear all filters
                     </button>
                 )}
                 <Link
                     to="/group/create-group-request"
-                    className="btn-gradient-primary px-4 py-2 rounded-lg font-medium transition-colors"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
                   {groupRequests.length === 0 ? 'Create First Request' : 'Create New Request'}
                 </Link>

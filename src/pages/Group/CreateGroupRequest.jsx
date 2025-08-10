@@ -211,336 +211,339 @@ const CreateGroupRequest = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 max-w-4xl mx-auto">
-            <div className="bg-white rounded-lg shadow border p-6 mb-6 flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Create Group Request</h1>
-                    <p className="text-gray-600 mt-1">Share your learning needs with your group members.</p>
+        <div className="min-h-screen bg-slate-900">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Header */}
+                <div className="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-2">Create Group Request</h1>
+                        <p className="text-slate-300">Create a new group request to collaborate with your team members</p>
+                    </div>
+                    <button onClick={handleCancel} className="text-slate-400 hover:text-white transition-colors" title="Cancel">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-                <button onClick={handleCancel} className="text-gray-500 hover:text-gray-700" title="Cancel">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Basic Info */}
-                <div className="bg-white p-6 rounded-lg shadow border">
-                    <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="lg:col-span-2">
-                            <label className="block mb-2 font-medium text-gray-700">
-                                Request Title <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.title}
-                                onChange={e => handleInputChange('title', e.target.value)}
-                                className={`w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 ${
-                                    errors.title ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                                placeholder="e.g., Need help with React Hooks"
-                            />
-                            {errors.title && <p className="text-red-600 text-sm mt-1">{errors.title}</p>}
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Basic Info */}
+                    <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700">
+                        <h2 className="text-xl font-semibold mb-4 text-white">Basic Information</h2>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="lg:col-span-2">
+                                <label className="block mb-2 font-medium text-slate-200">
+                                    Request Title <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.title}
+                                    onChange={e => handleInputChange('title', e.target.value)}
+                                    className={`w-full bg-slate-700 border rounded px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:border-blue-500 ${
+                                        errors.title ? 'border-red-500' : 'border-slate-600'
+                                    }`}
+                                    placeholder="e.g., Need help with React Hooks"
+                                />
+                                {errors.title && <p className="text-red-400 text-sm mt-1">{errors.title}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">
+                                    Category <span className="text-red-400">*</span>
+                                </label>
+                                <select
+                                    value={formData.category}
+                                    onChange={e => handleInputChange('category', e.target.value)}
+                                    className={`w-full bg-slate-700 border rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-600 focus:border-blue-500 ${
+                                        errors.category ? 'border-red-500' : 'border-slate-600'
+                                    }`}
+                                >
+                                    <option value="">Select a category</option>
+                                    {categories.map(cat => (
+                                        <option key={cat} value={cat}>
+                                            {cat}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.category && <p className="text-red-400 text-sm mt-1">{errors.category}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">
+                                    Target Group <span className="text-red-400">*</span>
+                                </label>
+                                <select
+                                    value={formData.targetGroupId}
+                                    onChange={e => handleInputChange('targetGroupId', e.target.value)}
+                                    className={`w-full bg-slate-700 border rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-600 focus:border-blue-500 ${
+                                        errors.targetGroupId ? 'border-red-500' : 'border-slate-600'
+                                    }`}
+                                >
+                                    <option value="">Select a group</option>
+                                    {userGroups.map(group => (
+                                        <option key={group.id} value={group.id}>
+                                            {group.name} ({group.memberCount || group.members?.length || 0} members)
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.targetGroupId && <p className="text-red-400 text-sm mt-1">{errors.targetGroupId}</p>}
+                                {userGroups.length === 0 && (
+                                    <p className="text-sm text-slate-400 mt-1">
+                                        You must be a member of at least one group to create requests.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="lg:col-span-2">
+                                <label className="block mb-2 font-medium text-slate-200">
+                                    Description <span className="text-red-400">*</span>
+                                </label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={e => handleInputChange('description', e.target.value)}
+                                    rows={4}
+                                    placeholder="Describe what you need help with..."
+                                    className={`w-full bg-slate-700 border rounded px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:border-blue-500 ${
+                                        errors.description ? 'border-red-500' : 'border-slate-600'
+                                    }`}
+                                />
+                                {errors.description && <p className="text-red-400 text-sm mt-1">{errors.description}</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Session Details */}
+                    <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700">
+                        <h2 className="text-xl font-semibold mb-4 text-white">Session Details</h2>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">Session Type</label>
+                                <select
+                                    value={formData.sessionType}
+                                    onChange={e => handleInputChange('sessionType', e.target.value)}
+                                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
+                                >
+                                    <option value="one-on-one">One-on-One</option>
+                                    <option value="group-session">Group Session</option>
+                                    <option value="mentorship">Long-term Mentorship</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">Urgency</label>
+                                <select
+                                    value={formData.urgency}
+                                    onChange={e => handleInputChange('urgency', e.target.value)}
+                                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
+                                >
+                                    <option value="low">Low - Flexible timing</option>
+                                    <option value="medium">Medium - Within a week</option>
+                                    <option value="high">High - ASAP</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">Expected Duration</label>
+                                <input
+                                    type="text"
+                                    value={formData.duration}
+                                    onChange={e => handleInputChange('duration', e.target.value)}
+                                    placeholder="e.g., 1 hour, 2-3 sessions, ongoing"
+                                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
+                                />
+                            </div>
+
+                            {formData.sessionType === 'group-session' && (
+                                <div>
+                                    <label className="block mb-2 font-medium text-slate-200">Max Participants</label>
+                                    <input
+                                        type="number"
+                                        min={2}
+                                        max={20}
+                                        value={formData.maxParticipants}
+                                        onChange={e => handleInputChange('maxParticipants', parseInt(e.target.value) || 2)}
+                                        className={`w-full bg-slate-700 border rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-600 focus:border-blue-500 ${
+                                            errors.maxParticipants ? 'border-red-500' : 'border-slate-600'
+                                        }`}
+                                    />
+                                    {errors.maxParticipants && <p className="text-red-400 text-sm mt-1">{errors.maxParticipants}</p>}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">Rate (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={formData.rate}
+                                    onChange={e => handleInputChange('rate', e.target.value)}
+                                    placeholder="e.g., $25/hour, Free"
+                                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">Deadline (Optional)</label>
+                                <input
+                                    type="datetime-local"
+                                    value={formData.deadline}
+                                    onChange={e => handleInputChange('deadline', e.target.value)}
+                                    className={`w-full bg-slate-700 border rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-600 focus:border-blue-500 ${
+                                        errors.deadline ? 'border-red-500' : 'border-slate-600'
+                                    }`}
+                                />
+                                {errors.deadline && <p className="text-red-400 text-sm mt-1">{errors.deadline}</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Skills & Tags */}
+                    <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700">
+                        <h2 className="text-xl font-semibold mb-4 text-white">Skills & Tags</h2>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Skills */}
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">Required Skills</label>
+                                <div className="flex gap-2 mb-2">
+                                    <input
+                                        type="text"
+                                        value={skillInput}
+                                        onChange={e => setSkillInput(e.target.value)}
+                                        onKeyPress={e => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                addSkill();
+                                            }
+                                        }}
+                                        placeholder="Add a skill and press Enter"
+                                        className="flex-1 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addSkill}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {formData.skills.map((skill, i) => (
+                                        <span
+                                            key={i}
+                                            className="bg-slate-700 text-blue-300 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-slate-600"
+                                        >
+                                            {skill}
+                                            <button type="button" onClick={() => removeSkill(skill)} className="text-blue-300 hover:text-blue-200">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Tags */}
+                            <div>
+                                <label className="block mb-2 font-medium text-slate-200">Tags (Optional)</label>
+                                <div className="flex gap-2 mb-2">
+                                    <input
+                                        type="text"
+                                        value={tagInput}
+                                        onChange={e => setTagInput(e.target.value)}
+                                        onKeyPress={e => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                addTag();
+                                            }
+                                        }}
+                                        placeholder="Add tags for discoverability"
+                                        className="flex-1 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addTag}
+                                        className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded transition-colors"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {formData.tags.map((tag, i) => (
+                                        <span
+                                            key={i}
+                                            className="bg-slate-700 text-slate-200 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-slate-600"
+                                        >
+                                            #{tag}
+                                            <button type="button" onClick={() => removeTag(tag)} className="text-slate-400 hover:text-white">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
 
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">
-                                Category <span className="text-red-500">*</span>
+                        {/* Open to All Members */}
+                        <div className="mt-6">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.isOpenToAll}
+                                    onChange={e => handleInputChange('isOpenToAll', e.target.checked)}
+                                    className="w-5 h-5 text-blue-600 border-slate-600 rounded focus:ring-blue-600 bg-slate-700"
+                                />
+                                <div>
+                                    <span className="text-sm font-medium text-white">Open to all group members</span>
+                                    <p className="text-xs text-slate-400">Allows all group members to see and respond</p>
+                                </div>
                             </label>
-                            <select
-                                value={formData.category}
-                                onChange={e => handleInputChange('category', e.target.value)}
-                                className={`w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 ${
-                                    errors.category ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                            >
-                                <option value="">Select a category</option>
-                                {categories.map(cat => (
-                                    <option key={cat} value={cat}>
-                                        {cat}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.category && <p className="text-red-600 text-sm mt-1">{errors.category}</p>}
                         </div>
+                    </div>
 
+                    {/* Actions */}
+                    <div className="bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-700 flex justify-between items-center">
                         <div>
-                            <label className="block mb-2 font-medium text-gray-700">
-                                Target Group <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                value={formData.targetGroupId}
-                                onChange={e => handleInputChange('targetGroupId', e.target.value)}
-                                className={`w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 ${
-                                    errors.targetGroupId ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                            >
-                                <option value="">Select a group</option>
-                                {userGroups.map(group => (
-                                    <option key={group.id} value={group.id}>
-                                        {group.name} ({group.memberCount || group.members?.length || 0} members)
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.targetGroupId && <p className="text-red-600 text-sm mt-1">{errors.targetGroupId}</p>}
+                            <p className="text-sm text-slate-400">
+                                By creating this request, you agree to our community guidelines and terms of service.
+                            </p>
                             {userGroups.length === 0 && (
-                                <p className="text-sm text-gray-500 mt-1">
-                                    You must be a member of at least one group to create requests.
+                                <p className="text-red-400 text-sm mt-1">
+                                    ⚠️ You need to join at least one group before creating requests.
                                 </p>
                             )}
                         </div>
-
-                        <div className="lg:col-span-2">
-                            <label className="block mb-2 font-medium text-gray-700">
-                                Description <span className="text-red-500">*</span>
-                            </label>
-                            <textarea
-                                value={formData.description}
-                                onChange={e => handleInputChange('description', e.target.value)}
-                                rows={4}
-                                placeholder="Describe what you need help with..."
-                                className={`w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 ${
-                                    errors.description ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                            />
-                            {errors.description && <p className="text-red-600 text-sm mt-1">{errors.description}</p>}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Session Details */}
-                <div className="bg-white p-6 rounded-lg shadow border">
-                    <h2 className="text-xl font-semibold mb-4">Session Details</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">Session Type</label>
-                            <select
-                                value={formData.sessionType}
-                                onChange={e => handleInputChange('sessionType', e.target.value)}
-                                className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                disabled={loading}
+                                className="px-6 py-2 border border-slate-600 rounded text-slate-200 hover:bg-slate-700 transition-colors"
                             >
-                                <option value="one-on-one">One-on-One</option>
-                                <option value="group-session">Group Session</option>
-                                <option value="mentorship">Long-term Mentorship</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">Urgency</label>
-                            <select
-                                value={formData.urgency}
-                                onChange={e => handleInputChange('urgency', e.target.value)}
-                                className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading || userGroups.length === 0}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded flex items-center gap-2 disabled:opacity-50 transition-colors"
                             >
-                                <option value="low">Low - Flexible timing</option>
-                                <option value="medium">Medium - Within a week</option>
-                                <option value="high">High - ASAP</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">Expected Duration</label>
-                            <input
-                                type="text"
-                                value={formData.duration}
-                                onChange={e => handleInputChange('duration', e.target.value)}
-                                placeholder="e.g., 1 hour, 2-3 sessions, ongoing"
-                                className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        {formData.sessionType === 'group-session' && (
-                            <div>
-                                <label className="block mb-2 font-medium text-gray-700">Max Participants</label>
-                                <input
-                                    type="number"
-                                    min={2}
-                                    max={20}
-                                    value={formData.maxParticipants}
-                                    onChange={e => handleInputChange('maxParticipants', parseInt(e.target.value) || 2)}
-                                    className={`w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 ${
-                                        errors.maxParticipants ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                />
-                                {errors.maxParticipants && <p className="text-red-600 text-sm mt-1">{errors.maxParticipants}</p>}
-                            </div>
-                        )}
-
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">Rate (Optional)</label>
-                            <input
-                                type="text"
-                                value={formData.rate}
-                                onChange={e => handleInputChange('rate', e.target.value)}
-                                placeholder="e.g., $25/hour, Free"
-                                className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">Deadline (Optional)</label>
-                            <input
-                                type="datetime-local"
-                                value={formData.deadline}
-                                onChange={e => handleInputChange('deadline', e.target.value)}
-                                className={`w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 ${
-                                    errors.deadline ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                            />
-                            {errors.deadline && <p className="text-red-600 text-sm mt-1">{errors.deadline}</p>}
+                                {loading && (
+                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
+                                    </svg>
+                                )}
+                                {loading ? 'Creating...' : 'Create Request'}
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                {/* Skills & Tags */}
-                <div className="bg-white p-6 rounded-lg shadow border">
-                    <h2 className="text-xl font-semibold mb-4">Skills & Tags</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Skills */}
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">Required Skills</label>
-                            <div className="flex gap-2 mb-2">
-                                <input
-                                    type="text"
-                                    value={skillInput}
-                                    onChange={e => setSkillInput(e.target.value)}
-                                    onKeyPress={e => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            addSkill();
-                                        }
-                                    }}
-                                    placeholder="Add a skill and press Enter"
-                                    className="flex-1 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={addSkill}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-                                >
-                                    Add
-                                </button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {formData.skills.map((skill, i) => (
-                                    <span
-                                        key={i}
-                                        className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-1"
-                                    >
-                    {skill}
-                                        <button type="button" onClick={() => removeSkill(skill)} className="text-blue-600 hover:text-blue-900">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Tags */}
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">Tags (Optional)</label>
-                            <div className="flex gap-2 mb-2">
-                                <input
-                                    type="text"
-                                    value={tagInput}
-                                    onChange={e => setTagInput(e.target.value)}
-                                    onKeyPress={e => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            addTag();
-                                        }
-                                    }}
-                                    placeholder="Add tags for discoverability"
-                                    className="flex-1 border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={addTag}
-                                    className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition"
-                                >
-                                    Add
-                                </button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {formData.tags.map((tag, i) => (
-                                    <span
-                                        key={i}
-                                        className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm flex items-center gap-1"
-                                    >
-                    #{tag}
-                                        <button type="button" onClick={() => removeTag(tag)} className="text-gray-600 hover:text-gray-900">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Open to All Members */}
-                    <div className="mt-6">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={formData.isOpenToAll}
-                                onChange={e => handleInputChange('isOpenToAll', e.target.checked)}
-                                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <div>
-                                <span className="text-sm font-medium text-gray-700">Open to all group members</span>
-                                <p className="text-xs text-gray-500">Allows all group members to see and respond</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div className="bg-white p-6 rounded-lg shadow border flex justify-between items-center">
-                    <div>
-                        <p className="text-sm text-gray-500">
-                            By creating this request, you agree to our community guidelines and terms of service.
-                        </p>
-                        {userGroups.length === 0 && (
-                            <p className="text-red-600 text-sm mt-1">
-                                ⚠️ You need to join at least one group before creating requests.
-                            </p>
-                        )}
-                    </div>
-                    <div className="flex gap-3">
-                        <button
-                            type="button"
-                            onClick={handleCancel}
-                            disabled={loading}
-                            className="px-6 py-2 border rounded text-gray-700 hover:bg-gray-100"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading || userGroups.length === 0}
-                            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
-                        >
-                            {loading && (
-                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path
-                                        className="opacity-75"
-                                        fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                    ></path>
-                                </svg>
-                            )}
-                            {loading ? 'Creating...' : 'Create Request'}
-                        </button>
-                    </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     );
 };

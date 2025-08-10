@@ -163,27 +163,61 @@ export const useRequests = (options = {}) => {
         }
     }, [targetUserId]);
 
+    // ✅ FIXED: Dangerous routing default with proper validation
     const updateRequest = useCallback(async (requestId, updateData, requestType = 'one-to-one') => {
+        // ✅ ADDED: Validation to prevent routing errors
+        if (!requestId || !updateData || !targetUserId) {
+            console.error('❌ Missing required parameters for updateRequest:', { requestId, updateData, targetUserId });
+            return { success: false, message: 'Missing required parameters: requestId, updateData, or userId' };
+        }
+
+        if (!['one-to-one', 'group'].includes(requestType)) {
+            console.error('❌ Invalid requestType:', requestType);
+            return { success: false, message: `Invalid requestType: ${requestType}. Must be 'one-to-one' or 'group'` };
+        }
+
         try {
             let result;
+
             if (requestType === 'group') {
+                console.log('🔄 Routing to groupRequestService.updateGroupRequest for requestId:', requestId);
                 result = await groupRequestService.updateGroupRequest(requestId, updateData, targetUserId);
             } else {
+                console.log('🔄 Routing to requestService.updateRequest for requestId:', requestId);
                 result = await requestService.updateRequest(requestId, updateData, targetUserId);
             }
+
+            if (result.success) {
+                console.log('✅ Request update successful via', requestType, 'service');
+            } else {
+                console.warn('⚠️ Request update failed:', result.message);
+            }
+
             return result;
         } catch (error) {
-            console.error('Error updating request:', error);
+            console.error('❌ Error updating request:', error);
             return { success: false, message: error.message };
         }
     }, [targetUserId]);
 
+    // ✅ FIXED: Delete with proper validation
     const deleteRequest = useCallback(async (requestId, requestType = 'one-to-one') => {
+        // ✅ ADDED: Validation
+        if (!requestId || !targetUserId) {
+            return { success: false, message: 'Missing required parameters: requestId or userId' };
+        }
+
+        if (!['one-to-one', 'group'].includes(requestType)) {
+            return { success: false, message: `Invalid requestType: ${requestType}. Must be 'one-to-one' or 'group'` };
+        }
+
         try {
             let result;
             if (requestType === 'group') {
+                console.log('🔄 Routing to groupRequestService.deleteGroupRequest');
                 result = await groupRequestService.deleteGroupRequest(requestId, targetUserId);
             } else {
+                console.log('🔄 Routing to requestService.deleteRequest');
                 result = await requestService.deleteRequest(requestId, targetUserId);
             }
             return result;
@@ -193,12 +227,24 @@ export const useRequests = (options = {}) => {
         }
     }, [targetUserId]);
 
+    // ✅ FIXED: Publish draft with proper validation
     const publishDraft = useCallback(async (requestId, requestType = 'one-to-one') => {
+        // ✅ ADDED: Validation
+        if (!requestId || !targetUserId) {
+            return { success: false, message: 'Missing required parameters: requestId or userId' };
+        }
+
+        if (!['one-to-one', 'group'].includes(requestType)) {
+            return { success: false, message: `Invalid requestType: ${requestType}. Must be 'one-to-one' or 'group'` };
+        }
+
         try {
             let result;
             if (requestType === 'group') {
+                console.log('🔄 Routing to groupRequestService.changeRequestStatus');
                 result = await groupRequestService.changeRequestStatus(requestId, 'pending', targetUserId);
             } else {
+                console.log('🔄 Routing to requestService.publishDraft');
                 result = await requestService.publishDraft(requestId, targetUserId);
             }
             return result;
@@ -208,12 +254,24 @@ export const useRequests = (options = {}) => {
         }
     }, [targetUserId]);
 
+    // ✅ FIXED: Change status with proper validation
     const changeStatus = useCallback(async (requestId, newStatus, requestType = 'one-to-one') => {
+        // ✅ ADDED: Validation
+        if (!requestId || !newStatus || !targetUserId) {
+            return { success: false, message: 'Missing required parameters: requestId, newStatus, or userId' };
+        }
+
+        if (!['one-to-one', 'group'].includes(requestType)) {
+            return { success: false, message: `Invalid requestType: ${requestType}. Must be 'one-to-one' or 'group'` };
+        }
+
         try {
             let result;
             if (requestType === 'group') {
+                console.log('🔄 Routing to groupRequestService.changeRequestStatus');
                 result = await groupRequestService.changeRequestStatus(requestId, newStatus, targetUserId);
             } else {
+                console.log('🔄 Routing to requestService.changeRequestStatus');
                 result = await requestService.changeRequestStatus(requestId, newStatus, targetUserId);
             }
             return result;
@@ -232,6 +290,22 @@ export const useRequests = (options = {}) => {
             return { success: false, message: error.message };
         }
     }, [targetUserId]);
+
+    // ✅ ADDED: Safe group request operations (recommended for group requests)
+    const updateGroupRequestSafe = useCallback(async (requestId, updateData) => {
+        console.log('🔒 Using safe group request update method');
+        return updateRequest(requestId, updateData, 'group');
+    }, [updateRequest]);
+
+    const deleteGroupRequestSafe = useCallback(async (requestId) => {
+        console.log('🔒 Using safe group request delete method');
+        return deleteRequest(requestId, 'group');
+    }, [deleteRequest]);
+
+    const changeGroupRequestStatusSafe = useCallback(async (requestId, newStatus) => {
+        console.log('🔒 Using safe group request status change method');
+        return changeStatus(requestId, newStatus, 'group');
+    }, [changeStatus]);
 
     // Statistics
     const getStats = useCallback(() => {
@@ -262,13 +336,18 @@ export const useRequests = (options = {}) => {
         loading,
         error,
 
-        // Actions
+        // ✅ FIXED: General actions with improved validation
         createRequest,
         updateRequest,
         deleteRequest,
         publishDraft,
         changeStatus,
         saveDraft,
+
+        // ✅ ADDED: Safe group-specific actions (recommended for group requests)
+        updateGroupRequestSafe,
+        deleteGroupRequestSafe,
+        changeGroupRequestStatusSafe,
 
         // Utils
         refresh: () => {
@@ -337,4 +416,67 @@ export const useGroupRequests = () => {
         includeOwn: false,
         includeOthers: true
     });
+};
+
+// ✅ ADDED: Hook specifically for safe group request operations
+export const useGroupRequestsSafe = () => {
+    const { user } = useAuth();
+
+    const updateGroupRequest = useCallback(async (requestId, updateData) => {
+        if (!user?.id) {
+            return { success: false, message: 'User not authenticated' };
+        }
+
+        if (!requestId) {
+            return { success: false, message: 'Request ID is required' };
+        }
+
+        if (!updateData) {
+            return { success: false, message: 'Update data is required' };
+        }
+
+        console.log('🔄 Safe group request update:', {
+            requestId,
+            userId: user.id,
+            updateDataKeys: Object.keys(updateData),
+            isVoting: updateData.votes !== undefined,
+            isParticipation: updateData.participants !== undefined,
+            isPayment: updateData.paidParticipants !== undefined
+        });
+
+        try {
+            const result = await groupRequestService.updateGroupRequest(requestId, updateData, user.id);
+
+            if (result.success) {
+                console.log('✅ Safe group request update successful');
+            } else {
+                console.warn('⚠️ Safe group request update failed:', result.message);
+            }
+
+            return result;
+        } catch (error) {
+            console.error('❌ Safe group request update error:', error);
+            return { success: false, message: error.message };
+        }
+    }, [user]);
+
+    const voteOnRequest = useCallback(async (requestId) => {
+        return updateGroupRequest(requestId, {
+            _action: 'vote',
+            _timestamp: new Date().toISOString()
+        });
+    }, [updateGroupRequest]);
+
+    const joinRequest = useCallback(async (requestId) => {
+        return updateGroupRequest(requestId, {
+            _action: 'join',
+            _timestamp: new Date().toISOString()
+        });
+    }, [updateGroupRequest]);
+
+    return {
+        updateGroupRequest,
+        voteOnRequest,
+        joinRequest
+    };
 };

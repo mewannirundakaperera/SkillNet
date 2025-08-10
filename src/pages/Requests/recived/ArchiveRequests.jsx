@@ -245,9 +245,9 @@ const ArchivedRequests = () => {
     // Get status badge
     const getStatusBadge = (status) => {
         const badgeClasses = {
-            archived: 'bg-gray-100 text-gray-700',
-            declined: 'bg-red-100 text-red-700',
-            completed: 'bg-green-100 text-green-700'
+            archived: 'bg-[#2D3748] text-[#A0AEC0] border border-[#4A5568]',
+            declined: 'bg-red-900 text-red-300 border border-red-700',
+            completed: 'bg-green-900 text-green-300 border border-green-700'
         };
 
         const labels = {
@@ -282,7 +282,7 @@ const ArchivedRequests = () => {
         return (
             <div className="flex gap-2 mt-4">
                 <button
-                    className="bg-blue-100 text-blue-700 rounded px-4 py-2 font-medium text-sm hover:bg-blue-200 transition-colors"
+                    className="bg-[#2D3748] text-[#4299E1] rounded px-4 py-2 font-medium text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568]"
                     onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -293,7 +293,7 @@ const ArchivedRequests = () => {
                     {actionLoading[request.id] === 'restoring' ? 'Restoring...' : 'Restore'}
                 </button>
                 <button
-                    className="bg-red-100 text-red-700 rounded px-4 py-2 font-medium text-sm hover:bg-red-200 transition-colors"
+                    className="bg-red-900 text-red-300 rounded px-4 py-2 font-medium text-sm hover:bg-red-800 transition-colors border border-red-700"
                     onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -312,8 +312,8 @@ const ArchivedRequests = () => {
             <div className="p-8">
                 <div className="flex items-center justify-center min-h-96">
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading archived requests...</p>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
+                        <p className="mt-4 text-[#A0AEC0]">Loading archived requests...</p>
                     </div>
                 </div>
             </div>
@@ -321,49 +321,49 @@ const ArchivedRequests = () => {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-8 bg-[#1A202C]">
             {/* Page Header */}
             <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Archived Requests</h1>
-                <p className="text-gray-600">Completed, declined, and archived requests from other users</p>
+                <h1 className="text-2xl font-bold text-white mb-2">Archived Requests</h1>
+                <p className="text-[#A0AEC0]">Completed, declined, and archived requests from other users</p>
             </div>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-4 gap-4 mb-8">
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
-                    <div className="text-lg font-bold text-gray-600">{archivedRequests.length}</div>
-                    <div className="text-gray-500 text-sm">Total Archived</div>
+                <div className="card-dark rounded-lg p-4 shadow-sm border-l-4 border-[#4A5568]">
+                    <div className="text-lg font-bold text-[#A0AEC0]">{archivedRequests.length}</div>
+                    <div className="text-[#A0AEC0] text-sm">Total Archived</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-600">
+                <div className="card-dark rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+                    <div className="text-lg font-bold text-green-400">
                         {archivedRequests.filter(r => r.status === 'completed').length}
                     </div>
-                    <div className="text-gray-500 text-sm">Completed</div>
+                    <div className="text-[#A0AEC0] text-sm">Completed</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-red-500">
-                    <div className="text-lg font-bold text-red-600">
+                <div className="card-dark rounded-lg p-4 shadow-sm border-l-4 border-red-500">
+                    <div className="text-lg font-bold text-red-400">
                         {archivedRequests.filter(r => r.status === 'declined').length}
                     </div>
-                    <div className="text-gray-500 text-sm">Declined</div>
+                    <div className="text-[#A0AEC0] text-sm">Declined</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-600">
+                <div className="card-dark rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+                    <div className="text-lg font-bold text-purple-400">
                         {archivedRequests.filter(r => r.status === 'archived').length}
                     </div>
-                    <div className="text-gray-500 text-sm">Archived</div>
+                    <div className="text-[#A0AEC0] text-sm">Archived</div>
                 </div>
             </div>
 
             {/* Main Content */}
             <div className="flex gap-6">
                 {/* Archived Requests Feed */}
-                <section className="flex-1 bg-white rounded-lg shadow-sm p-6 min-h-[600px]">
+                <section className="flex-1 card-dark rounded-lg shadow-sm p-6 min-h-[600px]">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="font-bold text-xl">
+                        <h2 className="font-bold text-xl text-white">
                             Archived Requests ({archivedRequests.length})
                         </h2>
                         <div className="flex gap-2">
-                            <select className="border border-gray-200 rounded-lg px-3 py-1 text-sm">
+                            <select className="input-dark border border-[#4A5568] rounded-lg px-3 py-1 text-sm">
                                 <option>Sort by: Recent</option>
                                 <option>Sort by: Status</option>
                                 <option>Sort by: Subject</option>
@@ -378,8 +378,8 @@ const ArchivedRequests = () => {
                                     key={req.id}
                                     className={`flex items-start gap-3 p-3 rounded cursor-pointer border transition-colors ${
                                         selected?.id === req.id
-                                            ? 'border-gray-400 bg-gray-50'
-                                            : 'border-transparent hover:bg-gray-25'
+                                            ? 'border-[#4299E1] bg-[#2D3748]'
+                                            : 'border-transparent hover:bg-[#2D3748]'
                                     }`}
                                     onClick={(e) => handleRequestClick(req, e)}
                                 >
@@ -389,18 +389,18 @@ const ArchivedRequests = () => {
                                         className="w-10 h-10 rounded-full object-cover opacity-75"
                                     />
                                     <div className="flex-1">
-                                        <div className="font-semibold text-gray-700">{req.name}</div>
-                                        <div className="text-gray-500 text-sm">{req.title}</div>
-                                        <div className="text-gray-400 text-xs truncate max-w-xs">{req.message}</div>
+                                        <div className="font-semibold text-white">{req.name}</div>
+                                        <div className="text-[#A0AEC0] text-sm">{req.title}</div>
+                                        <div className="text-[#A0AEC0] text-xs truncate max-w-xs">{req.message}</div>
                                         <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-xs text-gray-400">📚 {req.subject}</span>
-                                            <span className="text-xs text-gray-400">⏰ {req.duration}</span>
+                                            <span className="text-xs text-[#A0AEC0]">📚 {req.subject}</span>
+                                            <span className="text-xs text-[#A0AEC0]">⏰ {req.duration}</span>
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end gap-1">
-                                        <span className="text-xs text-gray-400">Archived {req.time}</span>
+                                        <span className="text-xs text-[#A0AEC0]">Archived {req.time}</span>
                                         {req.rate && (
-                                            <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded font-medium">
+                                            <span className="text-xs bg-[#2D3748] text-[#A0AEC0] px-2 py-0.5 rounded font-medium border border-[#4A5568]">
                       {req.rate}
                     </span>
                                         )}
@@ -411,11 +411,11 @@ const ArchivedRequests = () => {
                         </div>
                     ) : (
                         <div className="text-center py-12">
-                            <div className="text-gray-400 text-4xl mb-4">📁</div>
-                            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                            <div className="text-[#A0AEC0] text-4xl mb-4">📁</div>
+                            <h3 className="text-lg font-semibold text-white mb-2">
                                 No archived requests found
                             </h3>
-                            <p className="text-gray-500">
+                            <p className="text-[#A0AEC0]">
                                 Your archived, completed, and declined requests will appear here.
                             </p>
                         </div>
@@ -424,7 +424,7 @@ const ArchivedRequests = () => {
 
                 {/* Request Details */}
                 {selected && (
-                    <aside className="w-[400px] bg-white rounded-lg shadow-sm p-6 border border-gray-200 flex flex-col gap-4">
+                    <aside className="w-[400px] card-dark rounded-lg shadow-sm p-6 border border-[#4A5568] flex flex-col gap-4">
                         <div className="flex items-center gap-3">
                             <img
                                 src={selected.avatar}
@@ -432,9 +432,9 @@ const ArchivedRequests = () => {
                                 className="w-14 h-14 rounded-full object-cover opacity-75"
                             />
                             <div className="flex-1">
-                                <div className="font-bold text-lg text-gray-700">{selected.name}</div>
-                                <div className="text-gray-500 text-sm">{selected.profile?.role || 'Student'}</div>
-                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <div className="font-bold text-lg text-white">{selected.name}</div>
+                                <div className="text-[#A0AEC0] text-sm">{selected.profile?.role || 'Student'}</div>
+                                <div className="flex items-center gap-2 text-xs text-[#A0AEC0]">
                                     <span>⭐ {selected.profile?.rating || '4.5'}</span>
                                     <span>•</span>
                                     <span>{selected.profile?.completedSessions || '0'} sessions</span>
@@ -443,46 +443,46 @@ const ArchivedRequests = () => {
                         </div>
 
                         {/* Archived Status */}
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <div className="bg-[#2D3748] border border-[#4A5568] rounded-lg p-3">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="font-medium text-gray-700">Status</span>
+                                <span className="font-medium text-white">Status</span>
                                 {getStatusBadge(selected.status)}
                             </div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-[#A0AEC0]">
                                 Archived {formatTimeAgo(selected.archivedAt)}
                             </div>
                             {selected.responseMessage && (
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-[#A0AEC0] mt-1">
                                     "{selected.responseMessage}"
                                 </div>
                             )}
                         </div>
 
                         {/* Request Details */}
-                        <div className="border-t border-gray-100 pt-4">
-                            <div className="font-semibold text-gray-900 mb-2">{selected.title}</div>
+                        <div className="border-t border-[#4A5568] pt-4">
+                            <div className="font-semibold text-white mb-2">{selected.title}</div>
 
                             <div className="space-y-2 text-sm mb-4">
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-600">📚 Subject:</span>
-                                    <span className="text-gray-700">{selected.subject}</span>
+                                    <span className="font-medium text-[#A0AEC0]">📚 Subject:</span>
+                                    <span className="text-white">{selected.subject}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-600">📅 Date:</span>
-                                    <span className="text-gray-700">{selected.scheduledDate || 'Not specified'}</span>
+                                    <span className="font-medium text-[#A0AEC0]">📅 Date:</span>
+                                    <span className="text-white">{selected.scheduledDate || 'Not specified'}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-600">⏰ Time:</span>
-                                    <span className="text-gray-700">{selected.scheduledTime || 'Not specified'}</span>
+                                    <span className="font-medium text-[#A0AEC0]">⏰ Time:</span>
+                                    <span className="text-white">{selected.scheduledTime || 'Not specified'}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-600">⏱️ Duration:</span>
-                                    <span className="text-gray-700">{selected.duration}</span>
+                                    <span className="font-medium text-[#A0AEC0]">⏱️ Duration:</span>
+                                    <span className="text-white">{selected.duration}</span>
                                 </div>
                                 {selected.rate && (
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium text-gray-600">💰 Payment:</span>
-                                        <span className="text-gray-600 font-semibold">{selected.rate}</span>
+                                        <span className="font-medium text-[#A0AEC0]">💰 Payment:</span>
+                                        <span className="text-[#A0AEC0] font-semibold">{selected.rate}</span>
                                     </div>
                                 )}
                             </div>
@@ -490,10 +490,10 @@ const ArchivedRequests = () => {
                             {/* Tags */}
                             {selected.tags && selected.tags.length > 0 && (
                                 <div className="mb-4">
-                                    <span className="font-medium text-gray-600 text-sm block mb-2">Tags:</span>
+                                    <span className="font-medium text-[#A0AEC0] text-sm block mb-2">Tags:</span>
                                     <div className="flex flex-wrap gap-1">
                                         {selected.tags.map((tag, index) => (
-                                            <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                                            <span key={index} className="bg-[#2D3748] text-[#A0AEC0] px-2 py-1 rounded text-xs border border-[#4A5568]">
                       {tag}
                     </span>
                                         ))}
@@ -503,20 +503,20 @@ const ArchivedRequests = () => {
 
                             {/* Message */}
                             <div className="mb-4">
-                                <span className="font-medium text-gray-600 text-sm block mb-2">Description:</span>
-                                <div className="text-gray-700 text-sm bg-gray-50 rounded p-3 border whitespace-pre-line">
+                                <span className="font-medium text-[#A0AEC0] text-sm block mb-2">Description:</span>
+                                <div className="text-white text-sm bg-[#2D3748] rounded p-3 border border-[#4A5568] whitespace-pre-line">
                                     {selected.message}
                                 </div>
                             </div>
 
                             {/* User Profile Info */}
                             {selected.profile && (
-                                <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                                <div className="bg-[#2D3748] rounded-lg p-3 mb-4 border border-[#4A5568]">
                                     <div className="text-sm">
-                                        <div className="font-medium text-gray-900 mb-1">About {selected.name}</div>
-                                        <div className="text-gray-600 text-xs mb-2">{selected.profile.bio}</div>
+                                        <div className="font-medium text-white mb-1">About {selected.name}</div>
+                                        <div className="text-[#A0AEC0] text-xs mb-2">{selected.profile.bio}</div>
                                         {selected.profile.company && (
-                                            <div className="text-xs text-gray-500">
+                                            <div className="text-xs text-[#A0AEC0]">
                                                 🏢 {selected.profile.company}
                                             </div>
                                         )}

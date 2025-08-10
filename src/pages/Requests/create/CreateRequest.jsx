@@ -246,120 +246,186 @@ export default function CreateRequest() {
   const summary = getRequestSummary();
 
   return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-slate-900 flex flex-col">
         {/* Main Content */}
-        <main className="flex-1 flex gap-8 p-8">
+        <main className="flex-1 flex gap-8 p-8 max-w-7xl mx-auto w-full">
           {/* Left: Form */}
           <section className="flex-1 flex flex-col gap-6">
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-4 mb-6 p-6 bg-slate-800 rounded-2xl shadow-lg border border-slate-700">
               {userProfile && (
+                  <div className="relative">
                   <img
                       src={userProfile.avatar}
                       alt={userProfile.displayName}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-blue-100"
+                        className="w-12 h-12 rounded-full object-cover border-4 border-white shadow-lg"
                   />
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                  </div>
               )}
               <div>
-                <h1 className="text-2xl font-bold">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   {isEditing ? 'Edit Request' : 'Create New Request'}
                 </h1>
-                <p className="text-gray-500">Share your learning goals and connect with others</p>
+                <p className="text-slate-300 mt-1 font-medium">Share your learning goals and connect with others</p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Request Details */}
-              <div className="bg-white rounded-xl shadow p-6">
-                <h2 className="font-semibold mb-1">Request Details</h2>
-                <div className="text-xs text-gray-400 mb-4">Provide basic information about your request.</div>
-
-                <div className="space-y-4">
+              <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Topic <span className="text-red-500">*</span>
+                    <h2 className="text-xl font-bold text-white">Request Details</h2>
+                    <p className="text-sm text-slate-400">Provide basic information about your request.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-slate-200">
+                      Topic <span className="text-red-400 font-bold">*</span>
                     </label>
                     <input
                         type="text"
                         value={formData.topic}
                         onChange={(e) => handleInputChange('topic', e.target.value)}
-                        className={`w-full border rounded px-3 py-2 text-sm ${errors.topic ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 bg-slate-700 text-white placeholder-slate-400 ${
+                          errors.topic 
+                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
+                            : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
+                        }`}
                         placeholder="e.g., Advanced Calculus Review, React Native Workshop"
                     />
-                    {errors.topic && <p className="text-red-500 text-xs mt-1">{errors.topic}</p>}
+                    {errors.topic && <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {errors.topic}
+                    </p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Subject <span className="text-red-500">*</span>
+                    <label className="block text-sm font-semibold mb-2 text-slate-200">
+                      Subject <span className="text-red-400 font-bold">*</span>
                     </label>
                     <select
                         value={formData.subject}
                         onChange={(e) => handleInputChange('subject', e.target.value)}
-                        className={`w-full border rounded px-3 py-2 text-sm ${errors.subject ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 bg-slate-700 text-white border-slate-600 focus:border-blue-400 focus:ring-blue-900 ${
+                          errors.subject 
+                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
+                            : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
+                        }`}
                     >
                       <option value="">Select a subject</option>
                       {subjects.map(subject => (
                           <option key={subject} value={subject}>{subject}</option>
                       ))}
                     </select>
-                    {errors.subject && <p className="text-red-500 text-xs mt-1">{errors.subject}</p>}
+                    {errors.subject && <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {errors.subject}
+                    </p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Description <span className="text-red-500">*</span>
+                    <label className="block text-sm font-semibold mb-2 text-slate-200">
+                      Description <span className="text-red-400 font-bold">*</span>
                     </label>
                     <textarea
                         value={formData.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}
-                        className={`w-full border rounded px-3 py-2 text-sm ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 resize-none bg-slate-700 text-white placeholder-slate-400 ${
+                          errors.description 
+                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
+                            : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
+                        }`}
                         rows={4}
                         placeholder="Provide a detailed description of what you need help with or want to discuss. Include any specific topics, goals, or expectations."
                     />
-                    {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+                    {errors.description && <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {errors.description}
+                    </p>}
                   </div>
                 </div>
               </div>
 
               {/* Scheduling Details */}
-              <div className="bg-white rounded-xl shadow p-6">
-                <h2 className="font-semibold mb-1">Scheduling Details</h2>
-                <div className="text-xs text-gray-400 mb-4">Set the date and time for your request.</div>
-
-                <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Preferred Date <span className="text-red-500">*</span>
+                    <h2 className="text-xl font-bold text-white">Scheduling Details</h2>
+                    <p className="text-sm text-slate-400">Set the date and time for your request.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-slate-200">
+                      Preferred Date <span className="text-red-400 font-bold">*</span>
                     </label>
                     <input
                         type="date"
                         value={formData.preferredDate}
                         onChange={(e) => handleInputChange('preferredDate', e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
-                        className={`w-full border rounded px-3 py-2 text-sm ${errors.preferredDate ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-900 bg-slate-700 text-white ${
+                          errors.preferredDate 
+                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
+                            : 'border-slate-600 focus:border-green-400 focus:ring-green-900'
+                        }`}
                     />
-                    {errors.preferredDate && <p className="text-red-500 text-xs mt-1">{errors.preferredDate}</p>}
+                    {errors.preferredDate && <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {errors.preferredDate}
+                    </p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Preferred Time <span className="text-red-500">*</span>
+                    <label className="block text-sm font-semibold mb-2 text-slate-200">
+                      Preferred Time <span className="text-red-400 font-bold">*</span>
                     </label>
                     <input
                         type="time"
                         value={formData.preferredTime}
                         onChange={(e) => handleInputChange('preferredTime', e.target.value)}
-                        className={`w-full border rounded px-3 py-2 text-sm ${errors.preferredTime ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-900 bg-slate-700 text-white ${
+                          errors.preferredTime 
+                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
+                            : 'border-slate-600 focus:border-green-400 focus:ring-green-900'
+                        }`}
                     />
-                    {errors.preferredTime && <p className="text-red-500 text-xs mt-1">{errors.preferredTime}</p>}
+                    {errors.preferredTime && <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {errors.preferredTime}
+                    </p>}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Duration</label>
+                  <label className="block text-sm font-semibold mb-2 text-slate-200">Duration</label>
                   <select
                       value={formData.duration}
                       onChange={(e) => handleInputChange('duration', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                      className="w-full border-2 border-slate-600 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-900 focus:border-green-400 bg-slate-700 text-white"
                   >
                     {durations.map(duration => (
                         <option key={duration.value} value={duration.value}>{duration.label}</option>
@@ -369,43 +435,76 @@ export default function CreateRequest() {
               </div>
 
               {/* Payment Information */}
-              <div className="bg-white rounded-xl shadow p-6">
-                <h2 className="font-semibold mb-1">Payment Information</h2>
-                <div className="text-xs text-gray-400 mb-4">Set the payment amount for this request.</div>
+              <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Payment Information</h2>
+                    <p className="text-sm text-slate-400">Set the payment amount for this request.</p>
+                  </div>
+                </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Payment Amount (LKR) <span className="text-red-500">*</span>
+                  <label className="block text-sm font-semibold mb-2 text-slate-200">
+                    Payment Amount (LKR) <span className="text-red-400 font-bold">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rs.</span>
+                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm font-medium">Rs.</span>
                     <input
                         type="number"
                         min="200"
                         step="0.01"
                         value={formData.paymentAmount}
                         onChange={(e) => handleInputChange('paymentAmount', e.target.value)}
-                        className={`w-full border rounded px-8 py-2 text-sm ${errors.paymentAmount ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full border-2 rounded-xl pl-12 pr-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-orange-900 bg-slate-700 text-white placeholder-slate-400 ${
+                          errors.paymentAmount 
+                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
+                            : 'border-slate-600 focus:border-orange-400 focus:ring-orange-900'
+                        }`}
                         placeholder="200.00"
                     />
                   </div>
-                  {errors.paymentAmount && <p className="text-red-500 text-xs mt-1">{errors.paymentAmount}</p>}
-                  <p className="text-xs text-gray-500 mt-1">Minimum amount: Rs.200.00</p>
+                  {errors.paymentAmount && <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.paymentAmount}
+                  </p>}
+                  <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    Minimum amount: Rs.200.00
+                  </p>
                 </div>
               </div>
 
               {/* Additional Options */}
-              <div className="bg-white rounded-xl shadow p-6">
-                <h2 className="font-semibold mb-1">Additional Options</h2>
-                <div className="text-xs text-gray-400 mb-4">Customize settings for your request.</div>
-
-                <div className="space-y-4">
+              <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-1">Request Visibility</label>
+                    <h2 className="text-xl font-bold text-white">Additional Options</h2>
+                    <p className="text-sm text-slate-400">Customize settings for your request.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-slate-700">Request Visibility</label>
                     <select
                         value={formData.visibility}
                         onChange={(e) => handleInputChange('visibility', e.target.value)}
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-400"
                     >
                       <option value="public">Public (Visible to all students)</option>
                       <option value="private">Private (Only invited students)</option>
@@ -413,34 +512,34 @@ export default function CreateRequest() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold mb-1">Tags</label>
-                    <div className="flex flex-wrap gap-2 mb-2">
+                    <label className="block text-sm font-semibold mb-2 text-slate-200">Tags</label>
+                    <div className="flex flex-wrap gap-2 mb-3">
                       {formData.tags.map((tag, index) => (
-                          <span key={index} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                          <span key={index} className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 shadow-lg">
                         {tag}
                             <button
                                 type="button"
                                 onClick={() => handleRemoveTag(tag)}
-                                className="text-blue-500 hover:text-blue-700"
+                                className="text-white hover:text-red-200 transition-colors"
                             >
                           ×
                         </button>
                       </span>
                       ))}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <input
                           type="text"
                           value={currentTag}
                           onChange={(e) => setCurrentTag(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                          className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                          className="flex-1 border-2 border-slate-600 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-900 focus:border-purple-400 bg-slate-700 text-white placeholder-slate-400"
                           placeholder="Add tags (e.g., beginner, advanced, exam-prep)"
                       />
                       <button
                           type="button"
                           onClick={handleAddTag}
-                          className="bg-blue-600 text-white rounded px-3 py-2 text-sm font-semibold hover:bg-blue-700"
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl px-6 py-3 text-sm font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                       >
                         Add
                       </button>
@@ -450,11 +549,11 @@ export default function CreateRequest() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 justify-between mt-6">
-                <div className="flex gap-2">
+              <div className="flex gap-4 justify-between mt-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
+                <div className="flex gap-3">
                   <Link
                       to="/requests/group"
-                      className="border border-gray-300 rounded px-4 py-2 font-semibold hover:bg-gray-100 transition-colors"
+                      className="border-2 border-slate-600 rounded-xl px-6 py-3 font-semibold text-slate-200 hover:bg-slate-700 hover:border-slate-500 transition-all duration-200"
                   >
                     Cancel
                   </Link>
@@ -462,7 +561,7 @@ export default function CreateRequest() {
                       type="button"
                       onClick={handleSaveDraft}
                       disabled={draftSaving}
-                      className="bg-gray-600 text-white rounded px-4 py-2 font-semibold hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl px-6 py-3 font-semibold hover:from-slate-700 hover:to-slate-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {draftSaving ? "Saving..." : "Save Draft"}
                   </button>
@@ -470,7 +569,7 @@ export default function CreateRequest() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl px-8 py-3 font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {loading ? "Publishing..." : isEditing ? "Update Request" : "Publish Request"}
                 </button>
@@ -481,43 +580,51 @@ export default function CreateRequest() {
           {/* Right: Summary & Tips */}
           <aside className="w-96 flex flex-col gap-6">
             {/* Enhanced Request Summary */}
-            <div className="bg-white rounded-xl shadow p-6">
-              <h3 className="font-semibold mb-4">Request Preview</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-600">Topic:</span>
-                  <span className="flex-1">{summary.topic}</span>
+            <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 hover:shadow-2xl transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-600">Subject:</span>
-                  <span className="flex-1">{formData.subject || 'Not selected'}</span>
+                <h3 className="text-lg font-bold text-white">Request Preview</h3>
+              </div>
+              <div className="space-y-4 text-sm">
+                <div className="flex items-start gap-3 p-3 bg-slate-700 rounded-xl">
+                  <span className="font-semibold text-slate-300 min-w-0">Topic:</span>
+                  <span className="flex-1 text-slate-200 font-medium">{summary.topic}</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-600">Date:</span>
-                  <span className="flex-1">{summary.date}</span>
+                <div className="flex items-start gap-3 p-3 bg-slate-700 rounded-xl">
+                  <span className="font-semibold text-slate-300 min-w-0">Subject:</span>
+                  <span className="flex-1 text-slate-200 font-medium">{formData.subject || 'Not selected'}</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-600">Time:</span>
-                  <span className="flex-1">{summary.time}</span>
+                <div className="flex items-start gap-3 p-3 bg-slate-700 rounded-xl">
+                  <span className="font-semibold text-slate-300 min-w-0">Date:</span>
+                  <span className="flex-1 text-slate-200 font-medium">{summary.date}</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-600">Duration:</span>
-                  <span className="flex-1">{summary.duration}</span>
+                <div className="flex items-start gap-3 p-3 bg-slate-700 rounded-xl">
+                  <span className="font-semibold text-slate-300 min-w-0">Time:</span>
+                  <span className="flex-1 text-slate-200 font-medium">{summary.time}</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-600">Payment:</span>
-                  <span className="flex-1 text-orange-600 font-medium">{summary.payment}</span>
+                <div className="flex items-start gap-3 p-3 bg-slate-700 rounded-xl">
+                  <span className="font-semibold text-slate-300 min-w-0">Duration:</span>
+                  <span className="flex-1 text-slate-200 font-medium">{summary.duration}</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="font-semibold text-gray-600">Description:</span>
-                  <span className="flex-1 text-gray-700">{summary.description}</span>
+                <div className="flex items-start gap-3 p-3 bg-gradient-to-r from-orange-900 to-red-900 rounded-xl border border-orange-700">
+                  <span className="font-semibold text-orange-300 min-w-0">Payment:</span>
+                  <span className="flex-1 text-orange-200 font-bold">{summary.payment}</span>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-700 rounded-xl">
+                  <span className="font-semibold text-slate-300 min-w-0">Description:</span>
+                  <span className="flex-1 text-slate-300 text-xs leading-relaxed">{summary.description}</span>
                 </div>
                 {formData.tags.length > 0 && (
-                    <div className="flex items-start gap-2">
-                      <span className="font-semibold text-gray-600">Tags:</span>
+                    <div className="flex items-start gap-3 p-3 bg-slate-700 rounded-xl">
+                      <span className="font-semibold text-slate-300 min-w-0">Tags:</span>
                       <div className="flex-1 flex flex-wrap gap-1">
                         {formData.tags.map((tag, index) => (
-                            <span key={index} className="bg-gray-100 text-gray-600 px-1 py-0.5 rounded text-xs">
+                            <span key={index} className="bg-slate-600 text-slate-200 px-2 py-1 rounded-lg text-xs font-medium">
                         {tag}
                       </span>
                         ))}
@@ -528,35 +635,68 @@ export default function CreateRequest() {
             </div>
 
             {/* Tips for Great Requests */}
-            <div className="bg-white rounded-xl shadow p-6">
-              <h3 className="font-semibold mb-4">Tips for Great Requests</h3>
-              <ol className="list-decimal list-inside text-sm text-gray-700 space-y-2">
-                <li><strong>Be Specific:</strong> Clearly state your learning goals and what you need help with.</li>
-                <li><strong>Set Realistic Expectations:</strong> Define the scope and difficulty level appropriately.</li>
-                <li><strong>Plan Ahead:</strong> Schedule with enough time for participants to prepare.</li>
-                <li><strong>Use Tags:</strong> Help others find your request with relevant keywords.</li>
-                <li><strong>Save Drafts:</strong> Use the "Save Draft" button to work on your request over time.</li>
-                <li><strong>Write a Good Description:</strong> Include context and specific areas you need help with.</li>
+            <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 hover:shadow-2xl transition-all duration-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-white">Tips for Great Requests</h3>
+              </div>
+              <ol className="list-decimal list-inside text-sm text-slate-300 space-y-3">
+                <li className="p-2 bg-green-900 rounded-lg border-l-4 border-green-400">
+                  <strong className="text-green-200">Be Specific:</strong> 
+                  <span className="text-green-100"> Clearly state your learning goals and what you need help with.</span>
+                </li>
+                <li className="p-2 bg-blue-900 rounded-lg border-l-4 border-blue-400">
+                  <strong className="text-blue-200">Set Realistic Expectations:</strong> 
+                  <span className="text-blue-100"> Define the scope and difficulty level appropriately.</span>
+                </li>
+                <li className="p-2 bg-purple-900 rounded-lg border-l-4 border-purple-400">
+                  <strong className="text-purple-200">Plan Ahead:</strong> 
+                  <span className="text-purple-100"> Schedule with enough time for participants to prepare.</span>
+                </li>
+                <li className="p-2 bg-orange-900 rounded-lg border-l-4 border-orange-400">
+                  <strong className="text-orange-200">Use Tags:</strong> 
+                  <span className="text-orange-100"> Help others find your request with relevant keywords.</span>
+                </li>
+                <li className="p-2 bg-indigo-900 rounded-lg border-l-4 border-indigo-400">
+                  <strong className="text-indigo-200">Save Drafts:</strong> 
+                  <span className="text-indigo-100"> Use the "Save Draft" button to work on your request over time.</span>
+                </li>
+                <li className="p-2 bg-pink-900 rounded-lg border-l-4 border-pink-400">
+                  <strong className="text-pink-200">Write a Good Description:</strong> 
+                  <span className="text-pink-100"> Include context and specific areas you need help with.</span>
+                </li>
               </ol>
             </div>
 
             {/* User Stats */}
             {userProfile && (
-                <div className="bg-blue-50 rounded-xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
+                <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-2xl p-6 border border-blue-700 shadow-lg">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="relative">
                     <img
                         src={userProfile.avatar}
                         alt={userProfile.displayName}
-                        className="w-12 h-12 rounded-full object-cover"
+                          className="w-12 h-12 rounded-full object-cover border-4 border-white shadow-lg"
                     />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
                     <div>
-                      <div className="font-semibold">{userProfile.displayName}</div>
-                      <div className="text-xs text-gray-600">{userProfile.email}</div>
+                      <div className="font-bold text-white">{userProfile.displayName}</div>
+                      <div className="text-xs text-slate-300">{userProfile.email}</div>
                     </div>
                   </div>
-                  <div className="text-xs text-blue-700">
-                    💡 <strong>Tip:</strong> Your profile information will be visible to participants.
+                  <div className="text-xs text-blue-200 bg-blue-800 p-3 rounded-xl border border-blue-600">
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-300 text-lg">💡</span>
+                      <div>
+                        <strong>Tip:</strong> Your profile information will be visible to participants.
                     Make sure your profile is complete to attract more responses.
+                      </div>
+                    </div>
                   </div>
                 </div>
             )}
@@ -564,7 +704,7 @@ export default function CreateRequest() {
         </main>
 
         {/* Footer */}
-        <footer className="text-xs text-gray-400 px-6 py-4 text-center border-t">
+        <footer className="text-xs text-slate-400 px-6 py-4 text-center border-t border-slate-700 bg-slate-800">
           <div>© 2025 Skill-Net. All rights reserved.</div>
         </footer>
       </div>

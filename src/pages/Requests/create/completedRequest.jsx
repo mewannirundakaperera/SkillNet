@@ -103,11 +103,11 @@ const CompletedRequests = () => {
 
     if (loading) {
         return (
-            <div className="p-8">
+            <div className="p-8 bg-slate-900 min-h-screen">
                 <div className="flex items-center justify-center min-h-96">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading your completed requests...</p>
+                        <p className="mt-4 text-slate-300">Loading your completed requests...</p>
                     </div>
                 </div>
             </div>
@@ -116,11 +116,11 @@ const CompletedRequests = () => {
 
     if (error) {
         return (
-            <div className="p-8">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                    <div className="text-red-500 text-4xl mb-4">⚠️</div>
-                    <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Requests</h3>
-                    <p className="text-red-600 mb-4">{error}</p>
+            <div className="p-8 bg-slate-900 min-h-screen">
+                <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-center">
+                    <div className="text-red-400 text-4xl mb-4">⚠️</div>
+                    <h3 className="text-lg font-semibold text-red-200 mb-2">Error Loading Requests</h3>
+                    <p className="text-red-300 mb-4">{error}</p>
                     <button
                         onClick={() => window.location.reload()}
                         className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
@@ -133,12 +133,12 @@ const CompletedRequests = () => {
     }
 
     return (
-        <div className="p-8">
+        <div className="p-8 bg-slate-900 min-h-screen">
             {/* Page Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Completed Requests</h1>
-                    <p className="text-gray-600">Successfully completed learning sessions</p>
+                    <h1 className="text-2xl font-bold text-white mb-2">Completed Requests</h1>
+                    <p className="text-slate-300">Successfully completed learning sessions</p>
                 </div>
                 <Link
                     to="/requests/create"
@@ -150,63 +150,63 @@ const CompletedRequests = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-5 gap-4 mb-8">
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <div className="text-lg font-bold text-blue-600">{requests.length}</div>
-                    <div className="text-gray-500 text-sm">Total Completed</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+                    <div className="text-lg font-bold text-blue-400">{requests.length}</div>
+                    <div className="text-slate-300 text-sm">Total Completed</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-600">{completedStats.completedThisMonth}</div>
-                    <div className="text-gray-500 text-sm">This Month</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+                    <div className="text-lg font-bold text-green-400">{completedStats.completedThisMonth}</div>
+                    <div className="text-slate-300 text-sm">This Month</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-600">{completedStats.totalParticipants}</div>
-                    <div className="text-gray-500 text-sm">Total Participants</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+                    <div className="text-lg font-bold text-purple-400">{completedStats.totalParticipants}</div>
+                    <div className="text-slate-300 text-sm">Total Participants</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
-                    <div className="text-lg font-bold text-orange-600">Rs.{completedStats.totalPayments.toFixed(2)}</div>
-                    <div className="text-gray-500 text-sm">Total Value</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
+                    <div className="text-lg font-bold text-orange-400">Rs.{completedStats.totalPayments.toFixed(2)}</div>
+                    <div className="text-slate-300 text-sm">Total Value</div>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-teal-500">
-                    <div className="text-lg font-bold text-teal-600">{completedStats.averageParticipants}</div>
-                    <div className="text-gray-500 text-sm">Avg Participants</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-teal-500">
+                    <div className="text-lg font-bold text-teal-400">{completedStats.averageParticipants}</div>
+                    <div className="text-slate-300 text-sm">Avg Participants</div>
                 </div>
             </div>
 
             {/* Completed Requests List */}
             {requests.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-sm">
-                    <div className="p-6 border-b border-gray-200">
-                        <h2 className="text-lg font-semibold">
+                <div className="bg-slate-800 rounded-lg shadow-sm">
+                    <div className="p-6 border-b border-slate-700">
+                        <h2 className="text-lg font-semibold text-white">
                             Completed Requests ({requests.length})
                         </h2>
                     </div>
 
-                    <div className="divide-y divide-gray-200">
+                    <div className="divide-y divide-slate-700">
                         {requests.map((request) => (
-                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-gray-50 transition-colors">
+                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-slate-700 transition-colors">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="text-xl">{getStatusIcon()}</span>
-                                            <h3 className="text-lg font-semibold text-gray-900">{request.title}</h3>
+                                            <h3 className="text-lg font-semibold text-white">{request.title}</h3>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor()}`}>
                                                 completed
                                             </span>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                request.type === 'group' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                                request.type === 'group' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'
                                             }`}>
                                                 {request.type === 'group' ? '👥 Group' : '👤 1:1'}
                                             </span>
                                             {request.featured && (
-                                                <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
+                                                <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-900 text-yellow-200">
                                                     ⭐ Featured
                                                 </span>
                                             )}
                                         </div>
 
-                                        <p className="text-gray-600 mb-3 line-clamp-2">{request.description}</p>
+                                        <p className="text-slate-300 mb-3 line-clamp-2">{request.description}</p>
 
-                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                                        <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
                                             {request.type === 'one-to-one' && (
                                                 <>
                                                     <span>📚 {request.subject}</span>
@@ -236,7 +236,7 @@ const CompletedRequests = () => {
                                         {request.tags && request.tags.length > 0 && (
                                             <div className="flex gap-2 mb-3">
                                                 {request.tags.map((tag, index) => (
-                                                    <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                                                    <span key={index} className="bg-slate-700 text-slate-200 px-2 py-1 rounded text-xs">
                                                         {tag}
                                                     </span>
                                                 ))}
@@ -246,14 +246,14 @@ const CompletedRequests = () => {
                                         {request.skills && request.skills.length > 0 && (
                                             <div className="flex gap-2 mb-3">
                                                 {request.skills.map((skill, index) => (
-                                                    <span key={index} className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs">
+                                                    <span key={index} className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
                                                         {skill}
                                                     </span>
                                                 ))}
                                             </div>
                                         )}
 
-                                        <div className="text-xs text-gray-400">
+                                        <div className="text-xs text-slate-500">
                                             Created {formatTimeAgo(request.createdAt)}
                                             {request.updatedAt && request.updatedAt > request.createdAt && (
                                                 <span> • Updated {formatTimeAgo(request.updatedAt)}</span>
@@ -261,18 +261,18 @@ const CompletedRequests = () => {
                                         </div>
 
                                         {/* Completion Info */}
-                                        <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                                            <div className="flex items-center gap-2 text-sm text-green-700">
+                                        <div className="mt-3 p-3 bg-green-900 rounded-lg border border-green-700">
+                                            <div className="flex items-center gap-2 text-sm text-green-200">
                                                 <span>✅</span>
                                                 <span className="font-medium">Session completed successfully</span>
                                                 {request.completedAt && (
-                                                    <span className="text-green-600">
+                                                    <span className="text-green-300">
                                                         on {formatDate(request.completedAt)}
                                                     </span>
                                                 )}
                                             </div>
                                             {request.participants && request.participants.length > 0 && (
-                                                <div className="text-xs text-green-600 mt-1">
+                                                <div className="text-xs text-green-300 mt-1">
                                                     {request.participants.length} participant(s) attended
                                                 </div>
                                             )}
@@ -282,7 +282,7 @@ const CompletedRequests = () => {
                                     <div className="flex flex-col gap-2 ml-4">
                                         <Link
                                             to={`/requests/details/${request.id}?type=${request.type}`}
-                                            className="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                                            className="bg-slate-700 text-slate-200 px-3 py-1 rounded text-sm font-medium hover:bg-slate-600 transition-colors text-center"
                                         >
                                             View Details
                                         </Link>
@@ -309,12 +309,12 @@ const CompletedRequests = () => {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                    <div className="text-gray-400 text-4xl mb-4">✅</div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                <div className="bg-slate-800 rounded-lg shadow-sm p-12 text-center">
+                    <div className="text-slate-400 text-4xl mb-4">✅</div>
+                    <h3 className="text-lg font-semibold text-white mb-2">
                         No completed requests found
                     </h3>
-                    <p className="text-gray-500 mb-6">
+                    <p className="text-slate-300 mb-6">
                         You haven't completed any requests yet. Create and complete sessions to see them here.
                     </p>
                     <div className="flex gap-3 justify-center">
@@ -336,36 +336,36 @@ const CompletedRequests = () => {
 
             {/* Achievement Summary */}
             {requests.length > 0 && (
-                <div className="mt-8 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6">
-                    <h3 className="font-semibold text-gray-900 mb-4">🏆 Your Learning Achievements</h3>
+                <div className="mt-8 bg-gradient-to-r from-blue-900 to-green-900 rounded-lg p-6">
+                    <h3 className="font-semibold text-white mb-4">🏆 Your Learning Achievements</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-blue-600">{requests.length}</div>
-                            <div className="text-sm text-gray-600">Sessions Completed</div>
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-blue-400">{requests.length}</div>
+                            <div className="text-sm text-slate-300">Sessions Completed</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-green-600">{completedStats.totalParticipants}</div>
-                            <div className="text-sm text-gray-600">People Helped</div>
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-green-400">{completedStats.totalParticipants}</div>
+                            <div className="text-sm text-slate-300">People Helped</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-purple-600">{stats.oneToOne}</div>
-                            <div className="text-sm text-gray-600">1:1 Sessions</div>
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-purple-400">{stats.oneToOne}</div>
+                            <div className="text-sm text-slate-300">1:1 Sessions</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-orange-600">{stats.group}</div>
-                            <div className="text-sm text-gray-600">Group Sessions</div>
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-orange-400">{stats.group}</div>
+                            <div className="text-sm text-slate-300">Group Sessions</div>
                         </div>
                     </div>
 
                     {/* Success Rate */}
-                    <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
+                    <div className="mt-4 p-4 bg-slate-800 rounded-lg shadow-sm">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">Success Rate</span>
-                            <span className="text-sm font-bold text-green-600">
+                            <span className="text-sm font-medium text-slate-300">Success Rate</span>
+                            <span className="text-sm font-bold text-green-400">
                                 {stats.total > 0 ? ((requests.length / stats.total) * 100).toFixed(1) : 0}%
                             </span>
                         </div>
-                        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                        <div className="mt-2 w-full bg-slate-600 rounded-full h-2">
                             <div
                                 className="bg-green-500 h-2 rounded-full transition-all duration-300"
                                 style={{
@@ -373,7 +373,7 @@ const CompletedRequests = () => {
                                 }}
                             ></div>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-slate-400 mt-1">
                             Based on {stats.total} total requests created
                         </div>
                     </div>
