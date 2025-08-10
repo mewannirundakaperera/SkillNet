@@ -1,245 +1,177 @@
 // src/hooks/useMeeting.js
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import {
-    collection,
-    onSnapshot,
-    query,
-    where,
-    orderBy,
-    doc,
-    getDoc
-} from 'firebase/firestore';
-import { db } from '@/config/firebase';
-import {
-    createMeetingSession,
-    joinMeeting,
-    leaveMeeting,
-    endMeeting,
-    getUserMeetings,
-    sendMeetingInvitation,
-    validateMeetingAccess,
-    isMeetingStartingSoon
-} from '@/utils/meetingUtils';
+import { useState } from 'react';
+import { UnifiedJitsiMeetingService } from '@/services/UnifiedJitsiMeetingService';
 
 export const useMeeting = () => {
-    const { user } = useAuth();
-    const [meetings, setMeetings] = useState([]);
-    const [activeMeeting, setActiveMeeting] = useState(null);
-    const [upcomingMeetings, setUpcomingMeetings] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Real-time listener for user's meetings
-    useEffect(() => {
-        if (!user?.id) return;
-
-        setLoading(true);
-        const meetingsRef = collection(db, 'meetings');
-
-        // Query for meetings where user is host or participant
-        const meetingsQuery = query(
-            meetingsRef,
-            where('participants', 'array-contains-any', [
-                { userId: user.id },
-                user.id
-            ]),
-            orderBy('createdAt', 'desc')
-        );
-
-        const unsubscribe = onSnapshot(meetingsQuery,
-            (snapshot) => {
-                const meetingsData = [];
-                const upcoming = [];
-                let active = null;
-
-                snapshot.forEach((doc) => {
-                    const meeting = { id: doc.id, ...doc.data() };
-                    meetingsData.push(meeting);
-
-                    // Check for active meeting
-                    if (meeting.status === 'active') {
-                        active = meeting;
-                    }
-
-                    // Check for upcoming meetings
-                    if (meeting.status === 'scheduled' &&
-                        isMeetingStartingSoon(meeting.scheduledDate, meeting.scheduledTime)) {
-                        upcoming.push(meeting);
-                    }
-                });
-
-                setMeetings(meetingsData);
-                setActiveMeeting(active);
-                setUpcomingMeetings(upcoming);
-                setLoading(false);
-                setError(null);
-            },
-            (error) => {
-                console.error('Error listening to meetings:', error);
-                setError('Failed to load meetings');
-                setLoading(false);
-            }
-        );
-
-        return () => unsubscribe();
-    }, [user]);
-
-    // Create a new meeting
-    const createMeeting = useCallback(async (meetingData) => {
-        if (!user) throw new Error('User not authenticated');
-
-        setLoading(true);
-        setError(null);
-
+    // Create meeting for accepted one-to-one request
+    const createOneToOneMeeting = async (requestId, requestData, accepterUserId, accepterName) => {
         try {
-            const meeting = await createMeetingSession({
-                ...meetingData,
-                hostUserId: user.id,
-                hostUserName: user.displayName || user.name
-            });
+            setLoading(true);
+            setError(null);
 
-            // Send invitation to participant
-            if (meetingData.participantUserId) {
-                await sendMeetingInvitation({
-                    meetingId: meeting.id,
-                    hostUserId: user.id,
-                    hostName: user.displayName || user.name,
-                    participantUserId: meetingData.participantUserId,
-                    participantName: meetingData.participantUserName,
-                    subject: meetingData.subject,
-                    meetingUrl: meeting.meetingUrl,
-                    scheduledDate: meetingData.scheduledDate,
-                    scheduledTime: meetingData.scheduledTime
-                });
+            const result = await UnifiedJitsiMeetingService.createOneToOneMeeting(
+                requestId,
+                requestData,
+                accepterUserId,
+                accepterName
+            );
+
+            if (!result.success) {
+                throw new Error(result.error);
             }
 
-            return meeting;
-        } catch (error) {
-            setError(error.message);
-            throw error;
+            return result;
+        } catch (err) {
+            console.error('Error creating one-to-one meeting:', err);
+            setError(err.message);
+            throw err;
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    };
 
-    // Join a meeting
-    const joinMeetingSession = useCallback(async (meetingId) => {
-        if (!user) throw new Error('User not authenticated');
-
-        setLoading(true);
-        setError(null);
-
+    // Create meeting for accepted group request
+    const createGroupMeeting = async (requestId, groupRequestData) => {
         try {
-            await joinMeeting(meetingId, user.id, user.displayName || user.name);
-            return true;
-        } catch (error) {
-            setError(error.message);
-            throw error;
+            setLoading(true);
+            setError(null);
+
+            const result = await UnifiedJitsiMeetingService.createGroupMeeting(requestId, groupRequestData);
+
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            return result;
+        } catch (err) {
+            console.error('Error creating group meeting:', err);
+            setError(err.message);
+            throw err;
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    };
 
-    // Leave a meeting
-    const leaveMeetingSession = useCallback(async (meetingId) => {
-        if (!user) throw new Error('User not authenticated');
-
+    // Get meeting for request
+    const getMeetingForRequest = async (requestId, requestType = 'one-to-one') => {
         try {
-            await leaveMeeting(meetingId, user.id, user.displayName || user.name);
-            return true;
-        } catch (error) {
-            setError(error.message);
-            throw error;
-        }
-    }, [user]);
+            setLoading(true);
+            setError(null);
 
-    // End a meeting (host only)
-    const endMeetingSession = useCallback(async (meetingId) => {
-        if (!user) throw new Error('User not authenticated');
+            const result = await UnifiedJitsiMeetingService.getMeetingForRequest(requestId, requestType);
 
-        try {
-            await endMeeting(meetingId, user.id);
-            return true;
-        } catch (error) {
-            setError(error.message);
-            throw error;
-        }
-    }, [user]);
-
-    // Get meeting by ID
-    const getMeetingById = useCallback(async (meetingId) => {
-        try {
-            const meetingDoc = await getDoc(doc(db, 'meetings', meetingId));
-
-            if (!meetingDoc.exists()) {
-                throw new Error('Meeting not found');
+            if (!result.success) {
+                throw new Error(result.error);
             }
 
-            return { id: meetingDoc.id, ...meetingDoc.data() };
-        } catch (error) {
-            setError(error.message);
-            throw error;
+            return result;
+        } catch (err) {
+            console.error('Error getting meeting for request:', err);
+            setError(err.message);
+            throw err;
+        } finally {
+            setLoading(false);
         }
-    }, []);
+    };
+
+    // Join meeting
+    const joinMeeting = async (meetingId, userId, userName) => {
+        try {
+            const result = await UnifiedJitsiMeetingService.joinMeeting(meetingId, userId, userName);
+
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            return result;
+        } catch (err) {
+            console.error('Error joining meeting:', err);
+            setError(err.message);
+            throw err;
+        }
+    };
+
+    // Leave meeting
+    const leaveMeeting = async (meetingId, userId, userName) => {
+        try {
+            const result = await UnifiedJitsiMeetingService.leaveMeeting(meetingId, userId, userName);
+
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            return result;
+        } catch (err) {
+            console.error('Error leaving meeting:', err);
+            setError(err.message);
+            throw err;
+        }
+    };
+
+    // End meeting
+    const endMeeting = async (meetingId, userId) => {
+        try {
+            const result = await UnifiedJitsiMeetingService.endMeeting(meetingId, userId);
+
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            return result;
+        } catch (err) {
+            console.error('Error ending meeting:', err);
+            setError(err.message);
+            throw err;
+        }
+    };
 
     // Validate meeting access
-    const checkMeetingAccess = useCallback(async (roomName) => {
-        if (!user) return { hasAccess: false, reason: 'User not authenticated' };
-
+    const validateMeetingAccess = async (roomId, userId) => {
         try {
-            return await validateMeetingAccess(roomName, user.id);
-        } catch (error) {
-            setError(error.message);
-            return { hasAccess: false, reason: error.message };
+            const result = await UnifiedJitsiMeetingService.validateMeetingAccess(roomId, userId);
+            return result;
+        } catch (err) {
+            console.error('Error validating meeting access:', err);
+            return { hasAccess: false, reason: 'Validation failed' };
         }
-    }, [user]);
+    };
 
-    // Get meetings by status
-    const getMeetingsByStatus = useCallback((status) => {
-        return meetings.filter(meeting => meeting.status === status);
-    }, [meetings]);
+    // Get user meeting history
+    const getUserMeetings = async (userId, limit = 10) => {
+        try {
+            setLoading(true);
+            setError(null);
 
-    // Get meeting statistics
-    const getMeetingStats = useCallback(() => {
-        const total = meetings.length;
-        const scheduled = meetings.filter(m => m.status === 'scheduled').length;
-        const completed = meetings.filter(m => m.status === 'completed').length;
-        const cancelled = meetings.filter(m => m.status === 'cancelled').length;
+            const result = await UnifiedJitsiMeetingService.getUserMeetings(userId, limit);
 
-        return {
-            total,
-            scheduled,
-            completed,
-            cancelled,
-            active: activeMeeting ? 1 : 0
-        };
-    }, [meetings, activeMeeting]);
+            if (!result.success) {
+                throw new Error(result.error);
+            }
 
-    // Clear error
-    const clearError = useCallback(() => {
-        setError(null);
-    }, []);
+            return result.meetings;
+        } catch (err) {
+            console.error('Error getting user meetings:', err);
+            setError(err.message);
+            return [];
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return {
-        // State
-        meetings,
-        activeMeeting,
-        upcomingMeetings,
         loading,
         error,
-
-        // Actions
-        createMeeting,
-        joinMeetingSession,
-        leaveMeetingSession,
-        endMeetingSession,
-        getMeetingById,
-        checkMeetingAccess,
-        getMeetingsByStatus,
-        getMeetingStats,
-        clearError
+        createOneToOneMeeting,
+        createGroupMeeting,
+        getMeetingForRequest,
+        joinMeeting,
+        leaveMeeting,
+        endMeeting,
+        validateMeetingAccess,
+        getUserMeetings,
+        clearError: () => setError(null)
     };
 };
-
-export default useMeeting;
