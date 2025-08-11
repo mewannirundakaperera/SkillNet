@@ -228,21 +228,33 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
       setLoading(true);
 
       let newParticipants;
+      let newStatus = request.status;
+      
       if (isParticipating) {
         newParticipants = request.participants?.filter(id => id !== currentUserId) || [];
+        
+        // If no more participants, change status back to voting_open
+        if (newParticipants.length === 0) {
+          newStatus = 'voting_open';
+        }
       } else {
         newParticipants = [...(request.participants || []), currentUserId];
+        
+        // Change status to accepted when first participant joins (if coming from voting_open)
+        if (!request.participants || request.participants.length === 0) {
+          if (request.status === 'voting_open') {
+            newStatus = 'accepted';
+          } else {
+            newStatus = 'active';
+          }
+        }
       }
 
       const updateData = {
         participants: newParticipants,
-        participantCount: newParticipants.length
+        participantCount: newParticipants.length,
+        status: newStatus
       };
-
-      // Auto-approve if enough participants
-      if (newParticipants.length >= (request.minParticipants || 3) && request.status === 'voting_open') {
-        updateData.status = 'accepted';
-      }
 
       const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
       if (result.success) {
@@ -250,7 +262,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           ...request,
           participants: newParticipants,
           participantCount: newParticipants.length,
-          status: updateData.status || request.status
+          status: newStatus
         });
       } else {
         console.error('❌ Participation failed:', result.message);
@@ -330,6 +342,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           bgColor: 'bg-orange-900',
           statusColor: 'bg-orange-800 text-orange-200'
         };
+
       case 'accepted':
         return {
           borderColor: 'border-green-500',
@@ -555,6 +568,8 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
               )}
             </div>
         )}
+
+
 
         {request.status === 'accepted' && (
             <div className="mb-4">

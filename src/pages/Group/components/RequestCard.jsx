@@ -210,6 +210,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           participantCount: increment(-1),
           updatedAt: serverTimestamp()
         };
+
+        // If no more participants, change status back to voting_open
+        const newParticipantCount = (request.participantCount || 1) - 1;
+        if (newParticipantCount === 0) {
+          updateData.status = 'voting_open';
+        }
       } else {
         // Accept participation
         updateData = {
@@ -217,6 +223,15 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           participantCount: increment(1),
           updatedAt: serverTimestamp()
         };
+
+        // Change status to accepted when first participant joins (if coming from voting_open)
+        if (!request.participants || request.participants.length === 0) {
+          if (request.status === 'voting_open') {
+            updateData.status = 'accepted';
+          } else {
+            updateData.status = 'active';
+          }
+        }
       }
 
       if (db && request.id) {
@@ -228,17 +243,21 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           ? request.participants?.filter(id => id !== currentUserId) || []
           : [...(request.participants || []), currentUserId];
 
+      const newStatus = updateData.status || request.status;
+
       onRequestUpdate?.(request.id, {
         ...request,
         participants: newParticipants,
-        participantCount: newParticipants.length
+        participantCount: newParticipants.length,
+        status: newStatus
       });
     } catch (error) {
       console.error('Error handling participation:', error);
+      alert('Failed to update participation. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
+    }
 
   // Handle payment (mock implementation)
   const handlePayment = async () => {
@@ -298,8 +317,6 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         return 'bg-green-100 text-green-700 border-green-200';
       case 'payment_complete':
         return 'bg-yellow-200 text-yellow-800 border-yellow-300';
-      case 'active':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'in_progress':
         return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'completed':
@@ -340,6 +357,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           bgColor: 'bg-orange-50',
           statusColor: 'bg-orange-100 text-orange-700'
         };
+
       case 'accepted':
         return {
           borderColor: 'border-green-300',
@@ -715,6 +733,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
               )}
             </div>
         )}
+
+
 
         {request.status === 'accepted' && (
             <div className="mb-4">

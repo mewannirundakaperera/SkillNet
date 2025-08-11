@@ -89,11 +89,11 @@ export default function HomePage() {
       });
       setChartData(chartData);
 
-      // Load suggested groups (groups user hasn't joined)
+      // Load random groups for suggestions
       const groupsQuery = query(
         collection(db, 'groups'),
         orderBy('createdAt', 'desc'),
-        limit(20) // Load more to filter out joined ones
+        limit(50) // Load more to get better random selection
       );
       const groupsSnapshot = await getDocs(groupsQuery);
       const allGroups = groupsSnapshot.docs.map(doc => ({
@@ -101,13 +101,11 @@ export default function HomePage() {
         ...doc.data()
       }));
       
-      // Filter out groups the user has already joined
-      const userJoinedGroups = userData?.groupsJoined || [];
-      const suggestedGroups = allGroups.filter(group => 
-        !userJoinedGroups.includes(group.id)
-      ).slice(0, 6); // Take first 6 after filtering
+      // Get 3 random groups
+      const shuffledGroups = allGroups.sort(() => 0.5 - Math.random());
+      const randomGroups = shuffledGroups.slice(0, 3);
       
-      setSuggestedGroups(suggestedGroups);
+      setSuggestedGroups(randomGroups);
 
       // Load recent requests
       const recentRequestsQuery = query(
@@ -304,6 +302,71 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* Suggested Groups */}
+          <section className="card-dark p-6 mb-2">
+            <div className="flex justify-between items-center mb-4 min-w-0">
+              <h2 className="text-xl font-bold text-white break-words flex-1 min-w-0">Suggested Groups</h2>
+              <Link to="/groups" className="text-[#4299E1] text-sm font-medium hover:underline flex-shrink-0 ml-2">
+                View All
+              </Link>
+            </div>
+            {suggestedGroups.length > 0 ? (
+              <div className="space-y-4">
+                {suggestedGroups.map((group) => (
+                  <div key={group.id} className="group bg-[#1A202C] rounded-lg p-4 hover:bg-[#2D3748] transition-all duration-200 border border-[#2D3748] hover:border-[#4A5568]">
+                    <div className="flex items-start gap-4 w-full">
+                      {/* Group Image */}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={group.photoURL || `https://ui-avatars.com/api/?name=${group.name}&background=3b82f6&color=fff`}
+                          alt={group.name}
+                          className="w-16 h-16 rounded-lg object-cover border-2 border-[#4A5568] group-hover:border-[#4299E1] transition-colors duration-200"
+                        />
+                      </div>
+                      
+                      {/* Group Content */}
+                      <div className="flex-1 min-w-0 max-w-full">
+                        <h4 className="font-semibold text-sm text-white mb-1 line-clamp-1 group-hover:text-[#4299E1] transition-colors duration-200 break-words" title={group.name}>
+                          {group.name}
+                        </h4>
+                        <div className="text-xs text-[#A0AEC0] mb-2 break-words">
+                          {group.memberCount?.toLocaleString() || 0} Members
+                        </div>
+                        <p className="text-xs text-[#E0E0E0] mb-3 line-clamp-2 leading-relaxed break-words" title={group.description}>
+                          {group.description || 'No description available'}
+                        </p>
+                      </div>
+                      
+                      {/* Join Button */}
+                      <div className="flex-shrink-0">
+                        <Link
+                          to={`/group/${group.id}`}
+                          className="btn-gradient-primary px-4 py-2 font-medium text-xs rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                        >
+                          Join Group
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-[#A0AEC0]">
+                <div className="text-4xl mb-3">👥</div>
+                <p className="mb-3">No new groups to suggest right now.</p>
+                <Link 
+                  to="/groups" 
+                  className="inline-flex items-center gap-2 text-[#4299E1] hover:text-[#00BFFF] transition-colors text-sm font-medium hover:underline"
+                >
+                  <span>Browse all groups</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+            )}
           </section>
         </div>
 
