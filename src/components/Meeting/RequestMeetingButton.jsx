@@ -85,8 +85,28 @@ const RequestMeetingButton = ({
     // Join existing meeting
     const handleJoinMeeting = () => {
         if (meetingUrl) {
-            // Open Jitsi meeting in current window
-            window.location.href = meetingUrl;
+            // Get user's display name for the meeting
+            const userName = user?.displayName || user?.name || 'User';
+            
+            // Create meeting URL with pre-filled username
+            let enhancedMeetingUrl = meetingUrl;
+            
+            // Check if URL already has parameters
+            if (enhancedMeetingUrl.includes('?')) {
+                enhancedMeetingUrl += `&userInfo.displayName=${encodeURIComponent(userName)}`;
+            } else {
+                enhancedMeetingUrl += `?userInfo.displayName=${encodeURIComponent(userName)}`;
+            }
+            
+            // Add additional Jitsi parameters for better user experience
+            enhancedMeetingUrl += `&userInfo.email=${encodeURIComponent(user?.email || '')}`;
+            enhancedMeetingUrl += `&config.prejoinPageEnabled=false`; // Skip pre-join page
+            enhancedMeetingUrl += `&config.disableDeepLinking=true`; // Prevent deep linking issues
+            
+            console.log('🎥 Joining meeting with enhanced URL:', enhancedMeetingUrl);
+            
+            // Open Jitsi meeting in current window with enhanced URL
+            window.location.href = enhancedMeetingUrl;
         } else {
             // Navigate to meeting page with request data
             navigate(`/OnlineMeeting/${request.id}`, {

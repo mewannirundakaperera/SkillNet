@@ -697,6 +697,22 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                   {loading ? '...' : isParticipating ? 'Cancel' : 'Accept Request'}
                 </button>
               </div>
+              
+              {/* Want to Teach Button - Only show if not participating and is not the owner */}
+              {!isParticipating && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                  <div className="mt-3">
+                    <button
+                        onClick={handleParticipation}
+                        disabled={loading}
+                        className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
+                    >
+                        {loading ? 'Processing...' : '🎯 Want to Teach'}
+                    </button>
+                    <p className="text-xs text-gray-500 text-center mt-1">
+                        Join as a teacher/mentor for this session
+                    </p>
+                  </div>
+              )}
             </div>
         )}
 

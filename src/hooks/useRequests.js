@@ -252,8 +252,16 @@ export const useUserResponses = (status = null) => {
             return;
         }
 
-        const unsubscribe = unifiedRequestService.getUserResponses(user.id, status, (data) => {
-            setResponses(data);
+        const unsubscribe = unifiedRequestService.getUserResponses(user.id, status, (data, error) => {
+            if (error) {
+                console.error('❌ Error fetching user responses:', error);
+                setError(error.error || error.message || 'Failed to fetch responses');
+                setResponses([]);
+            } else {
+                console.log('✅ User responses fetched successfully:', data?.length || 0, 'responses');
+                setResponses(data || []);
+                setError(null);
+            }
             setLoading(false);
         });
 

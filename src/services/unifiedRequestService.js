@@ -427,8 +427,11 @@ export const unifiedRequestService = {
 
             const requestData = requestDoc.data();
             
-            // Check ownership
-            if (requestData.userId !== userId && requestData.createdBy !== userId) {
+            // Check if user can complete this request (owner or acceptee)
+            const isOwner = requestData.userId === userId || requestData.createdBy === userId;
+            const isAcceptee = requestData.acceptedBy === userId;
+            
+            if (!isOwner && !isAcceptee) {
                 return { success: false, message: 'Permission denied' };
             }
 
@@ -437,20 +440,150 @@ export const unifiedRequestService = {
                 return { success: false, message: 'Request is not active' };
             }
 
+            // Update request status to completed
             await updateDoc(requestRef, {
                 status: 'completed',
                 updatedAt: serverTimestamp(),
-                completedAt: serverTimestamp()
+                completedAt: serverTimestamp(),
+                completedBy: userId,
+                completedByName: requestData.userName || 'User'
             });
+
+            // Update all related response documents to 'completed' status
+            try {
+                const responsesQuery = query(
+                    collection(db, 'requestResponses'),
+                    where('requestId', '==', requestId)
+                );
+                
+                const responsesSnapshot = await getDocs(responsesQuery);
+                const updatePromises = responsesSnapshot.docs.map(responseDoc => 
+                    updateDoc(responseDoc.ref, {
+                        status: 'completed',
+                        updatedAt: serverTimestamp(),
+                        completedAt: serverTimestamp()
+                    })
+                );
+                
+                await Promise.all(updatePromises);
+                console.log(`✅ Updated ${updatePromises.length} response documents to completed`);
+            } catch (responseError) {
+                console.warn('⚠️ Could not update response documents:', responseError);
+            }
+
+            // If there's a meeting, update it as well
+            if (requestData.meetingId) {
+                try {
+                    const meetingRef = doc(db, 'meetings', requestData.meetingId);
+                    await updateDoc(meetingRef, {
+                        status: 'completed',
+                        updatedAt: serverTimestamp(),
+                        completedAt: serverTimestamp()
+                    });
+                    console.log('✅ Meeting marked as completed');
+                } catch (meetingError) {
+                    console.warn('⚠️ Could not update meeting:', meetingError);
+                }
+            }
 
             console.log('✅ Unified request completed successfully');
 
             return {
                 success: true,
-                message: 'Request completed successfully'
+                message: 'Request completed successfully',
+                newStatus: 'completed'
             };
         } catch (error) {
             console.error('❌ Error completing unified request:', error);
+            return {
+                success: false,
+                message: 'Failed to complete request',
+                error: error.message
+            };
+        }
+    },
+
+    /**
+     * Complete a request from acceptee's perspective
+     */
+    async completeRequestAsAcceptee(requestId, userId) {
+        try {
+            console.log('🔄 Completing request as acceptee:', { requestId, userId });
+
+            const requestRef = doc(db, 'requests', requestId);
+            const requestDoc = await getDoc(requestRef);
+
+            if (!requestDoc.exists()) {
+                return { success: false, message: 'Request not found' };
+            }
+
+            const requestData = requestDoc.data();
+            
+            // Check if user is the acceptee
+            if (requestData.acceptedBy !== userId) {
+                return { success: false, message: 'Only the acceptee can complete this request' };
+            }
+
+            // Check if request can be completed
+            if (requestData.status !== 'active') {
+                return { success: false, message: 'Request is not active' };
+            }
+
+            // Update request status to completed
+            await updateDoc(requestRef, {
+                status: 'completed',
+                updatedAt: serverTimestamp(),
+                completedAt: serverTimestamp(),
+                completedBy: userId,
+                completedByName: requestData.acceptedByName || 'Acceptee'
+            });
+
+            // Update the user's response to 'completed' status
+            try {
+                const responseQuery = query(
+                    collection(db, 'requestResponses'),
+                    where('requestId', '==', requestId),
+                    where('responderId', '==', userId)
+                );
+                
+                const responseSnapshot = await getDocs(responseQuery);
+                if (!responseSnapshot.empty) {
+                    const responseDoc = responseSnapshot.docs[0];
+                    await updateDoc(responseDoc.ref, {
+                        status: 'completed',
+                        updatedAt: serverTimestamp(),
+                        completedAt: serverTimestamp()
+                    });
+                    console.log('✅ Response marked as completed');
+                }
+            } catch (responseError) {
+                console.warn('⚠️ Could not update response document:', responseError);
+            }
+
+            // If there's a meeting, update it as well
+            if (requestData.meetingId) {
+                try {
+                    const meetingRef = doc(db, 'meetings', requestData.meetingId);
+                    await updateDoc(meetingRef, {
+                        status: 'completed',
+                        updatedAt: serverTimestamp(),
+                        completedAt: serverTimestamp()
+                    });
+                    console.log('✅ Meeting marked as completed');
+                } catch (meetingError) {
+                    console.warn('⚠️ Could not update meeting:', meetingError);
+                }
+            }
+
+            console.log('✅ Request completed successfully by acceptee');
+
+            return {
+                success: true,
+                message: 'Request completed successfully',
+                newStatus: 'completed'
+            };
+        } catch (error) {
+            console.error('❌ Error completing request as acceptee:', error);
             return {
                 success: false,
                 message: 'Failed to complete request',
@@ -634,7 +767,7 @@ export const unifiedRequestService = {
             // Get available requests directly (hidden requests will be filtered on the client side)
             const requestsQuery = query(
                 collection(db, 'requests'),
-                where('status', 'in', ['open', 'active']),
+                where('status', '==', 'open'),
                 orderBy('createdAt', 'desc')
             );
 
@@ -649,6 +782,15 @@ export const unifiedRequestService = {
                     const hiddenSnapshot = await getDocs(hiddenQuery);
                     const hiddenRequestIds = hiddenSnapshot.docs.map(doc => doc.data().requestId);
 
+                    // Get requests that the user has already responded to
+                    const userResponsesQuery = query(
+                        collection(db, 'requestResponses'),
+                        where('responderId', '==', userId)
+                    );
+                    
+                    const userResponsesSnapshot = await getDocs(userResponsesQuery);
+                    const userRespondedRequestIds = userResponsesSnapshot.docs.map(doc => doc.data().requestId);
+
                     const requests = snapshot.docs
                         .map(doc => ({
                             id: doc.id,
@@ -656,9 +798,12 @@ export const unifiedRequestService = {
                         }))
                         .filter(request => 
                             request.userId !== userId && 
-                            !hiddenRequestIds.includes(request.id)
+                            !hiddenRequestIds.includes(request.id) &&
+                            !userRespondedRequestIds.includes(request.id) &&
+                            request.status === 'open' // Only show open requests, not active ones
                         );
 
+                    console.log(`✅ Found ${requests.length} available requests for user ${userId}`);
                     callback(requests, null);
                 } catch (error) {
                     console.error('❌ Error processing available requests:', error);
@@ -691,42 +836,126 @@ export const unifiedRequestService = {
                 orderBy('createdAt', 'desc')
             );
 
-            if (status) {
+            if (status === 'accepted') {
+                // For accepted requests, we need to get responses where the user accepted
+                // and the request status is 'active' (meaning it was accepted)
+                responsesQuery = query(
+                    collection(db, 'requestResponses'),
+                    where('responderId', '==', userId),
+                    where('status', '==', 'accepted'),
+                    orderBy('createdAt', 'desc')
+                );
+                console.log('🔍 Query for accepted responses:', responsesQuery);
+            } else if (status === 'archived') {
+                // For archived requests, we need to get responses where the request status is 'completed' or 'archived'
+                // OR where the response status itself is 'completed'
+                responsesQuery = query(
+                    collection(db, 'requestResponses'),
+                    where('responderId', '==', userId),
+                    orderBy('createdAt', 'desc')
+                );
+                console.log('🔍 Query for archived responses:', responsesQuery);
+            } else if (status) {
+                // For other specific statuses
                 responsesQuery = query(
                     collection(db, 'requestResponses'),
                     where('responderId', '==', userId),
                     where('status', '==', status),
                     orderBy('createdAt', 'desc')
                 );
+                console.log('🔍 Query for other status responses:', responsesQuery);
+            } else {
+                console.log('🔍 Query for all responses (no status filter)');
             }
 
             return onSnapshot(responsesQuery, async (snapshot) => {
                 try {
+                    console.log(`📊 Snapshot received: ${snapshot.docs.length} response documents`);
+                    
+                    // Log all response documents for debugging
+                    snapshot.docs.forEach((doc, index) => {
+                        const data = doc.data();
+                        console.log(`📋 Response ${index + 1}:`, {
+                            id: doc.id,
+                            requestId: data.requestId,
+                            status: data.status,
+                            responderId: data.responderId
+                        });
+                    });
+                    
                     const responses = [];
                     
-                    for (const doc of snapshot.docs) {
-                        const responseData = doc.data();
+                    for (const responseDoc of snapshot.docs) {
+                        const responseData = responseDoc.data();
                         
                         // Get the corresponding request data
                         try {
+                            // Validate request ID format
+                            if (!responseData.requestId || typeof responseData.requestId !== 'string' || responseData.requestId.length < 3) {
+                                console.warn('⚠️ Invalid request ID format:', responseData.requestId);
+                                continue; // Skip this response
+                            }
+                            
                             const requestDoc = await getDoc(doc(db, 'requests', responseData.requestId));
                             if (requestDoc.exists()) {
+                                const requestData = requestDoc.data();
+                                
+                                // For accepted requests, only include if the request is actually active
+                                // This ensures users only see requests they can currently work on
+                                if (status === 'accepted') {
+                                    if (requestData.status !== 'active') {
+                                        console.log('⏭️ Skipping non-active request:', responseData.requestId, 'Status:', requestData.status);
+                                        continue; // Skip this response
+                                    }
+                                    console.log('✅ Including active accepted request:', responseData.requestId);
+                                }
+                                
+                                // For archived requests, include if:
+                                // 1. Request status is completed/archived, OR
+                                // 2. Response status is completed
+                                if (status === 'archived') {
+                                    const requestCompleted = ['completed', 'archived'].includes(requestData.status);
+                                    const responseCompleted = responseData.status === 'completed';
+                                    
+                                    if (!requestCompleted && !responseCompleted) {
+                                        console.log('⏭️ Skipping non-completed request/response:', responseData.requestId, 'Request Status:', requestData.status, 'Response Status:', responseData.status);
+                                        continue; // Skip this response
+                                    }
+                                    console.log('✅ Including completed/archived request:', responseData.requestId);
+                                }
+                                
                                 responses.push({
-                                    id: doc.id,
+                                    id: responseDoc.id,
                                     ...responseData,
-                                    requestData: requestDoc.data()
+                                    requestData: requestData
+                                });
+                                console.log('✅ Response added to list:', {
+                                    responseId: responseDoc.id,
+                                    responseStatus: responseData.status,
+                                    requestStatus: requestData.status,
+                                    requestId: responseData.requestId
                                 });
                             }
                         } catch (requestError) {
-                            console.warn('⚠️ Could not fetch request data for response:', responseData.requestId);
-                            responses.push({
-                                id: doc.id,
-                                ...responseData,
-                                requestData: null
-                            });
+                            console.warn('⚠️ Could not fetch request data for response:', responseData.requestId, 'Error:', requestError.message);
+                            
+                            // For accepted responses, we can't include them without request data
+                            // because we need to verify the request status is 'active'
+                            if (status === 'accepted') {
+                                console.log('⚠️ Skipping accepted response without request data:', responseData.requestId, '- cannot verify if request is active');
+                                continue; // Skip this response
+                            } else if (!status) {
+                                // For unfiltered responses, include all
+                                responses.push({
+                                    id: responseDoc.id,
+                                    ...responseData,
+                                    requestData: null
+                                });
+                            }
                         }
                     }
 
+                    console.log(`✅ Found ${responses.length} responses for user ${userId} with status ${status}`);
                     callback(responses, null);
                 } catch (error) {
                     console.error('❌ Error processing unified responses:', error);

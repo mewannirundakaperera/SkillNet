@@ -1,798 +1,386 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { getCurrentUserData } from "@/services/authService";
-import { groupService } from "@/services/groupService";
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  getDocs,
-  onSnapshot,
-  where
-} from "firebase/firestore";
+import { Link } from "react-router-dom";
+import { collection, query, where, getDocs, orderBy, limit, doc } from "firebase/firestore";
 import { db } from "@/config/firebase";
 
 export default function HomePage() {
-  const { user, isAuthenticated, loading: authLoading } = useAuth(); // ✅ Get auth loading state
-
-  // User and profile state
-  const [userProfile, setUserProfile] = useState(null);
-  const [loading, setLoading] = useState(false); // ✅ Changed initial loading to false
-  const [authInitialized, setAuthInitialized] = useState(false); // ✅ Track auth initialization
-
-  // Activity feed state
-  const [activities, setActivities] = useState([]);
-  const [loadingActivities, setLoadingActivities] = useState(true);
-
-  // Groups state
-  const [suggestedGroups, setSuggestedGroups] = useState([]);
-  const [joiningGroups, setJoiningGroups] = useState(new Set());
-
-  // Dashboard stats
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     connections: 0,
-    groupsJoined: 0,
-    postsLiked: 0,
-    profileViews: 0
+    likes: 0,
+    requests: 0,
+    groups: 0,
+    earnings: 0
   });
-
-  // Trending topics with real data structure
-  const [trendingTopics] = useState([
-    { id: 1, name: "Future of Work", icon: "🧳", posts: 1200, trend: "+15%" },
-    { id: 2, name: "Generative AI Ethics", icon: "🤖", posts: 850, trend: "+28%" },
-    { id: 3, name: "Sustainable Business Practices", icon: "🌱", posts: 620, trend: "+12%" },
-    { id: 4, name: "Leadership in Digital Transformation", icon: "💡", posts: 910, trend: "+20%" }
-  ]);
-
-  // Visitor content data
-  const [features] = useState([
-    {
-      icon: "🤝",
-      title: "Connect & Network",
-      description: "Build meaningful professional relationships with like-minded individuals in your field."
-    },
-    {
-      icon: "📚",
-      title: "Learn & Grow",
-      description: "Access peer-to-peer learning opportunities and skill-sharing sessions."
-    },
-    {
-      icon: "👥",
-      title: "Join Groups",
-      description: "Participate in focused communities around your interests and professional goals."
-    },
-    {
-      icon: "📅",
-      title: "Schedule Sessions",
-      description: "Book 1-on-1 learning sessions with experts in various subjects."
-    }
-  ]);
-
-  const [testimonials] = useState([
-    {
-      name: "Shanika Rajapaksha",
-      role: "Software Engineer",
-      avatar: "https://randomuser.me/api/portraits/women/1.jpg",
-      quote: "Skill-Net helped me connect with amazing professionals and accelerate my career growth."
-    },
-    {
-      name: "Vinodh kumara",
-      role: "Data Scientist",
-      avatar: "https://randomuser.me/api/portraits/men/2.jpg",
-      quote: "The peer learning sessions have been invaluable for developing my technical skills."
-    },
-    {
-      name: "Nathaliya Vijemuni",
-      role: "Product Manager",
-      avatar: "https://randomuser.me/api/portraits/women/3.jpg",
-      quote: "I've built lasting professional relationships through the groups and networking features."
-    }
-  ]);
-
-  const [stats_public] = useState({
-    users: "10,000+",
-    groups: "500+",
-    sessions: "25,000+",
-    countries: "50+"
+  const [chartData, setChartData] = useState({
+    connections: [],
+    likes: [],
+    requests: [],
+    groups: [],
+    earnings: []
   });
+  const [loading, setLoading] = useState(true);
+  const [suggestedGroups, setSuggestedGroups] = useState([]);
+  const [recentRequests, setRecentRequests] = useState([]);
 
-  // ✅ NEW: Track auth initialization with timeout protection
   useEffect(() => {
-    if (!authLoading) {
-      setAuthInitialized(true);
+    if (user?.id) {
+      loadDashboardData();
     }
-    
-    // Add timeout protection to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ HomePage auth timeout reached, forcing initialization');
-      setAuthInitialized(true);
-    }, 5000); // 5 second timeout
-    
-    return () => clearTimeout(timeoutId);
-  }, [authLoading]);
+  }, [user]);
 
-  // ✅ UPDATED: Load user profile data with proper loading management
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      // Wait for auth to be initialized
-      if (!authInitialized) return;
-
-      // If not authenticated, no need to load user data
-      if (!isAuthenticated || !user?.id) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true); // ✅ Set loading when starting to fetch user data
-
-      try {
-        const result = await getCurrentUserData(user.id);
-
-        if (result.success) {
-          const profileData = {
-            ...user,
-            ...result.userData,
-            displayName: result.userData.displayName || result.userData.name || user.name || "User",
-            avatar: result.userData.avatar || result.userData.photoURL || "https://randomuser.me/api/portraits/men/14.jpg",
-            joinedGroups: result.userData.joinedGroups || [],
-            connections: result.userData.connections || []
-          };
-
-          setUserProfile(profileData);
-
-          // Update stats
-          setStats({
-            connections: profileData.connections?.length || 0,
-            groupsJoined: profileData.joinedGroups?.length || 0,
-            postsLiked: result.userData.postsLiked?.length || 0,
-            profileViews: result.userData.profileViews || 0
-          });
-        } else {
-          // Fallback data
-          setUserProfile({
-            ...user,
-            displayName: user.name || "User",
-            avatar: "https://randomuser.me/api/portraits/men/14.jpg",
-            joinedGroups: [],
-            connections: []
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-        // Set fallback data even on error
-        setUserProfile({
-          ...user,
-          displayName: user.name || "User",
-          avatar: "https://randomuser.me/api/portraits/men/14.jpg",
-          joinedGroups: [],
-          connections: []
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserProfile();
-  }, [user, isAuthenticated, authInitialized]); // ✅ Added authInitialized dependency
-
-  // Load recent activities (real-time) - only for authenticated users
-  useEffect(() => {
-    if (!authInitialized || !isAuthenticated || !user?.id) {
-      setLoadingActivities(false);
-      return;
-    }
-
-    const activitiesRef = collection(db, 'activities');
-    const activitiesQuery = query(
-        activitiesRef,
-        where('userId', '==', user.id),
-        orderBy('timestamp', 'desc'),
-        limit(10)
-    );
-
-    const unsubscribe = onSnapshot(activitiesQuery, (snapshot) => {
-      const activitiesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate() || new Date()
-      }));
-
-      setActivities(activitiesData);
-      setLoadingActivities(false);
-    }, (error) => {
-      console.error("Error loading activities:", error);
-      // Fallback to mock data if real data fails
-      setActivities(getMockActivities());
-      setLoadingActivities(false);
-    });
-
-    return () => unsubscribe();
-  }, [user, isAuthenticated, authInitialized]); // ✅ Added authInitialized dependency
-
-  // Load suggested groups - only for authenticated users
-  useEffect(() => {
-    if (!authInitialized || !isAuthenticated || !userProfile) return;
-
-    const fetchSuggestedGroups = async () => {
-      try {
-        const groupsRef = collection(db, 'groups');
-        const groupsQuery = query(groupsRef, limit(6));
-        const snapshot = await getDocs(groupsQuery);
-
-        const groups = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })).filter(group =>
-            !userProfile?.joinedGroups?.includes(group.id)
-        );
-
-        setSuggestedGroups(groups);
-      } catch (error) {
-        console.error("Error loading groups:", error);
-        // Fallback to mock data
-        setSuggestedGroups(getMockGroups());
-      }
-    };
-
-    fetchSuggestedGroups();
-  }, [userProfile, isAuthenticated, authInitialized]); // ✅ Added authInitialized dependency
-
-  // Mock data fallbacks
-  const getMockActivities = () => [
-    {
-      id: '1',
-      type: 'connection',
-      actorName: 'Neesha Pathirana',
-      actorAvatar: 'https://randomuser.me/api/portraits/women/10.jpg',
-      action: 'connected with you',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-      actionable: true
-    },
-    {
-      id: '2',
-      type: 'group_join',
-      actorName: 'Janith Vikrama',
-      actorAvatar: 'https://randomuser.me/api/portraits/men/11.jpg',
-      action: 'joined "AI & Machine Learning" group',
-      description: 'Exploring the latest breakthroughs in neural networks and deep learning.',
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-      actionable: false
-    },
-    {
-      id: '3',
-      type: 'like',
-      actorName: 'Sudith Arachchi',
-      actorAvatar: 'https://randomuser.me/api/portraits/men/12.jpg',
-      action: 'liked your post',
-      description: '"Insights on Q3 Market Trends"',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-      actionable: false
-    },
-    {
-      id: '4',
-      type: 'connection',
-      actorName: 'Samalka Weerakoon',
-      actorAvatar: 'https://randomuser.me/api/portraits/women/13.jpg',
-      action: 'connected with you',
-      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-      actionable: true
-    },
-    {
-      id: '5',
-      type: 'discussion',
-      actorName: 'Nalaka Perera',
-      actorAvatar: 'https://randomuser.me/api/portraits/men/15.jpg',
-      action: 'started a new discussion in "Product Management Forum"',
-      description: '"Best Practices for Agile Product Roadmapping"',
-      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
-      actionable: false
-    }
-  ];
-
-  const getMockGroups = () => [
-    {
-      id: 'ai-ml-group',
-      name: 'Computer Science & Technology Degree (20/21)',
-      description: 'A community of computer science students and professionals sharing knowledge, projects, and career insights.',
-      members: 15432,
-      image: '/brain-logo.png',
-      category: 'Technology'
-    },
-    {
-      id: 'product-mgmt-group',
-      name: 'Product Management Forum',
-      description: 'Dedicated to product managers, owners, and strategists. Share best practices, tools, and industry insights.',
-      members: 8765,
-      image: '/brain-logo.png',
-      category: 'Business'
-    },
-    {
-      id: 'startup-founders-group',
-      name: 'Startup Founders Network',
-      description: 'Connect with fellow entrepreneurs, share challenges, and learn from each other\'s startup journey experiences.',
-      members: 4120,
-      image: '/brain-logo.png',
-      category: 'Entrepreneurship'
-    },
-    {
-      id: 'digital-marketing-group',
-      name: 'Digital Marketing Masters',
-      description: 'A hub for digital marketers to discuss SEO, SEM, social media, content strategy, and emerging trends.',
-      members: 11200,
-      image: '/brain-logo.png',
-      category: 'Marketing'
-    }
-  ];
-
-  // ✅ UPDATED: Handle group joining with improved error handling
-  const handleJoinGroup = async (groupId, groupName) => {
-    if (!user?.id || joiningGroups.has(groupId)) return;
-
-    setJoiningGroups(prev => new Set([...prev, groupId]));
-
+  const loadDashboardData = async () => {
     try {
-      // Use the new group service instead of direct Firestore calls
-      const result = await groupService.joinGroup(groupId, user.id);
+      setLoading(true);
 
-      if (result.success) {
-        // Update local state
-        setUserProfile(prev => ({
-          ...prev,
-          joinedGroups: [...(prev.joinedGroups || []), groupId]
-        }));
+      // Load user stats
+      const userDoc = await getDocs(doc(db, 'users', user.id));
+      const userData = userDoc.data();
 
-        setSuggestedGroups(prev =>
-            prev.filter(group => group.id !== groupId)
-        );
+      // Calculate connections (friends count)
+      const connections = userData?.friends?.length || 0;
 
-        setStats(prev => ({
-          ...prev,
-          groupsJoined: prev.groupsJoined + 1
-        }));
+      // Calculate likes (posts liked)
+      const likes = userData?.postsLiked?.length || 0;
 
-        // Show success message
-        alert(result.message);
-      } else {
-        // Show error message from the service
-        alert(result.message);
-      }
+      // Calculate requests (active requests count)
+      const requestsQuery = query(
+        collection(db, 'requests'),
+        where('requesterId', '==', user.id),
+        where('status', 'in', ['active', 'pending', 'accepted'])
+      );
+      const requestsSnapshot = await getDocs(requestsQuery);
+      const requests = requestsSnapshot.size;
+
+      // Calculate groups (joined groups count)
+      const groups = userData?.groupsJoined?.length || 0;
+
+      // Calculate earnings (from completed requests)
+      const earningsQuery = query(
+        collection(db, 'requests'),
+        where('requesterId', '==', user.id),
+        where('status', '==', 'completed')
+      );
+      const earningsSnapshot = await getDocs(earningsQuery);
+      let totalEarnings = 0;
+      earningsSnapshot.forEach(doc => {
+        const requestData = doc.data();
+        if (requestData.budget) {
+          totalEarnings += parseFloat(requestData.budget);
+        }
+      });
+
+      setStats({
+        connections,
+        likes,
+        requests,
+        groups,
+        earnings: totalEarnings
+      });
+
+      // Generate chart data for the last 7 days
+      const chartData = generateChartData({
+        connections,
+        likes,
+        requests,
+        groups,
+        earnings: totalEarnings
+      });
+      setChartData(chartData);
+
+      // Load suggested groups (groups user hasn't joined)
+      const groupsQuery = query(
+        collection(db, 'groups'),
+        orderBy('createdAt', 'desc'),
+        limit(20) // Load more to filter out joined ones
+      );
+      const groupsSnapshot = await getDocs(groupsQuery);
+      const allGroups = groupsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      // Filter out groups the user has already joined
+      const userJoinedGroups = userData?.groupsJoined || [];
+      const suggestedGroups = allGroups.filter(group => 
+        !userJoinedGroups.includes(group.id)
+      ).slice(0, 6); // Take first 6 after filtering
+      
+      setSuggestedGroups(suggestedGroups);
+
+      // Load recent requests
+      const recentRequestsQuery = query(
+        collection(db, 'requests'),
+        where('requesterId', '==', user.id),
+        orderBy('createdAt', 'desc'),
+        limit(4)
+      );
+      const recentRequestsSnapshot = await getDocs(recentRequestsQuery);
+      const requestsData = recentRequestsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setRecentRequests(requestsData);
 
     } catch (error) {
-      console.error('Error joining group:', error);
-      alert('An unexpected error occurred. Please try again.');
+      console.error('Error loading dashboard data:', error);
     } finally {
-      setJoiningGroups(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(groupId);
-        return newSet;
+      setLoading(false);
+    }
+  };
+
+  const generateChartData = (currentStats) => {
+    const days = 7;
+    const data = {
+      connections: [],
+      likes: [],
+      requests: [],
+      groups: [],
+      earnings: []
+    };
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      // Generate realistic progression data
+      const progress = Math.min(0.9, (days - i) / days);
+      
+      data.connections.push({
+        date: dateStr,
+        value: Math.round(currentStats.connections * progress)
+      });
+      
+      data.likes.push({
+        date: dateStr,
+        value: Math.round(currentStats.likes * progress)
+      });
+      
+      data.requests.push({
+        date: dateStr,
+        value: Math.round(currentStats.requests * progress)
+      });
+      
+      data.groups.push({
+        date: dateStr,
+        value: Math.round(currentStats.groups * progress)
+      });
+      
+      data.earnings.push({
+        date: dateStr,
+        value: Math.round(currentStats.earnings * progress)
       });
     }
+
+    return data;
   };
 
-  // ✅ NEW: Add function for leaving groups
-  const handleLeaveGroup = async (groupId, groupName) => {
-    if (!user?.id) return;
+  const renderChart = (data, color, title) => {
+    const maxValue = Math.max(...data.map(d => d.value));
+    const minHeight = 60;
 
-    const confirmLeave = window.confirm(`Are you sure you want to leave "${groupName}"?`);
-    if (!confirmLeave) return;
-
-    try {
-      const result = await groupService.leaveGroup(groupId, user.id);
-
-      if (result.success) {
-        // Update local state
-        setUserProfile(prev => ({
-          ...prev,
-          joinedGroups: (prev.joinedGroups || []).filter(id => id !== groupId)
-        }));
-
-        setStats(prev => ({
-          ...prev,
-          groupsJoined: Math.max(0, prev.groupsJoined - 1)
-        }));
-
-        // Show success message
-        alert(result.message);
-      } else {
-        alert(result.message);
-      }
-
-    } catch (error) {
-      console.error('Error leaving group:', error);
-      alert('An unexpected error occurred. Please try again.');
-    }
-  };
-
-  // Format time ago
-  const formatTimeAgo = (date) => {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
-  };
-
-  // ✅ UPDATED: Show loading screen while auth is being determined OR user profile is loading
-  if (authLoading || (!authInitialized) || (isAuthenticated && loading)) {
     return (
-        <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
-            <p className="mt-4 text-[#A0AEC0] text-lg">
-              {authLoading || !authInitialized ? 'Checking authentication...' : 'Loading your dashboard...'}
-            </p>
-            <p className="mt-2 text-[#718096] text-sm">
-              {authLoading ? 'Verifying your login status...' : 
-               !authInitialized ? 'Initializing application...' : 'Preparing your personalized dashboard...'}
-            </p>
-            {/* Add a progress indicator */}
-            <div className="mt-6 w-64 bg-[#2D3748] rounded-full h-2 mx-auto">
-              <div className="bg-[#4299E1] h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
-            </div>
-          </div>
+      <div className="bg-[#2D3748] rounded-lg p-4">
+        <h4 className="text-sm font-medium text-white mb-3 text-center">{title}</h4>
+        <div className="flex items-end justify-between h-20 gap-1">
+          {data.map((item, index) => {
+            const height = maxValue > 0 ? (item.value / maxValue) * minHeight : 0;
+            return (
+              <div key={index} className="flex-1 flex flex-col items-center">
+                <div
+                  className="w-full rounded-t transition-all duration-300 hover:opacity-80"
+                  style={{
+                    height: `${Math.max(height, 4)}px`,
+                    backgroundColor: color
+                  }}
+                />
+                <span className="text-xs text-[#A0AEC0] mt-1 text-center">
+                  {item.date}
+                </span>
+              </div>
+            );
+          })}
         </div>
+        <div className="text-center mt-2">
+          <span className="text-lg font-bold text-white">
+            {data[data.length - 1]?.value || 0}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
+          <p className="mt-4 text-[#A0AEC0] text-lg">Loading your dashboard...</p>
+        </div>
+      </div>
     );
   }
 
-  // ======================================
-  // VISITOR/UNAUTHENTICATED VIEW
-  // ======================================
-  if (!isAuthenticated) {
-    return (
-        <div className="min-h-screen bg-[#1A202C]">
-          {/* Hero Section */}
-          <section className="relative overflow-hidden">
-            {/* Background Image with Overlay */}
-            <div className="absolute inset-0 bg-[#1A202C]">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#1A202C] via-[#2D3748] to-[#1A202C] opacity-90"></div>
-            </div>
-            
-            <div className="relative max-w-7xl mx-auto px-4 py-32 text-center">
-              {/* Small Text Above Headline */}
-              <p className="text-[#FFD700] text-sm font-medium uppercase tracking-wider mb-4">
-                MORE THAN A WEBSITE BUILDER
-              </p>
-              
-              {/* Main Headline with Gradient */}
-              <h1 className="text-6xl md:text-7xl font-bold mb-8 gradient-text leading-tight">
-                YOUR SITE SHOULD DO<br />
-                MORE THAN LOOK GOOD
-              </h1>
-              
-              {/* Description */}
-              <p className="text-xl md:text-2xl mb-12 text-white max-w-4xl mx-auto leading-relaxed">
-                Learn how to build stunning, fully responsive websites using the power of React 19 and Tailwind CSS v4 — from start to finish.
-              </p>
-              
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <Link
-                    to="/signup"
-                    className="btn-gradient-primary px-10 py-4 rounded-lg font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl"
-                >
-                  Login
-                </Link>
-                <Link
-                    to="/login"
-                    className="btn-secondary px-10 py-4 rounded-lg font-bold text-lg transition-all duration-300"
-                >
-                  Help
-                </Link>
-              </div>
-            </div>
-          </section>
-
-          {/* Platform Stats */}
-          <section className="py-20 bg-[#2D3748]">
-            <div className="max-w-7xl mx-auto px-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                <div className="card-dark p-6 hover:scale-105 transition-transform duration-300">
-                  <div className="text-4xl md:text-5xl font-bold gradient-text mb-3">{stats_public.users}</div>
-                  <div className="text-white font-medium">Active Users</div>
-                </div>
-                <div className="card-dark p-6 hover:scale-105 transition-transform duration-300">
-                  <div className="text-4xl md:text-5xl font-bold gradient-text mb-3">{stats_public.groups}</div>
-                  <div className="text-white font-medium">Learning Groups</div>
-                </div>
-                <div className="card-dark p-6 hover:scale-105 transition-transform duration-300">
-                  <div className="text-4xl md:text-5xl font-bold gradient-text mb-3">{stats_public.sessions}</div>
-                  <div className="text-white font-medium">Sessions Completed</div>
-                </div>
-                <div className="card-dark p-6 hover:scale-105 transition-transform duration-300">
-                  <div className="text-4xl md:text-5xl font-bold gradient-text mb-3">{stats_public.countries}</div>
-                  <div className="text-white font-medium">Countries</div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Features Section */}
-          <section className="py-20 bg-[#1A202C]">
-            <div className="max-w-7xl mx-auto px-4">
-              <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-white mb-4">Why Choose Skill-Net?</h2>
-                <p className="text-xl text-[#E0E0E0] max-w-2xl mx-auto">
-                  Everything you need to advance your career through meaningful connections and continuous learning
+  return (
+    <div className="min-h-screen bg-[#1A202C]">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8">
+        <div className="flex-1 flex flex-col gap-8 min-w-0">
+          {/* Welcome Banner */}
+          <section className="card-dark p-8 flex flex-col items-center text-center mb-2">
+            <div className="flex items-center gap-4 mb-4 w-full max-w-full">
+              <img
+                src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || user?.name}&background=3b82f6&color=fff`}
+                alt={user?.displayName || user?.name}
+                className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1] flex-shrink-0"
+              />
+              <div className="min-w-0 flex-1 max-w-full">
+                <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white break-words" title={user?.displayName || user?.name || 'User'}>
+                  Welcome Back, {user?.displayName || user?.name || 'User'}!
+                </h1>
+                <p className="text-[#A0AEC0] text-sm break-all" title={user?.email}>
+                  {user?.email}
                 </p>
               </div>
-
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                {features.map((feature, index) => (
-                    <div key={index} className="card-dark p-8 hover:scale-105 transition-all duration-300 group">
-                      <div className="text-5xl mb-6 group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
-                      <h3 className="text-xl font-bold text-white mb-4">{feature.title}</h3>
-                      <p className="text-[#E0E0E0] leading-relaxed">{feature.description}</p>
-                    </div>
-                ))}
-              </div>
             </div>
-          </section>
-
-          {/* Testimonials */}
-          <section className="py-20 bg-[#2D3748]">
-            <div className="max-w-7xl mx-auto px-4">
-              <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-white mb-4">What Our Members Say</h2>
-                <p className="text-xl text-[#E0E0E0]">Real stories from real professionals</p>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-8">
-                {testimonials.map((testimonial, index) => (
-                    <div key={index} className="card-dark p-8 hover:scale-105 transition-all duration-300">
-                      <div className="flex items-center mb-6">
-                        <img
-                            src={testimonial.avatar}
-                            alt={testimonial.name}
-                            className="w-14 h-14 rounded-full mr-4 border-2 border-[#4299E1]"
-                        />
-                        <div>
-                          <div className="font-bold text-white text-lg">{testimonial.name}</div>
-                          <div className="text-[#A0AEC0] text-sm">{testimonial.role}</div>
-                        </div>
-                      </div>
-                      <p className="text-[#E0E0E0] italic text-lg leading-relaxed">"{testimonial.quote}"</p>
-                    </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* CTA Section */}
-          <section className="py-20 bg-gradient-to-r from-[#4299E1] to-[#8B5CF6] text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#1A202C] via-[#2D3748] to-[#1A202C] opacity-80"></div>
-            <div className="relative max-w-4xl mx-auto px-4 text-center">
-              <h2 className="text-4xl font-bold mb-6">Ready to Transform Your Career?</h2>
-              <p className="text-xl mb-8 text-[#E0E0E0]">
-                Join thousands of professionals who are already growing their networks and skills
-              </p>
+            <p className="text-[#E0E0E0] mb-6 break-words">Connect. Collaborate. Grow. Your professional journey continues here.</p>
+            <div className="flex gap-4 flex-wrap">
               <Link
-                  to="/signup"
-                  className="btn-gradient-primary px-10 py-4 rounded-lg font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl inline-block"
+                to="/profile"
+                className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold transition-all duration-300"
               >
-                Start Your Journey Today
+                View Profile
+              </Link>
+              <Link
+                to="/friends"
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-300"
+              >
+                💬 Friends & Chat
               </Link>
             </div>
           </section>
 
 
-        </div>
-    );
-  }
 
-  // ======================================
-  // AUTHENTICATED USER VIEW
-  // ======================================
-  return (
-      <div className="min-h-screen bg-[#1A202C]">
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8">
-          <div className="flex-1 flex flex-col gap-8 min-w-0">
-            {/* Welcome Banner with Dynamic User Data */}
-            <section className="card-dark p-8 flex flex-col items-center text-center mb-2">
-              <div className="flex items-center gap-4 mb-4 w-full max-w-full">
-                <img
-                    src={userProfile?.avatar}
-                    alt={userProfile?.displayName}
-                    className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1] flex-shrink-0"
-                />
-                <div className="min-w-0 flex-1 max-w-full">
-                  <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white break-words" title={userProfile?.displayName || 'User'}>
-                    Welcome Back, {userProfile?.displayName || 'User'}!
-                  </h1>
-                  <p className="text-[#A0AEC0] text-sm break-all" title={userProfile?.email}>
-                    {userProfile?.email}
+          {/* Recent Requests */}
+          <section className="card-dark p-6 mb-2">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Recent Requests</h2>
+              <Link
+                to="/requests/my-requests"
+                className="text-[#4299E1] hover:text-[#3182CE] transition-colors"
+              >
+                View All →
+              </Link>
+            </div>
+            <div className="space-y-4">
+              {recentRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="bg-[#2D3748] rounded-lg p-4 hover:bg-[#4A5568] transition-colors duration-200"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-white truncate flex-1 mr-4">
+                      {request.title || 'Untitled Request'}
+                    </h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      request.status === 'active' ? 'bg-green-600 text-white' :
+                      request.status === 'pending' ? 'bg-yellow-600 text-white' :
+                      request.status === 'accepted' ? 'bg-blue-600 text-white' :
+                      'bg-gray-600 text-white'
+                    }`}>
+                      {request.status}
+                    </span>
+                  </div>
+                  <p className="text-[#A0AEC0] text-sm mb-3 line-clamp-2">
+                    {request.description || 'No description available'}
                   </p>
+                  <div className="flex items-center justify-between text-xs text-[#A0AEC0]">
+                    <span>Budget: Rs. {request.budget || 'Not specified'}</span>
+                    <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Unknown date'}</span>
+                  </div>
                 </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Right Sidebar */}
+        <aside className="w-full xl:w-96 flex flex-col gap-8 min-w-0">
+          {/* Enhanced Dashboard with Five Stats */}
+          <section className="card-dark p-6 flex flex-col items-center mb-2">
+            <h3 className="text-base font-bold mb-4 text-white break-words">My Dashboard</h3>
+            <div className="grid grid-cols-1 gap-4 w-full text-center">
+              <div className="p-4 bg-gradient-to-br from-[#4299E1] to-[#00BFFF] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                <div className="text-2xl font-bold">{stats.connections.toLocaleString()}</div>
+                <div className="text-sm opacity-90">Connections</div>
               </div>
-              <p className="text-[#E0E0E0] mb-6 break-words">Connect. Collaborate. Grow. Your professional journey continues here.</p>
-              <div className="flex gap-4 flex-wrap">
-                <Link
-                    to="/profile"
-                    className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold transition-all duration-300"
+              <div className="p-4 bg-gradient-to-br from-[#48BB78] to-[#38A169] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                <div className="text-2xl font-bold">{stats.likes.toLocaleString()}</div>
+                <div className="text-sm opacity-90">Likes</div>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-[#8B5CF6] to-[#A855F7] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                <div className="text-2xl font-bold">{stats.requests.toLocaleString()}</div>
+                <div className="text-sm opacity-90">Requests</div>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-[#ED8936] to-[#F56565] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                <div className="text-2xl font-bold">{stats.groups.toLocaleString()}</div>
+                <div className="text-sm opacity-90">Groups</div>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-[#F6AD55] to-[#ED8936] rounded-lg text-white hover:scale-105 transition-transform duration-200">
+                <div className="text-2xl font-bold">Rs. {stats.earnings.toLocaleString()}</div>
+                <div className="text-sm opacity-90">Earnings</div>
+              </div>
+            </div>
+          </section>
+
+
+
+          {/* Recent Requests */}
+          <section className="card-dark p-6 mb-2">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Recent Requests</h2>
+              <Link
+                to="/requests/my-requests"
+                className="text-[#4299E1] hover:text-[#3182CE] transition-colors"
+              >
+                View All →
+              </Link>
+            </div>
+            <div className="space-y-4">
+              {recentRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="bg-[#2D3748] rounded-lg p-4 hover:bg-[#4A5568] transition-colors duration-200"
                 >
-                  View Profile
-                </Link>
-                <Link
-                    to="/test-jitsi"
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-300"
-                >
-                  🧪 Test Jitsi
-                </Link>
-              </div>
-            </section>
-
-            {/* Recent Activities with Real Data */}
-            <section className="card-dark p-6 mb-2">
-              <div className="flex justify-between items-center mb-4 min-w-0">
-                <h2 className="text-xl font-bold text-white break-words flex-1 min-w-0">Recent Activities</h2>
-                <Link to="/activities" className="text-[#4299E1] text-sm font-medium hover:underline flex-shrink-0 ml-2">
-                  View All
-                </Link>
-              </div>
-
-              {loadingActivities ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4299E1]"></div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-white truncate flex-1 mr-4">
+                      {request.title || 'Untitled Request'}
+                    </h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      request.status === 'active' ? 'bg-green-600 text-white' :
+                      request.status === 'pending' ? 'bg-yellow-600 text-white' :
+                      request.status === 'accepted' ? 'bg-blue-600 text-white' :
+                      'bg-gray-600 text-white'
+                    }`}>
+                      {request.status}
+                    </span>
                   </div>
-              ) : activities.length > 0 ? (
-                  <ul className="flex flex-col gap-4">
-                    {activities.map((activity) => (
-                        <li key={activity.id} className="flex items-start justify-between hover:bg-[#2D3748] p-3 rounded-lg transition-colors duration-200">
-                          <div className="flex items-start gap-3 min-w-0 flex-1">
-                            <img
-                                src={activity.actorAvatar}
-                                alt={activity.actorName}
-                                className="w-8 h-8 rounded-full object-cover border border-[#4A5568] flex-shrink-0"
-                            />
-                            <div className="min-w-0 flex-1 max-w-full">
-                        <span className="text-white block break-words">
-                          <b className="text-[#4299E1] break-words">{activity.actorName}</b> <span className="text-[#E0E0E0] break-words">{activity.action}</span>
-                        </span>
-                              {activity.description && (
-                                  <div className="text-[#A0AEC0] text-xs mt-1 line-clamp-2 break-words" title={activity.description}>{activity.description}</div>
-                              )}
-                              <span className="text-[#A0AEC0] text-xs block mt-1 break-words">
-                          {formatTimeAgo(activity.timestamp)}
-                        </span>
-                            </div>
-                          </div>
-                          {activity.actionable && (
-                              <Link
-                                  to={`/profile/${activity.actorId || '#'}`}
-                                  className="text-[#4299E1] text-sm font-medium hover:text-[#00BFFF] transition-colors flex-shrink-0 ml-2"
-                              >
-                                View Profile
-                              </Link>
-                          )}
-                        </li>
-                    ))}
-                  </ul>
-              ) : (
-                  <div className="text-center py-8 text-[#A0AEC0]">
-                    <p>No recent activities to show.</p>
-                    <Link to="/explore" className="text-[#4299E1] hover:text-[#00BFFF] transition-colors">
-                      Explore the network to get started
-                    </Link>
+                  <p className="text-[#A0AEC0] text-sm mb-3 line-clamp-2">
+                    {request.description || 'No description available'}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-[#A0AEC0]">
+                    <span>Budget: Rs. {request.budget || 'Not specified'}</span>
+                    <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Unknown date'}</span>
                   </div>
-              )}
-            </section>
-
-
-          </div>
-
-          {/* Right Sidebar */}
-          <aside className="w-full xl:w-96 flex flex-col gap-8 min-w-0">
-            {/* Enhanced Dashboard with Real Stats */}
-            <section className="card-dark p-6 flex flex-col items-center mb-2">
-              <h3 className="text-base font-bold mb-4 text-white break-words">My Dashboard</h3>
-              <div className="grid grid-cols-2 gap-4 w-full text-center">
-                <div className="p-4 bg-gradient-to-br from-[#4299E1] to-[#00BFFF] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                  <div className="text-2xl font-bold">{stats.connections.toLocaleString()}</div>
-                  <div className="text-sm opacity-90">Connections</div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-[#48BB78] to-[#38A169] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                  <div className="text-2xl font-bold">{stats.groupsJoined}</div>
-                  <div className="text-sm opacity-90">Groups</div>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-[#8B5CF6] to-[#A855F7] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                  <div className="text-2xl font-bold">{stats.postsLiked}</div>
-                  <div className="text-sm opacity-90">Posts Liked</div>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-[#ED8936] to-[#F56565] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                  <div className="text-2xl font-bold">{stats.profileViews}</div>
-                  <div className="text-sm opacity-90">Profile Views</div>
-                </div>
-              </div>
-            </section>
-
-            {/* Interactive Suggested Groups */}
-            <section className="card-dark p-6 mb-2">
-              <h3 className="text-base font-bold mb-4 text-white break-words">Suggested Groups</h3>
-              {suggestedGroups.length > 0 ? (
-                  <div className="space-y-4">
-                    {suggestedGroups.slice(0, 4).map((group) => (
-                        <div key={group.id} className="group bg-[#1A202C] rounded-lg p-4 hover:bg-[#2D3748] transition-all duration-200 border border-[#2D3748] hover:border-[#4A5568]">
-                          <div className="flex items-start gap-4 w-full">
-                            {/* Group Image */}
-                            <div className="flex-shrink-0">
-                              <img
-                                  src={group.image || "/brain-logo.png"}
-                                  alt={group.name}
-                                  className="w-16 h-16 rounded-lg object-cover border-2 border-[#4A5568] group-hover:border-[#4299E1] transition-colors duration-200"
-                                  onError={(e) => {
-                                    e.target.src = "/brain-logo.png";
-                                    e.target.onerror = null;
-                                  }}
-                              />
-                            </div>
-                            
-                            {/* Group Content */}
-                            <div className="flex-1 min-w-0 max-w-full">
-                              <h4 className="font-semibold text-sm text-white mb-1 line-clamp-1 group-hover:text-[#4299E1] transition-colors duration-200 break-words" title={group.name}>
-                                {group.name}
-                              </h4>
-                              <div className="text-xs text-[#A0AEC0] mb-2 break-words">
-                                {group.members?.toLocaleString() || 0} Members
-                              </div>
-                              <p className="text-xs text-[#E0E0E0] mb-3 line-clamp-2 leading-relaxed break-words" title={group.description}>
-                                {group.description}
-                              </p>
-                              {group.category && (
-                                  <span className="inline-block px-2 py-1 bg-[#4A5568] text-[#E0E0E0] text-xs rounded-full border border-[#2D3748] break-words">
-                                    {group.category}
-                                  </span>
-                              )}
-                            </div>
-                            
-                            {/* Join Button */}
-                            <div className="flex-shrink-0">
-                              <button
-                                  onClick={() => handleJoinGroup(group.id, group.name)}
-                                  disabled={joiningGroups.has(group.id)}
-                                  className="btn-gradient-primary px-4 py-2 font-medium text-xs rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
-                              >
-                                {joiningGroups.has(group.id) ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                                        <span>Joining...</span>
-                                    </div>
-                                ) : (
-                                    'Join Group'
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                    ))}
-                  </div>
-              ) : (
-                  <div className="text-center py-8 text-[#A0AEC0]">
-                    <div className="text-4xl mb-3">👥</div>
-                    <p className="mb-3">No new groups to suggest right now.</p>
-                    <Link 
-                        to="/groups" 
-                        className="inline-flex items-center gap-2 text-[#4299E1] hover:text-[#00BFFF] transition-colors text-sm font-medium hover:underline"
-                    >
-                        <span>Browse all groups</span>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </Link>
-                  </div>
-              )}
-            </section>
-
-
-          </aside>
-        </main>
-
-
-      </div>
+              ))}
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
   );
 }

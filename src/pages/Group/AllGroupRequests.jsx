@@ -537,6 +537,22 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     {participantCount > 0 ? `👥 ${participantCount} participants joined` : '❌ Cannot join (not a group member)'}
                   </div>
               )}
+
+              {/* Want to Teach Button - Only show if not participating, has permissions, and is not the owner */}
+              {!isParticipating && !isOwner && permissions.canParticipate && !permissions.isLoading && (
+                  <div className="mt-2">
+                    <button
+                        onClick={handleParticipation}
+                        disabled={loading}
+                        className="w-full bg-green-600 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
+                    >
+                        {loading ? 'Processing...' : '🎯 Want to Teach'}
+                    </button>
+                    <p className="text-xs text-gray-500 text-center mt-1">
+                        Join as a teacher/mentor for this session
+                    </p>
+                  </div>
+              )}
             </div>
         )}
 

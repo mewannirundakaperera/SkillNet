@@ -43,6 +43,32 @@ export default function Settings() {
     currency: "LKR"
   });
 
+  // Payment methods state
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [paymentGateways, setPaymentGateways] = useState([]);
+  const [addingPaymentMethod, setAddingPaymentMethod] = useState(false);
+  const [connectingGateway, setConnectingGateway] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    cardholderName: '',
+    billingAddress: ''
+  });
+
+  // Security state for payment methods
+  const [securityPin, setSecurityPin] = useState('');
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+  const [securityVerified, setSecurityVerified] = useState(false);
+  const [securityAttempts, setSecurityAttempts] = useState(0);
+  const [securityLocked, setSecurityLocked] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState(false);
+  const [editForm, setEditForm] = useState({
+    cardholderName: '',
+    billingAddress: ''
+  });
+
   // Profile form state
   const [profileForm, setProfileForm] = useState({
     displayName: '',
@@ -87,6 +113,16 @@ export default function Settings() {
               ...result.userData.settings
             }));
           }
+
+          // Load payment methods if they exist
+          if (result.userData.paymentMethods) {
+            setPaymentMethods(result.userData.paymentMethods);
+          }
+
+          // Load payment gateways if they exist
+          if (result.userData.paymentGateways) {
+            setPaymentGateways(result.userData.paymentGateways);
+          }
         } else {
           // Fallback to basic user data
           const fallbackData = {
@@ -127,6 +163,211 @@ export default function Settings() {
       ...prev,
       [key]: value
     }));
+  };
+
+  // Handle payment form changes
+  const handlePaymentFormChange = (key, value) => {
+    setPaymentForm(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  // Add new payment method
+  const handleAddPaymentMethod = async () => {
+    if (!paymentForm.cardNumber || !paymentForm.expiryDate || !paymentForm.cvv || !paymentForm.cardholderName) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setAddingPaymentMethod(true);
+      
+      // Simulate payment method validation and addition
+      const newPaymentMethod = {
+        id: Date.now().toString(),
+        type: 'credit_card',
+        last4: paymentForm.cardNumber.slice(-4),
+        brand: getCardBrand(paymentForm.cardNumber),
+        expiryDate: paymentForm.expiryDate,
+        cardholderName: paymentForm.cardholderName,
+        isDefault: paymentMethods.length === 0,
+        addedAt: new Date().toISOString()
+      };
+
+      // Add to local state
+      setPaymentMethods(prev => [...prev, newPaymentMethod]);
+      
+      // Clear form
+      setPaymentForm({
+        cardNumber: '',
+        expiryDate: '',
+        cvv: '',
+        cardholderName: '',
+        billingAddress: ''
+      });
+
+      alert('Payment method added successfully!');
+    } catch (error) {
+      console.error('Error adding payment method:', error);
+      alert('Failed to add payment method. Please try again.');
+    } finally {
+      setAddingPaymentMethod(false);
+    }
+  };
+
+  // Remove payment method
+  const handleRemovePaymentMethod = (methodId) => {
+    if (window.confirm('Are you sure you want to remove this payment method?')) {
+      setPaymentMethods(prev => prev.filter(method => method.id !== methodId));
+      alert('Payment method removed successfully!');
+    }
+  };
+
+  // Set default payment method
+  const handleSetDefaultPaymentMethod = (methodId) => {
+    setPaymentMethods(prev => prev.map(method => ({
+      ...method,
+      isDefault: method.id === methodId
+    })));
+    alert('Default payment method updated!');
+  };
+
+  // Connect to payment gateway
+  const handleConnectGateway = async (gatewayName) => {
+    try {
+      setConnectingGateway(true);
+      
+      // Simulate gateway connection
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const newGateway = {
+        id: Date.now().toString(),
+        name: gatewayName,
+        status: 'connected',
+        connectedAt: new Date().toISOString(),
+        lastSync: new Date().toISOString()
+      };
+
+      setPaymentGateways(prev => [...prev, newGateway]);
+      alert(`${gatewayName} connected successfully!`);
+    } catch (error) {
+      console.error('Error connecting to gateway:', error);
+      alert('Failed to connect to payment gateway. Please try again.');
+    } finally {
+      setConnectingGateway(false);
+    }
+  };
+
+  // Disconnect payment gateway
+  const handleDisconnectGateway = (gatewayId) => {
+    if (window.confirm('Are you sure you want to disconnect this payment gateway?')) {
+      setPaymentGateways(prev => prev.filter(gateway => gateway.id !== gatewayId));
+      alert('Payment gateway disconnected successfully!');
+    }
+  };
+
+  // Get card brand from card number
+  const getCardBrand = (cardNumber) => {
+    const number = cardNumber.replace(/\s/g, '');
+    if (/^4/.test(number)) return 'Visa';
+    if (/^5[1-5]/.test(number)) return 'Mastercard';
+    if (/^3[47]/.test(number)) return 'American Express';
+    if (/^6/.test(number)) return 'Discover';
+    return 'Unknown';
+  };
+
+  // Security verification for payment methods
+  const verifySecurityPin = () => {
+    // In a real app, this would verify against stored security PIN
+    const correctPin = '1234'; // This should come from user settings or be set by user
+    
+    if (securityPin === correctPin) {
+      setSecurityVerified(true);
+      setSecurityAttempts(0);
+      setSecurityPin('');
+      return true;
+    } else {
+      setSecurityAttempts(prev => prev + 1);
+      setSecurityPin('');
+      
+      if (securityAttempts >= 2) {
+        setSecurityLocked(true);
+        setTimeout(() => {
+          setSecurityLocked(false);
+          setSecurityAttempts(0);
+        }, 300000); // Lock for 5 minutes after 3 failed attempts
+      }
+      
+      return false;
+    }
+  };
+
+  // Handle security pin input
+  const handleSecurityPinChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setSecurityPin(value);
+  };
+
+  // Show payment method details with security
+  const handleShowPaymentDetails = (method) => {
+    setSelectedPaymentMethod(method);
+    setShowPaymentDetails(true);
+    setSecurityVerified(false);
+  };
+
+  // Edit payment method with security
+  const handleEditPaymentMethod = (method) => {
+    setSelectedPaymentMethod(method);
+    setEditForm({
+      cardholderName: method.cardholderName,
+      billingAddress: method.billingAddress || ''
+    });
+    setEditingPaymentMethod(true);
+    setSecurityVerified(false);
+  };
+
+  // Save edited payment method
+  const handleSaveEdit = () => {
+    if (!selectedPaymentMethod) return;
+
+    setPaymentMethods(prev => prev.map(method => 
+      method.id === selectedPaymentMethod.id 
+        ? { ...method, ...editForm }
+        : method
+    ));
+
+    setEditingPaymentMethod(false);
+    setSelectedPaymentMethod(null);
+    setSecurityVerified(false);
+    alert('Payment method updated successfully!');
+  };
+
+  // Cancel edit mode
+  const handleCancelEdit = () => {
+    setEditingPaymentMethod(false);
+    setSelectedPaymentMethod(null);
+    setSecurityVerified(false);
+    setEditForm({
+      cardholderName: '',
+      billingAddress: ''
+    });
+  };
+
+  // Mask sensitive payment information
+  const maskCardNumber = (cardNumber) => {
+    if (!cardNumber) return '';
+    const last4 = cardNumber.slice(-4);
+    return `•••• •••• •••• ${last4}`;
+  };
+
+  // Mask CVV
+  const maskCVV = () => '•••';
+
+  // Mask expiry date (show only month/year)
+  const maskExpiryDate = (expiryDate) => {
+    if (!expiryDate) return '';
+    return expiryDate.replace(/\d(?=\d{2})/g, '•');
   };
 
   // Handle profile picture upload
@@ -274,6 +515,12 @@ export default function Settings() {
             </a>
             <a href="#account" onClick={handleAccountClick} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
               Account Management
+            </a>
+            <a href="#payments" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
+              💳 Payment Methods
+            </a>
+            <a href="#gateways" className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
+              🔗 Payment Gateways
             </a>
           </nav>
           <div className="mt-6 pt-4 border-t border-[#4A5568]">
@@ -516,6 +763,31 @@ export default function Settings() {
                 <span className="text-xs text-[#A0AEC0]">Add an extra layer of security to your account.</span>
               </label>
 
+              {/* Payment Security PIN */}
+              <div className="bg-[#2D3748] rounded-lg p-4 border border-[#4A5568]">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <span className="font-semibold text-white">Payment Security PIN</span>
+                    <p className="text-xs text-[#A0AEC0]">4-digit PIN required to view/edit payment methods</p>
+                  </div>
+                  <div className="text-xs text-[#A0AEC0]">
+                    Current PIN: ••••
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    placeholder="Enter 4-digit PIN"
+                    maxLength="4"
+                    className="input-dark px-3 py-2 text-sm w-32 text-center tracking-widest"
+                    readOnly
+                  />
+                  <button className="border border-[#4A5568] rounded px-3 py-2 text-xs font-semibold hover:bg-[#2D3748] text-[#E0E0E0] transition-colors">
+                    Change PIN
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div>
                   <span className="font-semibold text-white">Active Sessions</span>
@@ -580,6 +852,412 @@ export default function Settings() {
               </div>
             </div>
           </section>
+
+          {/* Payment Methods */}
+          <section id="payments" className="card-dark p-6">
+            <h2 className="font-semibold mb-4 text-white">Payment Methods</h2>
+            <div className="space-y-4">
+              {/* Add New Payment Method */}
+              <div className="bg-[#2D3748] rounded-lg p-4 border border-[#4A5568]">
+                <h3 className="font-medium text-white mb-3">Add New Payment Method</h3>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-[#A0AEC0]">Card Number</label>
+                    <input
+                      type="text"
+                      placeholder="1234 5678 9012 3456"
+                      value={paymentForm.cardNumber}
+                      onChange={(e) => handlePaymentFormChange('cardNumber', e.target.value)}
+                      className="input-dark w-full px-3 py-2 text-sm"
+                      maxLength="19"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-[#A0AEC0]">Expiry Date</label>
+                    <input
+                      type="text"
+                      placeholder="MM/YY"
+                      value={paymentForm.expiryDate}
+                      onChange={(e) => handlePaymentFormChange('expiryDate', e.target.value)}
+                      className="input-dark w-full px-3 py-2 text-sm"
+                      maxLength="5"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-[#A0AEC0]">CVV</label>
+                    <input
+                      type="text"
+                      placeholder="123"
+                      value={paymentForm.cvv}
+                      onChange={(e) => handlePaymentFormChange('cvv', e.target.value)}
+                      className="input-dark w-full px-3 py-2 text-sm"
+                      maxLength="4"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-[#A0AEC0]">Cardholder Name</label>
+                    <input
+                      type="text"
+                      placeholder="John Doe"
+                      value={paymentForm.cardholderName}
+                      onChange={(e) => handlePaymentFormChange('cardholderName', e.target.value)}
+                      className="input-dark w-full px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-medium mb-1 text-[#A0AEC0]">Billing Address</label>
+                  <input
+                    type="text"
+                    placeholder="123 Main St, City, Country"
+                    value={paymentForm.billingAddress}
+                    onChange={(e) => handlePaymentFormChange('billingAddress', e.target.value)}
+                    className="input-dark w-full px-3 py-2 text-sm"
+                  />
+                </div>
+                <button
+                  onClick={handleAddPaymentMethod}
+                  disabled={addingPaymentMethod}
+                  className="bg-[#4299E1] text-white px-4 py-2 rounded text-sm font-medium hover:bg-[#3182CE] disabled:opacity-50 transition-colors"
+                >
+                  {addingPaymentMethod ? 'Adding...' : 'Add Payment Method'}
+                </button>
+              </div>
+
+              {/* Existing Payment Methods */}
+              {paymentMethods.length > 0 ? (
+                <div className="space-y-3">
+                  <h3 className="font-medium text-white">Your Payment Methods</h3>
+                  {paymentMethods.map((method) => (
+                    <div key={method.id} className="flex items-center justify-between bg-[#2D3748] rounded-lg p-3 border border-[#4A5568]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-6 bg-[#4299E1] rounded flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">{method.brand}</span>
+                        </div>
+                        <div>
+                          <div className="text-white text-sm font-medium">
+                            {maskCardNumber(method.cardNumber || `•••• •••• •••• ${method.last4}`)}
+                          </div>
+                          <div className="text-[#A0AEC0] text-xs">
+                            {method.cardholderName} • Expires {maskExpiryDate(method.expiryDate)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {method.isDefault && (
+                          <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded">Default</span>
+                        )}
+                        {!method.isDefault && (
+                          <button
+                            onClick={() => handleSetDefaultPaymentMethod(method.id)}
+                            className="text-[#4299E1] text-xs hover:underline"
+                          >
+                            Set Default
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleShowPaymentDetails(method)}
+                          className="text-[#4299E1] text-xs hover:underline"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleEditPaymentMethod(method)}
+                          className="text-yellow-400 text-xs hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleRemovePaymentMethod(method.id)}
+                          className="text-red-400 text-xs hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-[#A0AEC0]">
+                  <div className="text-2xl mb-2">💳</div>
+                  <p>No payment methods added yet</p>
+                  <p className="text-xs">Add a payment method to make transactions easier</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Payment Gateways */}
+          <section id="gateways" className="card-dark p-6">
+            <h2 className="font-semibold mb-4 text-white">Payment Gateways</h2>
+            <div className="space-y-4">
+              {/* Available Gateways */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { name: 'Stripe', description: 'Credit cards, digital wallets', icon: '💳' },
+                  { name: 'PayPal', description: 'PayPal accounts, credit cards', icon: '🔵' },
+                  { name: 'Razorpay', description: 'UPI, cards, net banking', icon: '💎' },
+                  { name: 'Square', description: 'Point of sale, online payments', icon: '⬜' }
+                ].map((gateway) => {
+                  const isConnected = paymentGateways.some(g => g.name === gateway.name);
+                  return (
+                    <div key={gateway.name} className="bg-[#2D3748] rounded-lg p-4 border border-[#4A5568]">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{gateway.icon}</span>
+                          <div>
+                            <div className="font-medium text-white">{gateway.name}</div>
+                            <div className="text-xs text-[#A0AEC0]">{gateway.description}</div>
+                          </div>
+                        </div>
+                        <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                      </div>
+                      {isConnected ? (
+                        <div className="space-y-2">
+                          <div className="text-xs text-green-400">✓ Connected</div>
+                          <button
+                            onClick={() => handleDisconnectGateway(paymentGateways.find(g => g.name === gateway.name)?.id)}
+                            className="w-full bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleConnectGateway(gateway.name)}
+                          disabled={connectingGateway}
+                          className="w-full bg-[#4299E1] text-white px-3 py-2 rounded text-sm hover:bg-[#3182CE] disabled:opacity-50 transition-colors"
+                        >
+                          {connectingGateway ? 'Connecting...' : 'Connect'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Connected Gateways Status */}
+              {paymentGateways.length > 0 && (
+                <div className="bg-[#2D3748] rounded-lg p-4 border border-[#4A5568]">
+                  <h3 className="font-medium text-white mb-3">Connected Gateways Status</h3>
+                  <div className="space-y-2">
+                    {paymentGateways.map((gateway) => (
+                      <div key={gateway.id} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-400">●</span>
+                          <span className="text-white">{gateway.name}</span>
+                        </div>
+                        <div className="text-[#A0AEC0] text-xs">
+                          Last sync: {new Date(gateway.lastSync).toLocaleDateString()}
+                          </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Security Verification Modal for Payment Details */}
+          {showPaymentDetails && (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+              <div className="bg-[#2D3748] rounded-lg p-6 max-w-md w-full mx-4 border border-[#4A5568]">
+                <div className="text-center mb-6">
+                  <div className="text-3xl mb-2">🔒</div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Security Verification Required</h3>
+                  <p className="text-[#A0AEC0] text-sm">Enter your 4-digit security PIN to view payment details</p>
+                </div>
+
+                {securityLocked ? (
+                  <div className="text-center">
+                    <div className="text-red-400 text-2xl mb-2">⚠️</div>
+                    <p className="text-red-400 font-medium mb-2">Account Temporarily Locked</p>
+                    <p className="text-[#A0AEC0] text-sm">Too many failed attempts. Please try again in 5 minutes.</p>
+                  </div>
+                ) : (
+                  <>
+                    {!securityVerified ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">Security PIN</label>
+                          <input
+                            type="password"
+                            placeholder="Enter 4-digit PIN"
+                            value={securityPin}
+                            onChange={handleSecurityPinChange}
+                            maxLength="4"
+                            className="input-dark w-full px-4 py-3 text-center text-lg tracking-widest"
+                            autoFocus
+                          />
+                        </div>
+                        {securityAttempts > 0 && (
+                          <p className="text-red-400 text-sm text-center">
+                            Incorrect PIN. {3 - securityAttempts} attempts remaining.
+                          </p>
+                        )}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => {
+                              setShowPaymentDetails(false);
+                              setSelectedPaymentMethod(null);
+                              setSecurityVerified(false);
+                            }}
+                            className="flex-1 bg-[#4A5568] text-white px-4 py-2 rounded font-medium hover:bg-[#2D3748] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={verifySecurityPin}
+                            disabled={securityPin.length !== 4}
+                            className="flex-1 bg-[#4299E1] text-white px-4 py-2 rounded font-medium hover:bg-[#3182CE] disabled:opacity-50 transition-colors"
+                          >
+                            Verify
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="bg-[#1A202C] rounded-lg p-4 border border-[#4A5568]">
+                          <h4 className="font-medium text-white mb-3">Payment Method Details</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-[#A0AEC0]">Card Number:</span>
+                              <span className="text-white font-mono">{selectedPaymentMethod?.cardNumber || `•••• •••• •••• ${selectedPaymentMethod?.last4}`}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#A0AEC0]">Expiry Date:</span>
+                              <span className="text-white">{selectedPaymentMethod?.expiryDate}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#A0AEC0]">CVV:</span>
+                              <span className="text-white">{maskCVV()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-[#A0AEC0]">Cardholder:</span>
+                              <span className="text-white">{selectedPaymentMethod?.cardholderName}</span>
+                            </div>
+                            {selectedPaymentMethod?.billingAddress && (
+                              <div className="flex justify-between">
+                                <span className="text-[#A0AEC0]">Billing Address:</span>
+                                <span className="text-white text-right">{selectedPaymentMethod.billingAddress}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowPaymentDetails(false);
+                            setSelectedPaymentMethod(null);
+                            setSecurityVerified(false);
+                          }}
+                          className="w-full bg-[#4299E1] text-white px-4 py-2 rounded font-medium hover:bg-[#3182CE] transition-colors"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Edit Payment Method Modal */}
+          {editingPaymentMethod && (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+              <div className="bg-[#2D3748] rounded-lg p-6 max-w-md w-full mx-4 border border-[#4A5568]">
+                <div className="text-center mb-6">
+                  <div className="text-3xl mb-2">✏️</div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Edit Payment Method</h3>
+                  <p className="text-[#A0AEC0] text-sm">Enter your security PIN to edit payment details</p>
+                </div>
+
+                {securityLocked ? (
+                  <div className="text-center">
+                    <div className="text-red-400 text-2xl mb-2">⚠️</div>
+                    <p className="text-red-400 font-medium mb-2">Account Temporarily Locked</p>
+                    <p className="text-[#A0AEC0] text-sm">Too many failed attempts. Please try again in 5 minutes.</p>
+                  </div>
+                ) : (
+                  <>
+                    {!securityVerified ? (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">Security PIN</label>
+                          <input
+                            type="password"
+                            placeholder="Enter 4-digit PIN"
+                            value={securityPin}
+                            onChange={handleSecurityPinChange}
+                            maxLength="4"
+                            className="input-dark w-full px-4 py-3 text-center text-lg tracking-widest"
+                            autoFocus
+                          />
+                        </div>
+                        {securityAttempts > 0 && (
+                          <p className="text-red-400 text-sm text-center">
+                            Incorrect PIN. {3 - securityAttempts} attempts remaining.
+                          </p>
+                        )}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="flex-1 bg-[#4A5568] text-white px-4 py-2 rounded font-medium hover:bg-[#2D3748] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={verifySecurityPin}
+                            disabled={securityPin.length !== 4}
+                            className="flex-1 bg-[#4299E1] text-white px-4 py-2 rounded font-medium hover:bg-[#3182CE] disabled:opacity-50 transition-colors"
+                          >
+                            Verify
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">Cardholder Name</label>
+                          <input
+                            type="text"
+                            value={editForm.cardholderName}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, cardholderName: e.target.value }))}
+                            className="input-dark w-full px-3 py-2"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-white mb-2">Billing Address</label>
+                          <input
+                            type="text"
+                            value={editForm.billingAddress}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, billingAddress: e.target.value }))}
+                            className="input-dark w-full px-3 py-2"
+                          />
+                        </div>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="flex-1 bg-[#4A5568] text-white px-4 py-2 rounded font-medium hover:bg-[#2D3748] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleSaveEdit}
+                            className="flex-1 bg-[#4299E1] text-white px-4 py-2 rounded font-medium hover:bg-[#3182CE] transition-colors"
+                          >
+                            Save Changes
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Save All Settings Button */}
           <div className="flex justify-end">

@@ -200,13 +200,104 @@ const JitsiMeeting = () => {
     };
 
     // Handle manual leave
-    const handleLeaveMeeting = () => {
-        if (jitsiApiRef.current) {
-            jitsiApiRef.current.executeCommand('hangup');
-        } else {
-            navigate(-1);
+    const handleLeaveMeeting = async () => {
+        try {
+            // First, hangup from Jitsi if API is available
+            if (jitsiApiRef.current) {
+                jitsiApiRef.current.executeCommand('hangup');
+            }
+
+            // Update meeting status in database
+            if (meetingInfo?.meetingId && user?.id) {
+                try {
+                    const { UnifiedJitsiMeetingService } = await import('@/services/UnifiedJitsiMeetingService');
+                    await UnifiedJitsiMeetingService.leaveMeeting(
+                        meetingInfo.meetingId, 
+                        user.id, 
+                        user.displayName || user.name || 'User'
+                    );
+                    console.log('✅ Meeting leave recorded in database');
+                } catch (error) {
+                    console.warn('⚠️ Could not record meeting leave:', error);
+                }
+            }
+
+            // Try to send message to parent window to redirect
+            try {
+                if (window.opener && !window.opener.closed) {
+                    // Send message to parent window to redirect back to request page
+                    window.opener.postMessage({
+                        type: 'MEETING_LEFT',
+                        meetingId: meetingInfo?.meetingId,
+                        requestId: meetingInfo?.requestId,
+                        action: 'redirect_to_request'
+                    }, '*');
+                    
+                    // Close this meeting tab
+                    window.close();
+                } else {
+                    // If no parent window, try to navigate back
+                    navigate(-1);
+                }
+            } catch (error) {
+                console.warn('⚠️ Could not communicate with parent window:', error);
+                // Fallback: close the tab
+                window.close();
+            }
+        } catch (error) {
+            console.error('❌ Error leaving meeting:', error);
+            // Fallback: close the tab
+            window.close();
         }
     };
+
+    // Handle tab close/refresh to record meeting leave
+    useEffect(() => {
+        const handleBeforeUnload = async (event) => {
+            // Only handle if we have meeting info and user
+            if (meetingInfo?.meetingId && user?.id) {
+                try {
+                    // Try to record meeting leave before tab closes
+                    const { UnifiedJitsiMeetingService } = await import('@/services/UnifiedJitsiMeetingService');
+                    await UnifiedJitsiMeetingService.leaveMeeting(
+                        meetingInfo.meetingId, 
+                        user.id, 
+                        user.displayName || user.name || 'User'
+                    );
+                    console.log('✅ Meeting leave recorded before tab close');
+                } catch (error) {
+                    console.warn('⚠️ Could not record meeting leave before tab close:', error);
+                }
+            }
+        };
+
+        const handleVisibilityChange = async () => {
+            // Handle when tab becomes hidden (user switches tabs or minimizes)
+            if (document.hidden && meetingInfo?.meetingId && user?.id) {
+                try {
+                    const { UnifiedJitsiMeetingService } = await import('@/services/UnifiedJitsiMeetingService');
+                    await UnifiedJitsiMeetingService.leaveMeeting(
+                        meetingInfo.meetingId, 
+                        user.id, 
+                        user.displayName || user.name || 'User'
+                    );
+                    console.log('✅ Meeting leave recorded on tab visibility change');
+                } catch (error) {
+                    console.warn('⚠️ Could not record meeting leave on tab visibility change:', error);
+                }
+            }
+        };
+
+        // Add event listeners
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [meetingInfo, user]);
 
     if (error) {
         return (

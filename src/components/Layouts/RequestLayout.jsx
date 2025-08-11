@@ -74,10 +74,16 @@ export default function RequestLayout({ children, title, subtitle }) {
       subItems: [
         { to: "/requests/available", label: "One-to-One", active: true },
         { to: "/requests/group", label: "Group Requests" }, // All group requests from user's groups
-        { to: "/requests/pending-offers", label: "Pending Offers" },
+
         { to: "/requests/accepted", label: "Accepted" },
         { to: "/requests/archived", label: "Archived" }
       ]
+    },
+    {
+      to: "/meetings/dashboard",
+      label: "Meeting Dashboard",
+      icon: "🎥",
+      type: "link"
     }
   ];
 
@@ -93,7 +99,6 @@ export default function RequestLayout({ children, title, subtitle }) {
   const isReceivedRequestPath = location.pathname.startsWith('/OneToOneRequests') ||
       location.pathname.startsWith('/requests/group') ||
       location.pathname === '/requests/available' ||
-      location.pathname === '/requests/pending-offers' ||
       location.pathname === '/requests/accepted' ||
       location.pathname === '/requests/archived';
 
@@ -131,7 +136,7 @@ export default function RequestLayout({ children, title, subtitle }) {
         (path === '/requests/completed' && location.pathname.startsWith('/requests/completed')) ||
         (path === '/requests/available' && location.pathname === '/requests/available') ||
         (path === '/requests/group' && location.pathname.startsWith('/requests/group')) ||
-        (path === '/requests/pending-offers' && location.pathname === '/requests/pending-offers') ||
+
         (path === '/requests/accepted' && location.pathname === '/requests/accepted') ||
         (path === '/requests/archived' && location.pathname === '/requests/archived');
 

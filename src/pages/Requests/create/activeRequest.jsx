@@ -18,10 +18,17 @@ const ActiveRequests = () => {
         setActionLoading(prev => ({ ...prev, [requestId]: 'completing' }));
 
         try {
-            const result = await unifiedRequestService.completeRequest(requestId);
+            const result = await unifiedRequestService.completeRequest(requestId, user.id);
 
             if (result.success) {
                 alert(result.message);
+                
+                // Refresh the data to show updated status
+                // The request will now appear in the completed page
+                window.location.reload(); // Simple refresh for now
+                
+                // Alternative: You could implement a more sophisticated refresh
+                // by updating local state or triggering a data refetch
             } else {
                 alert(result.message);
             }
@@ -58,8 +65,28 @@ const ActiveRequests = () => {
 
     const handleJoinMeeting = (meetingUrl, requestId) => {
         if (meetingUrl) {
-            // Open meeting in new tab
-            window.open(meetingUrl, '_blank');
+            // Get user's display name for the meeting
+            const userName = user?.displayName || user?.name || 'User';
+            
+            // Create meeting URL with pre-filled username
+            let enhancedMeetingUrl = meetingUrl;
+            
+            // Check if URL already has parameters
+            if (enhancedMeetingUrl.includes('?')) {
+                enhancedMeetingUrl += `&userInfo.displayName=${encodeURIComponent(userName)}`;
+            } else {
+                enhancedMeetingUrl += `?userInfo.displayName=${encodeURIComponent(userName)}`;
+            }
+            
+            // Add additional Jitsi parameters for better user experience
+            enhancedMeetingUrl += `&userInfo.email=${encodeURIComponent(user?.email || '')}`;
+            enhancedMeetingUrl += `&config.prejoinPageEnabled=false`; // Skip pre-join page
+            enhancedMeetingUrl += `&config.disableDeepLinking=true`; // Prevent deep linking issues
+            
+            console.log('🎥 Joining meeting with enhanced URL:', enhancedMeetingUrl);
+            
+            // Open meeting in new tab with enhanced URL
+            window.open(enhancedMeetingUrl, '_blank');
         } else {
             alert('Meeting link not available. Please contact support.');
         }
@@ -123,6 +150,34 @@ const ActiveRequests = () => {
                 }
             });
         }
+    }, [requests]);
+
+    // Listen for meeting leave messages from Jitsi tab
+    useEffect(() => {
+        const handleMessage = (event) => {
+            if (event.data?.type === 'MEETING_LEFT' && event.data?.action === 'redirect_to_request') {
+                console.log('📨 Received meeting leave message:', event.data);
+                
+                // Find the request that was left
+                if (event.data.requestId) {
+                    const request = requests.find(r => r.id === event.data.requestId);
+                    if (request) {
+                        console.log('✅ Meeting left for request:', request.id);
+                    }
+                }
+                
+                // Show a notification that the meeting was left
+                alert('Meeting left successfully. You have been redirected back to your request.');
+            }
+        };
+
+        // Add message listener
+        window.addEventListener('message', handleMessage);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('message', handleMessage);
+        };
     }, [requests]);
 
     if (loading) {

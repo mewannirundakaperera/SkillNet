@@ -10,7 +10,8 @@ import {
     where,
     getDocs,
     arrayUnion,
-    increment
+    increment,
+    Timestamp
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
@@ -44,7 +45,7 @@ export class UnifiedJitsiMeetingService {
         // Build configuration object for Jitsi
         const jitsiConfig = {
             startWithAudioMuted: config.startWithAudioMuted || false,
-            startWithVideoMuted: config.startWithVideoMuted || false,
+            startWithVideoMuted: true, // Always start with video muted (camera restricted)
             enableWelcomePage: false,
             enableClosePage: false,
             disableThirdPartyRequests: true,
@@ -54,16 +55,21 @@ export class UnifiedJitsiMeetingService {
             enableRemb: true,
             enableSimulcast: false,
             requireDisplayName: true,
+            // Camera restrictions
+            disableVideo: true, // Disable video completely
+            enableVideo: false, // Ensure video is disabled
+            // Microphone settings
+            enableAudio: true, // Allow audio/microphone
+            startAudioOnly: true, // Start in audio-only mode
         };
 
         const interfaceConfig = {
             TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                'microphone', 'closedcaptions', 'desktop', 'fullscreen',
                 'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
-                'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-                'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
-                'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone',
-                'security'
+                'livestreaming', 'etherpad', 'settings', 'raisehand',
+                'invite', 'feedback', 'stats', 'shortcuts',
+                'help', 'mute-everyone', 'security'
             ],
             SETTINGS_SECTIONS: ['devices', 'language', 'moderator', 'profile', 'calendar'],
             SHOW_JITSI_WATERMARK: false,
@@ -80,9 +86,13 @@ export class UnifiedJitsiMeetingService {
             CONNECTION_INDICATOR_AUTO_HIDE_ENABLED: true,
             CONNECTION_INDICATOR_AUTO_HIDE_TIMEOUT: 5000,
             CONNECTION_INDICATOR_DISABLED: false,
-            VIDEO_LAYOUT_FIT: 'both',
-            filmStripOnly: false,
-            VERTICAL_FILMSTRIP: true,
+            // Audio-only mode settings
+            startAudioOnly: true,
+            disableVideo: true,
+            enableVideo: false,
+            // Remove video-related settings
+            filmStripOnly: true, // Hide video filmstrip
+            VERTICAL_FILMSTRIP: false, // Disable vertical filmstrip
         };
 
         // Encode configuration as URL fragment
@@ -109,8 +119,8 @@ export class UnifiedJitsiMeetingService {
             const roomId = this.generateRoomId('one-to-one', requestId, participants);
 
             const meetingUrl = this.generateMeetingUrl(roomId, {
-                startWithAudioMuted: false,
-                startWithVideoMuted: false,
+                startWithAudioMuted: false, // Allow microphone by default
+                startWithVideoMuted: true,  // Restrict camera by default
                 userInfo: {
                     displayName: accepterName
                 }
@@ -173,8 +183,8 @@ export class UnifiedJitsiMeetingService {
                     enableChat: true,
                     enableScreenSharing: true,
                     enableRecording: false,
-                    startWithAudioMuted: false,
-                    startWithVideoMuted: false,
+                    startWithAudioMuted: false, // Allow microphone by default
+                    startWithVideoMuted: true,  // Restrict camera by default
                     requireDisplayName: true
                 }
             };
@@ -190,6 +200,35 @@ export class UnifiedJitsiMeetingService {
                 meetingStatus: 'scheduled',
                 meetingCreatedAt: serverTimestamp()
             });
+
+            // Create meeting session for monitoring
+            try {
+                const { MeetingManagementService } = await import('./MeetingManagementService');
+                
+                // Calculate scheduled times based on request data
+                const now = new Date();
+                const scheduledStartTime = requestData.preferredDate && requestData.preferredTime ? 
+                    new Date(`${requestData.preferredDate}T${requestData.preferredTime}`) : 
+                    new Date(now.getTime() + 5 * 60 * 1000); // Start in 5 minutes if no time specified
+                
+                const duration = parseInt(requestData.duration) || 60; // Default 60 minutes
+                const scheduledEndTime = new Date(scheduledStartTime.getTime() + duration * 60 * 1000);
+
+                await MeetingManagementService.createMeetingSession(requestId, 'one-to-one', {
+                    roomId,
+                    meetingUrl,
+                    scheduledStartTime: Timestamp.fromDate(scheduledStartTime),
+                    scheduledEndTime: Timestamp.fromDate(scheduledEndTime),
+                    duration,
+                    participants: participants,
+                    creatorId: requesterUserId,
+                    maxParticipants: 2
+                });
+
+                console.log('✅ Meeting session created for monitoring');
+            } catch (error) {
+                console.warn('⚠️ Could not create meeting session for monitoring:', error);
+            }
 
             console.log('✅ One-to-one meeting created:', meetingRef.id);
             return {
@@ -225,7 +264,7 @@ export class UnifiedJitsiMeetingService {
 
             const meetingUrl = this.generateMeetingUrl(roomId, {
                 startWithAudioMuted: true, // Start muted for group calls
-                startWithVideoMuted: false,
+                startWithVideoMuted: true,  // Restrict camera by default
                 userInfo: {
                     displayName: creatorName
                 }
@@ -292,7 +331,7 @@ export class UnifiedJitsiMeetingService {
                     enableScreenSharing: true,
                     enableRecording: true, // Allow recording for group sessions
                     startWithAudioMuted: true,
-                    startWithVideoMuted: false,
+                    startWithVideoMuted: true, // Restrict camera by default
                     requireDisplayName: true,
                     enableLobby: false, // No lobby for group sessions
                     enableBreakoutRooms: false

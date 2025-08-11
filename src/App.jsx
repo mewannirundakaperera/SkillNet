@@ -17,7 +17,7 @@ import RequestHistory from "./pages/Requests/RequestHistory";
 
 // FIXED: Import the individual request components with correct names
 import AcceptedRequests from "@pages/Requests/recived/acceptedRequests.jsx";
-import PendingRequests from "@pages/Requests/recived/PendingRequests.jsx";
+
 import ArchiveRequests from "@pages/Requests/recived/ArchiveRequests.jsx";
 import DraftRequests from "@pages/Requests/create/draftRequest.jsx";
 import ActiveRequests from "@pages/Requests/create/activeRequest.jsx";
@@ -35,6 +35,7 @@ import GroupDetails from "./pages/Group/GroupDetails";
 import GroupsList from "./pages/Group/GroupsList";
 import AllGroupRequests from "./pages/Group/AllGroupRequests";
 import JitsiMeeting from '@/components/Meeting/JitsiMeeting';
+import MeetingDashboard from '@/components/Meeting/MeetingDashboard';
 
 import HelpAndSupport from './pages/HelpAndSupport';
 import DatabaseTestToolComponent from './components/DatabaseTestTool';
@@ -226,6 +227,18 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* MEETING DASHBOARD (Meeting management and monitoring) */}
+            <Route
+                path="/meetings/dashboard"
+                element={
+                    <ProtectedRoute>
+                        <RequestLayout title="Meeting Dashboard" subtitle="Monitor and manage your Jitsi meetings">
+                            <MeetingDashboard />
+                        </RequestLayout>
+                    </ProtectedRoute>
+                }
+            />
+
             {/* COMPLETED REQUESTS (Status: completed) */}
             <Route
                 path="/requests/completed"
@@ -252,17 +265,7 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* PENDING OFFERS (Status: open, available for response) */}
-            <Route
-                path="/requests/pending-offers"
-                element={
-                    <ProtectedRoute>
-                        <RequestLayout title="Available Requests" subtitle="Requests you can accept or decline">
-                            <PendingRequests />
-                        </RequestLayout>
-                    </ProtectedRoute>
-                }
-            />
+
 
             {/* ACCEPTED REQUESTS (Status: accepted responses) */}
             <Route
@@ -293,7 +296,7 @@ const AppRoutes = () => {
 
             {/* ===== LEGACY PATHS FOR BACKWARD COMPATIBILITY ===== */}
             <Route path="/OneToOneRequests" element={<Navigate to="/requests/available" replace />} />
-            <Route path="/OneToOneRequests/pending" element={<Navigate to="/requests/pending-offers" replace />} />
+
             <Route path="/OneToOneRequests/accepted" element={<Navigate to="/requests/accepted" replace />} />
             <Route path="/OneToOneRequests/archived" element={<Navigate to="/requests/archived" replace />} />
             <Route path="/requests/draft" element={<Navigate to="/requests/drafts" replace />} />
