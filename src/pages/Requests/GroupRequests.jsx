@@ -24,6 +24,23 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   const participantCount = request.participantCount || request.participants?.length || 0;
   const paidCount = request.paidParticipants?.length || 0;
 
+  // Calculate correct participant count including voters and owner
+  const getCorrectParticipantCount = () => {
+    const baseParticipants = request.participants || [];
+    const voters = request.votes || [];
+    const requestCreator = request.userId || request.createdBy;
+    
+    // Combine all participants, voters, and request creator
+    const allParticipants = [...new Set([...baseParticipants, ...voters])];
+    if (requestCreator && !allParticipants.includes(requestCreator)) {
+      allParticipants.push(requestCreator);
+    }
+    
+    return allParticipants.length;
+  };
+
+  const correctParticipantCount = getCorrectParticipantCount();
+
   // ✅ FIXED: Add permission checking with group membership verification
   useEffect(() => {
     const checkPermissions = async () => {
@@ -536,18 +553,16 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'accepted' && (
             <div className="mb-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-slate-200">
-                  Payment required
-                </span>
-                <span className="text-xs text-slate-300">{paidCount}/{participantCount}</span>
-              </div>
-              <div className="w-full bg-green-800 rounded-full h-1.5 mb-2">
-                <div
-                    className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
-                />
-              </div>
+              <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-700">Payment Progress</span>
+                    <span className="text-sm text-blue-600">{paidCount}/{correctParticipantCount} paid</span>
+                  </div>
+                  <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
+                    <div
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${correctParticipantCount > 0 ? (paidCount / correctParticipantCount) * 100 : 0}%` }}
+                    />
+                  </div>
 
               {/* Payment button */}
               {permissions.canPay && (
@@ -556,7 +571,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                       disabled={loading}
                       className="w-full bg-green-600 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-green-700 transition-colors disabled:opacity-50"
                   >
-                    {loading ? 'Processing...' : `Pay ${request.rate || 'Now'}`}
+                    {loading ? 'Processing Payment...' : `Pay Rs. ${request.rate || 'Now'}`}
                   </button>
               )}
 

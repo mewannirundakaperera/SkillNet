@@ -158,7 +158,7 @@ export default function SelectTeacher() {
           <div className="mb-4">
             <div className="font-semibold text-xs mb-2 text-white">Hourly Rate</div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#A0AEC0]">${rate[0]}</span>
+              <span className="text-xs text-[#A0AEC0]">Rs. {rate[0]}</span>
               <input
                 type="range"
                 min={20}
@@ -175,7 +175,7 @@ export default function SelectTeacher() {
                 onChange={e => setRate([rate[0], +e.target.value])}
                 className="flex-1"
               />
-              <span className="text-xs text-[#A0AEC0]">${rate[1]}</span>
+              <span className="text-xs text-[#A0AEC0]">Rs. {rate[1]}</span>
             </div>
           </div>
           <div className="flex gap-2">
@@ -196,7 +196,7 @@ export default function SelectTeacher() {
                 <span className="text-[#A0AEC0]">({t.reviews} Reviews)</span>
               </div>
               <div className="text-[#E0E0E0] text-sm mb-2">{t.desc}</div>
-              <div className="font-bold text-[#4299E1] text-lg mb-2">${t.price} <span className="text-sm font-normal text-[#A0AEC0]">/hour</span></div>
+              <div className="font-bold text-[#4299E1] text-lg mb-2">Rs. {t.price} <span className="text-sm font-normal text-[#A0AEC0]">/hour</span></div>
               <div className="flex gap-2 w-full">
                 <button className="border border-[#4A5568] rounded px-4 py-2 font-semibold text-sm flex-1 hover:bg-[#2D3748] transition-colors text-[#E0E0E0]">View Profile</button>
                 <button className="btn-gradient-primary px-4 py-2 font-semibold text-sm flex-1">Select Teacher</button>

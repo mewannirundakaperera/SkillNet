@@ -138,6 +138,10 @@ const CreateGroupRequest = () => {
             }
         }
 
+        if (formData.rate && (isNaN(formData.rate) || parseFloat(formData.rate) < 0)) {
+            newErrors.rate = 'Rate must be a valid positive number';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -173,7 +177,7 @@ const CreateGroupRequest = () => {
                 category: formData.category,
                 urgency: formData.urgency,
                 duration: formData.duration.trim(),
-                rate: formData.rate.trim(),
+                rate: formData.rate ? parseFloat(formData.rate) : null,
                 sessionType: formData.sessionType,
                 maxParticipants: formData.maxParticipants,
                 deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
@@ -371,14 +375,17 @@ const CreateGroupRequest = () => {
                             )}
 
                             <div>
-                                <label className="block mb-2 font-medium text-slate-200">Rate (Optional)</label>
+                                <label className="block mb-2 font-medium text-slate-200">Rate in Rs. (Optional)</label>
                                 <input
-                                    type="text"
+                                    type="number"
                                     value={formData.rate}
                                     onChange={e => handleInputChange('rate', e.target.value)}
-                                    placeholder="e.g., $25/hour, Free"
+                                    placeholder="e.g., 2500/hour, Free"
+                                    min="0"
+                                    step="0.01"
                                     className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:border-blue-500"
                                 />
+                                {errors.rate && <p className="text-red-400 text-sm mt-1">{errors.rate}</p>}
                             </div>
 
                             <div>

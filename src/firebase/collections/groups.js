@@ -99,14 +99,13 @@ export class GroupsService {
       }
     }
 
-    // Get all public groups
+    // Get all public groups (for visitors)
     static async getPublicGroups(limitCount = 20) {
       try {
         const groupsRef = collection(db, GROUPS_COLLECTION);
         const q = query(
             groupsRef,
             where('isPublic', '==', true),
-            orderBy('memberCount', 'desc'),
             limit(limitCount)
         );
 
@@ -125,7 +124,7 @@ export class GroupsService {
         return groups;
       } catch (error) {
         console.error('Error getting public groups:', error);
-        throw error;
+        return [];
       }
     }
 
@@ -337,81 +336,68 @@ export class GroupsService {
         console.log('GroupsService.getRandomGroups called with userId:', userId, 'count:', count);
         const groupsRef = collection(db, GROUPS_COLLECTION);
         
-        // First get all public groups - try without orderBy first to see if there are any groups
-        let q;
+        // Try to get groups with a simpler query first
+        let q = query(
+          groupsRef,
+          where('isPublic', '==', true),
+          limit(20)
+        );
+
         try {
-          q = query(
-            groupsRef,
-            where('isPublic', '==', true),
-            orderBy('memberCount', 'desc'),
-            limit(20)
-          );
-        } catch (orderByError) {
-          console.log('OrderBy failed, trying without orderBy:', orderByError);
-          // If orderBy fails, try without it
-          q = query(
-            groupsRef,
-            where('isPublic', '==', true),
-            limit(20)
-          );
-        }
+          const querySnapshot = await getDocs(q);
+          let allGroups = [];
 
-        const querySnapshot = await getDocs(q);
-        console.log('Query returned', querySnapshot.size, 'groups');
-        
-        let allGroups = [];
-
-        querySnapshot.forEach((doc) => {
-          const groupData = doc.data();
-          console.log('Group data:', groupData);
-          
-          const group = {
-            id: doc.id,
-            ...groupData,
-            createdAt: groupData.createdAt?.toDate(),
-            lastActivity: groupData.lastActivity?.toDate()
-          };
-          
-          // Only include groups the user is not a member of
-          if (!group.members || !group.members.includes(userId)) {
-            allGroups.push(group);
-          }
-        });
-
-        // If no groups found with public filter, try to get all groups
-        if (allGroups.length === 0) {
-          console.log('No public groups found, trying to get all groups');
-          try {
-            const allGroupsQuery = query(groupsRef, limit(20));
-            const allGroupsSnapshot = await getDocs(allGroupsQuery);
-            console.log('All groups query returned', allGroupsSnapshot.size, 'groups');
+          querySnapshot.forEach((doc) => {
+            const groupData = doc.data();
+            const group = {
+              id: doc.id,
+              ...groupData,
+              createdAt: groupData.createdAt?.toDate(),
+              lastActivity: groupData.lastActivity?.toDate()
+            };
             
-            allGroupsSnapshot.forEach((doc) => {
-              const groupData = doc.data();
-              const group = {
-                id: doc.id,
-                ...groupData,
-                createdAt: groupData.createdAt?.toDate(),
-                lastActivity: groupData.lastActivity?.toDate()
-              };
-              
-              // Only include groups the user is not a member of
-              if (!group.members || !group.members.includes(userId)) {
-                allGroups.push(group);
-              }
-            });
-          } catch (fallbackError) {
-            console.error('Fallback query also failed:', fallbackError);
+            // Only include groups the user is not a member of
+            if (!group.members || !group.members.includes(userId)) {
+              allGroups.push(group);
+            }
+          });
+
+          // If we have groups, shuffle and return
+          if (allGroups.length > 0) {
+            const shuffled = allGroups.sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, Math.min(count, allGroups.length));
           }
+        } catch (queryError) {
+          console.log('Query with isPublic filter failed, trying without filters');
         }
 
-        console.log('Filtered groups (excluding user membership):', allGroups.length);
-        
-        // Shuffle and return requested number of groups
-        const shuffled = allGroups.sort(() => 0.5 - Math.random());
-        const result = shuffled.slice(0, Math.min(count, shuffled.length));
-        console.log('Final result:', result);
-        return result;
+        // Fallback: get all groups without filters
+        try {
+          const allGroupsQuery = query(groupsRef, limit(20));
+          const allGroupsSnapshot = await getDocs(allGroupsQuery);
+          let allGroups = [];
+
+          allGroupsSnapshot.forEach((doc) => {
+            const groupData = doc.data();
+            const group = {
+              id: doc.id,
+              ...groupData,
+              createdAt: groupData.createdAt?.toDate(),
+              lastActivity: groupData.lastActivity?.toDate()
+            };
+            
+            // Only include groups the user is not a member of
+            if (!group.members || !group.members.includes(userId)) {
+              allGroups.push(group);
+            }
+          });
+
+          const shuffled = allGroups.sort(() => 0.5 - Math.random());
+          return shuffled.slice(0, Math.min(count, allGroups.length));
+        } catch (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+          return [];
+        }
       } catch (error) {
         console.error('Error getting random groups:', error);
         return [];

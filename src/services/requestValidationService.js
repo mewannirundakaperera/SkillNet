@@ -58,10 +58,12 @@ export const requestValidationService = {
         }
 
         // Rate validation (if provided)
-        if (formData.rate && formData.rate.trim()) {
-            const rate = formData.rate.trim();
-            if (rate.length > 50) {
-                errors.rate = 'Rate description is too long';
+        if (formData.rate !== null && formData.rate !== undefined && formData.rate !== '') {
+            const rate = parseFloat(formData.rate);
+            if (isNaN(rate) || rate < 0) {
+                errors.rate = 'Rate must be a valid positive number';
+            } else if (rate > 999999) {
+                errors.rate = 'Rate cannot exceed Rs. 999,999';
             }
         }
 
@@ -117,7 +119,7 @@ export const requestValidationService = {
             title: formData.title?.trim() || '',
             description: formData.description?.trim() || '',
             category: formData.category?.trim() || '',
-            rate: formData.rate?.trim() || '',
+            rate: formData.rate ? parseFloat(formData.rate) : null,
             duration: formData.duration?.trim() || '',
             skills: formData.skills?.map(skill => skill.trim()).filter(skill => skill) || [],
             tags: formData.tags?.map(tag => tag.trim()).filter(tag => tag) || [],

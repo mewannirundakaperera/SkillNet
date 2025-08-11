@@ -26,6 +26,35 @@ import { db } from '@/config/firebase';
 
 export const groupRequestService = {
     /**
+     * Helper function to ensure participant data consistency
+     * This ensures that voters and owners are always included as participants
+     * @param {Object} requestData - The request data
+     * @returns {Object} - Request data with consistent participant information
+     */
+    ensureParticipantConsistency(requestData) {
+        const baseParticipants = requestData.participants || [];
+        const voters = requestData.votes || [];
+        const requestCreator = requestData.userId || requestData.createdBy;
+        
+        // Combine all participants, voters, and request creator
+        const allParticipants = [...new Set([...baseParticipants, ...voters])];
+        if (requestCreator && !allParticipants.includes(requestCreator)) {
+            allParticipants.push(requestCreator);
+        }
+        
+        // Ensure payment data is also consistent
+        const currentPaidParticipants = requestData.paidParticipants || [];
+        const expectedPaidParticipants = allParticipants; // All participants should pay by default
+        
+        return {
+            ...requestData,
+            participants: allParticipants,
+            participantCount: allParticipants.length,
+            paidParticipants: expectedPaidParticipants
+        };
+    },
+
+    /**
      * Get all groups the user belongs to (including hidden members)
      * @param {string} userId
      * @returns {Promise<string[]>} Array of group IDs
@@ -332,7 +361,7 @@ export const groupRequestService = {
                 votes: [],
                 participants: [],
                 teachers: [],
-                paidParticipants: [],
+                paidParticipants: [], // Initialize as empty - will be populated when payments are made
 
                 // Counters
                 voteCount: 0,
@@ -352,9 +381,12 @@ export const groupRequestService = {
                 type: 'group-request',
             };
 
-            console.log('📝 Complete request data prepared:', Object.keys(completeRequestData));
+            // Ensure participant data consistency
+            const consistentRequestData = this.ensureParticipantConsistency(completeRequestData);
 
-            const docRef = await addDoc(collection(db, 'grouprequests'), completeRequestData);
+            console.log('📝 Complete request data prepared:', Object.keys(consistentRequestData));
+
+            const docRef = await addDoc(collection(db, 'grouprequests'), consistentRequestData);
             console.log('✅ Group request created with ID:', docRef.id);
 
             // Log activity (optional - don't fail if this fails)
@@ -493,7 +525,7 @@ export const groupRequestService = {
                         }
 
                         // Check if request is in correct status for payment
-                        if (requestData.status !== 'accepted') {
+                        if (!['accepted', 'funding'].includes(requestData.status)) {
                             return { success: false, message: 'Payments are not allowed in current request status' };
                         }
 
@@ -530,6 +562,27 @@ export const groupRequestService = {
                 if (requestData.teacherCount === undefined) {
                     finalUpdateData.teacherCount = finalUpdateData.teacherCount || 0;
                 }
+            }
+
+            // ✅ NEW: Ensure participant data consistency after updates
+            if (isVotingUpdate || isParticipationUpdate) {
+                console.log('🔍 Ensuring participant data consistency after update...');
+                
+                // Get the updated data to check consistency
+                const updatedRequestData = { ...requestData, ...finalUpdateData };
+                const consistentData = this.ensureParticipantConsistency(updatedRequestData);
+                
+                // Update the final data with consistent participant information
+                finalUpdateData.participants = consistentData.participants;
+                finalUpdateData.participantCount = consistentData.participantCount;
+                finalUpdateData.paidParticipants = consistentData.paidParticipants;
+                
+                console.log('✅ Participant and payment consistency ensured:', {
+                    oldParticipantCount: requestData.participantCount || 0,
+                    newParticipantCount: consistentData.participantCount,
+                    oldPaidCount: requestData.paidParticipants?.length || 0,
+                    newPaidCount: consistentData.paidParticipants.length
+                });
             }
 
             console.log('📝 Final update data:', Object.keys(finalUpdateData));

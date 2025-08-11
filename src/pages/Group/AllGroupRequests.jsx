@@ -96,6 +96,32 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   const participantCount = request.participantCount || request.participants?.length || 0;
   const paidCount = request.paidParticipants?.length || 0;
 
+  // Calculate correct participant count including voters and owner
+  const getCorrectParticipantCount = () => {
+    const baseParticipants = request.participants || [];
+    const voters = request.votes || [];
+    const requestCreator = request.userId || request.createdBy;
+    
+    // Combine all participants, voters, and request creator
+    const allParticipants = [...new Set([...baseParticipants, ...voters])];
+    if (requestCreator && !allParticipants.includes(requestCreator)) {
+      allParticipants.push(requestCreator);
+    }
+    
+    return allParticipants.length;
+  };
+
+  const correctParticipantCount = getCorrectParticipantCount();
+
+  // Calculate expected payment count (all participants should pay)
+  const expectedPaymentCount = correctParticipantCount;
+  
+  // Calculate actual payment count (those who have completed payment)
+  const actualPaymentCount = paidCount;
+  
+  // Calculate pending payment count
+  const pendingPaymentCount = expectedPaymentCount - actualPaymentCount;
+
   // ✅ FIXED: Add permission checking with group membership verification
   useEffect(() => {
     const checkPermissions = async () => {
@@ -999,20 +1025,18 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
                 {/* Payment progress bar - Always filled with auto-payment */}
                 <div className="mb-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-purple-700">Payment Progress</span>
-                    <span className="text-xs text-purple-600">
-                      {paidCount || 0}/{participantCount} pays from participants
-                    </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-700">Payment Progress</span>
+                    <span className="text-sm text-blue-600">{actualPaymentCount}/{expectedPaymentCount} paid</span>
                   </div>
-                  <div className="w-full bg-purple-200 rounded-full h-2">
+                  <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
                     <div
-                      className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: '100%' }}
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${expectedPaymentCount > 0 ? (actualPaymentCount / expectedPaymentCount) * 100 : 0}%` }}
                     />
                   </div>
                   <div className="text-xs text-purple-600 mt-1">
-                    Average cost per participant: ${request.rate || 'TBD'}
+                    Average cost per participant: Rs. {request.rate || 'TBD'}
                   </div>
                 </div>
 
@@ -1078,7 +1102,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     disabled={loading}
                     className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
                   >
-                    {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
+                    {loading ? 'Processing Payment...' : `Pay Rs. ${request.rate || 'Now'}`}
                   </button>
                 )}
 
@@ -1144,11 +1168,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-blue-600">Rate per Person:</span>
-                      <span className="text-blue-700">${request.rate || 'TBD'}</span>
+                      <span className="text-blue-700">Rs. {request.rate || 'TBD'}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-blue-600">Total Collected:</span>
-                      <span className="text-blue-700">${request.totalPaid || 'TBD'}</span>
+                      <span className="text-blue-700">Rs. {request.totalPaid || 'TBD'}</span>
                     </div>
                   </div>
                 </div>

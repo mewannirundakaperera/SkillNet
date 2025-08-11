@@ -162,7 +162,7 @@ export default function TimeSlotSelection() {
                 <div className="text-xs text-[#A0AEC0] mb-1">Teacher: {selectedTeacher.name}</div>
                 <div className="text-xs text-[#A0AEC0] mb-1">Date: June {selectedDate}, 2025</div>
                 <div className="text-xs text-[#A0AEC0] mb-1">Time: {selectedTime || "Not selected"}</div>
-                <div className="text-xs text-[#A0AEC0] mb-1">Hourly Rate: ${selectedTeacher.rate?.toFixed(2) || "50.00"}</div>
+                <div className="text-xs text-[#A0AEC0] mb-1">Hourly Rate: Rs. {selectedTeacher.rate?.toFixed(2) || "50.00"}</div>
                 <button className="w-full btn-gradient-primary px-4 py-2 font-semibold mt-2">Select Date & Time to Book</button>
               </div>
             </aside>

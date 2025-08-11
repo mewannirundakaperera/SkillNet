@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import DatabaseTestTool from '@/utils/databaseTestTool';
+import { migrateParticipantData, migrateSingleRequest, validateParticipantData } from '@/utils/migrateParticipantData';
 
 const DatabaseTestToolComponent = () => {
     const { user } = useAuth();
@@ -9,6 +10,10 @@ const DatabaseTestToolComponent = () => {
     const [testResults, setTestResults] = useState([]);
     const [summary, setSummary] = useState(null);
     const [showResults, setShowResults] = useState(false);
+
+    // Participant Data Migration Functions
+    const [migrationStatus, setMigrationStatus] = useState('');
+    const [validationResults, setValidationResults] = useState(null);
 
     useEffect(() => {
         if (user) {
@@ -114,6 +119,52 @@ const DatabaseTestToolComponent = () => {
             case 'error': return 'text-red-400';
             case 'warning': return 'text-yellow-400';
             default: return 'text-blue-400';
+        }
+    };
+
+    const handleMigrateAll = async () => {
+        setMigrationStatus('🔄 Starting migration...');
+        try {
+            const result = await migrateParticipantData();
+            if (result.success) {
+                setMigrationStatus(`✅ Migration completed: ${result.updatedRequests} requests updated, ${result.errorCount} errors`);
+            } else {
+                setMigrationStatus(`❌ Migration failed: ${result.message}`);
+            }
+        } catch (error) {
+            setMigrationStatus(`❌ Migration error: ${error.message}`);
+        }
+    };
+
+    const handleValidateData = async () => {
+        setMigrationStatus('🔍 Validating data...');
+        try {
+            const result = await validateParticipantData();
+            if (result.success) {
+                setValidationResults(result);
+                setMigrationStatus(`✅ Validation completed: ${result.consistentRequests} consistent, ${result.inconsistentRequests} inconsistent`);
+            } else {
+                setMigrationStatus(`❌ Validation failed: ${result.message}`);
+            }
+        } catch (error) {
+            setMigrationStatus(`❌ Validation error: ${error.message}`);
+        }
+    };
+
+    const handleMigrateSingle = async () => {
+        const requestId = prompt('Enter request ID to migrate:');
+        if (!requestId) return;
+        
+        setMigrationStatus(`🔄 Migrating request ${requestId}...`);
+        try {
+            const result = await migrateSingleRequest(requestId);
+            if (result.success) {
+                setMigrationStatus(`✅ Single request migrated: ${result.message}`);
+            } else {
+                setMigrationStatus(`❌ Single request migration failed: ${result.message}`);
+            }
+        } catch (error) {
+            setMigrationStatus(`❌ Single request migration error: ${error.message}`);
         }
     };
 
@@ -253,6 +304,76 @@ const DatabaseTestToolComponent = () => {
                             📡 Real-time Listener
                         </button>
                     </div>
+                </div>
+
+                {/* Participant Data Migration Section */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">🔄 Participant Data Migration</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleValidateData}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        🔍 Validate Data
+                      </button>
+                      <button
+                        onClick={handleMigrateAll}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                      >
+                        🚀 Migrate All
+                      </button>
+                      <button
+                        onClick={handleMigrateSingle}
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                      >
+                        📝 Migrate Single
+                      </button>
+                    </div>
+                    
+                    {migrationStatus && (
+                      <div className="p-3 bg-gray-100 rounded-lg">
+                        <p className="text-sm text-gray-700">{migrationStatus}</p>
+                      </div>
+                    )}
+                    
+                    {validationResults && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="font-medium text-blue-900 mb-2">Validation Results:</h4>
+                        <div className="text-sm text-blue-800 space-y-1">
+                          <p>Total Requests: {validationResults.totalRequests}</p>
+                          <p>Fully Consistent: {validationResults.consistentRequests}</p>
+                          <p>Inconsistent: {validationResults.inconsistentRequests}</p>
+                        </div>
+                        
+                        {validationResults.inconsistentRequests > 0 && (
+                          <div className="mt-3">
+                            <h5 className="font-medium text-red-800 mb-2">⚠️ Inconsistent Requests:</h5>
+                            <div className="max-h-40 overflow-y-auto space-y-1">
+                              {validationResults.results
+                                .filter(r => !r.isConsistent)
+                                .map((r, index) => (
+                                  <div key={index} className="text-xs text-red-700 p-2 bg-red-50 rounded">
+                                    <strong>{r.requestId}:</strong> {r.title} 
+                                    <br />
+                                    <span className="text-red-600">
+                                      Participants: {r.currentParticipants} → {r.expectedParticipants}
+                                      {!r.isParticipantsConsistent && ` (Missing: ${r.missingParticipants})`}
+                                    </span>
+                                    <br />
+                                    <span className="text-red-600">
+                                      Paid: {r.currentPaidParticipants} → {r.expectedPaidParticipants}
+                                      {!r.isPaymentConsistent && ` (Missing: ${r.missingPaidParticipants})`}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Test Results */}

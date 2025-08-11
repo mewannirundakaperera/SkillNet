@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, arrayUnion, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import groupRequestService from '@/services/groupRequestService';
+import { groupRequestService } from '@/services/groupRequestService';
 
 // Payment Countdown Timer Component
 const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUserId }) => {
@@ -26,20 +26,39 @@ const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUs
         setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
         setIsExpired(true);
         
-        // Auto-transition to 'paid' state when timer expires
+        // Auto-transition to 'paid' state when funding countdown expires
         if (onRequestUpdate && requestId) {
           try {
             const result = await groupRequestService.updateGroupRequest(requestId, {
               status: 'paid',
               updatedAt: new Date(),
-              paymentExpiredAt: new Date()
+              fundingDeadlineExpiredAt: new Date()
             }, currentUserId);
             
             if (result.success) {
-              onRequestUpdate(requestId, {
-                status: 'paid',
-                paymentExpiredAt: new Date()
-              });
+              // Generate conference link automatically when status becomes 'paid'
+              try {
+                const mockLink = `https://meet.skillnet.com/session/${requestId}`;
+                await groupRequestService.updateGroupRequest(requestId, {
+                  conferenceLink: mockLink,
+                  linkGeneratedAt: new Date()
+                }, currentUserId);
+                
+                // Update the request with both status and conference link
+                onRequestUpdate(requestId, {
+                  status: 'paid',
+                  fundingDeadlineExpiredAt: new Date(),
+                  conferenceLink: mockLink,
+                  linkGeneratedAt: new Date()
+                });
+              } catch (linkError) {
+                console.error('Error generating conference link:', linkError);
+                // Still update the status even if link generation fails
+                onRequestUpdate(requestId, {
+                  status: 'paid',
+                  fundingDeadlineExpiredAt: new Date()
+                });
+              }
             }
           } catch (error) {
             console.error('Error updating request status to paid:', error);
@@ -56,14 +75,14 @@ const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUs
 
   if (isExpired) {
     return (
-      <div className="text-xs text-red-600 font-medium">
-        ⏰ Payment deadline expired!
+      <div className="text-xs text-green-600 font-medium">
+        ✅ Funding deadline reached - Request is now ready for session!
       </div>
     );
   }
 
   return (
-    <div className="text-sm font-mono text-red-700">
+    <div className="text-2xl font-mono font-bold text-red-700 bg-red-50 px-4 py-2 rounded-lg border-2 border-red-300">
       {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
     </div>
   );
@@ -232,6 +251,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           voteCount: (request.voteCount || 1) - 1,
           updatedAt: new Date()
         };
+
+        // Also remove from participants if they were added as a voter
+        const existingParticipants = request.participants || [];
+        const newParticipants = existingParticipants.filter(id => id !== currentUserId);
+        updateData.participants = newParticipants;
+        updateData.participantCount = newParticipants.length;
       } else {
         // Add vote
         updateData = {
@@ -240,18 +265,24 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           updatedAt: new Date()
         };
 
+        // Automatically add voter as participant
+        const existingParticipants = request.participants || [];
+        if (!existingParticipants.includes(currentUserId)) {
+          updateData.participants = [...existingParticipants, currentUserId];
+          updateData.participantCount = (request.participantCount || 0) + 1;
+        }
+
         // Check if we reached 5 votes to change status
         const newVoteCount = (request.voteCount || 0) + 1;
         if (newVoteCount >= 5 && request.status === 'pending') {
           updateData.status = 'voting_open';
           
-          // Automatically add all voters and request creator as participants
+          // Ensure all voters are participants
           const allVoters = [...(request.votes || []), currentUserId];
           const requestCreator = request.userId || request.createdBy;
           
           // Add all voters as participants (excluding if already there)
-          const existingParticipants = request.participants || [];
-          const newParticipants = [...new Set([...existingParticipants, ...allVoters])];
+          const newParticipants = [...new Set([...updateData.participants || [], ...allVoters])];
           
           // Add request creator if not already a participant
           if (requestCreator && !newParticipants.includes(requestCreator)) {
@@ -270,12 +301,16 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         const newVotes = updateData.votes;
         const newVoteCount = updateData.voteCount;
         const newStatus = updateData.status || request.status;
+        const newParticipants = updateData.participants;
+        const newParticipantCount = updateData.participantCount;
 
         onRequestUpdate?.(request.id, {
           ...request,
           votes: newVotes,
           voteCount: newVoteCount,
-          status: newStatus
+          status: newStatus,
+          participants: newParticipants,
+          participantCount: newParticipantCount
         });
       } else {
         console.error('❌ Vote failed:', result.message);
@@ -344,21 +379,24 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
     try {
       setLoading(true);
-      const isTeaching = request.teachers?.includes(currentUserId);
+      const isCurrentlyTeaching = request.teachers?.includes(currentUserId);
 
       let updateData;
-      if (isTeaching) {
+      if (isCurrentlyTeaching) {
         // Cancel teaching
         updateData = {
           teachers: request.teachers?.filter(id => id !== currentUserId) || [],
-          teacherCount: (request.teacherCount || 1) - 1,
+          teacherCount: Math.max((request.teacherCount || 1) - 1, 0),
           updatedAt: new Date()
         };
 
         // If no more teachers, change status back to voting_open
         if (updateData.teacherCount === 0) {
           updateData.status = 'voting_open';
+          updateData.statusChangedAt = new Date();
         }
+
+        console.log('🔄 Canceling teaching role for user:', currentUserId);
       } else {
         // Accept teaching
         updateData = {
@@ -370,7 +408,10 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         // Change status to accepted when first teacher joins (if coming from voting_open)
         if (request.status === 'voting_open') {
           updateData.status = 'accepted';
+          updateData.statusChangedAt = new Date();
         }
+
+        console.log('🎯 Adding teaching role for user:', currentUserId);
       }
 
       const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
@@ -387,6 +428,13 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           teacherCount: newTeacherCount,
           status: newStatus
         });
+
+        // Show success message
+        if (isCurrentlyTeaching) {
+          alert('✅ Teaching role cancelled successfully!');
+        } else {
+          alert('🎯 You are now teaching this session!');
+        }
       } else {
         console.error('❌ Teaching participation failed:', result.message);
         alert(result.message || 'Failed to update teaching participation');
@@ -426,18 +474,20 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         updateData.paymentCompletedAt = serverTimestamp();
       }
 
-      if (db && request.id) {
-        await updateDoc(doc(db, 'requests', request.id), updateData);
+      // Use groupRequestService instead of direct database access
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      
+      if (result.success) {
+        const newPaidParticipants = [...(request.paidParticipants || []), currentUserId];
+        onRequestUpdate?.(request.id, {
+          ...request,
+          paidParticipants: newPaidParticipants,
+          status: newPaidParticipants.length >= requiredPayments ? 'payment_complete' : request.status
+        });
+        alert('Payment successful!');
+      } else {
+        alert(result.message || 'Payment failed. Please try again.');
       }
-
-      const newPaidParticipants = [...(request.paidParticipants || []), currentUserId];
-      onRequestUpdate?.(request.id, {
-        ...request,
-        paidParticipants: newPaidParticipants,
-        status: newPaidParticipants.length >= requiredPayments ? 'payment_complete' : request.status
-      });
-
-      alert('Payment successful!');
     } catch (error) {
       console.error('Error processing payment:', error);
       alert('Payment failed. Please try again.');
@@ -555,15 +605,61 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   const styling = getCardStyling();
   
+  // Calculate correct participant count including voters
+  const getCorrectParticipantCount = () => {
+    const baseParticipants = request.participants || [];
+    const voters = request.votes || [];
+    const requestCreator = request.userId || request.createdBy;
+    
+    // Combine all participants, voters, and request creator
+    const allParticipants = [...new Set([...baseParticipants, ...voters])];
+    if (requestCreator && !allParticipants.includes(requestCreator)) {
+      allParticipants.push(requestCreator);
+    }
+    
+    return allParticipants.length;
+  };
+
+  const correctParticipantCount = getCorrectParticipantCount();
+  
   // Ensure all data is properly fetched from database with fallbacks
   const voteCount = request.voteCount || request.votes?.length || 0;
   const teacherCount = request.teacherCount || request.teachers?.length || 0;
   const participantCount = request.participantCount || request.participants?.length || 0;
   
+  // Debug logging for participant count calculation
+  if (request.status === 'funding' || request.status === 'accepted') {
+    console.log('👥 Participant Count Debug:', {
+      requestId: request.id,
+      status: request.status,
+      participantCount,
+      participantsArray: request.participants,
+      participantsLength: request.participants?.length,
+      votes: request.votes,
+      voteCount: request.voteCount,
+      votesLength: request.votes?.length,
+      requestCreator: request.userId || request.createdBy,
+      correctParticipantCount,
+      expectedPaymentCount: correctParticipantCount,
+      actualPaymentCount: paidCount,
+      pendingPaymentCount: expectedPaymentCount - actualPaymentCount,
+      calculatedCount: Math.max(request.participantCount || 0, request.participants?.length || 0, request.votes?.length || 0)
+    });
+  }
+  
   // Payment data from database
   const paidParticipants = Array.isArray(request.paidParticipants) ? request.paidParticipants : [];
   const paidCount = paidParticipants.length;
   const hasPaid = paidParticipants.includes(currentUserId);
+  
+  // Calculate expected payment count (all participants should pay)
+  const expectedPaymentCount = correctParticipantCount;
+  
+  // Calculate actual payment count (those who have completed payment)
+  const actualPaymentCount = paidCount;
+  
+  // Calculate pending payment count
+  const pendingPaymentCount = expectedPaymentCount - actualPaymentCount;
   
   // User status from database
   const hasVoted = request.votes?.includes(currentUserId) || false;
@@ -575,7 +671,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     console.log('💰 Funding State Data:', {
       requestId: request.id,
       participantCount,
-      paidCount,
+      expectedPaymentCount,
+      actualPaymentCount,
+      pendingPaymentCount,
       paidParticipants,
       rate: request.rate,
       totalPaid: request.totalPaid
@@ -644,13 +742,33 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       const deadlineHours = parseInt(paymentDeadline);
       const paymentDeadlineTime = new Date(Date.now() + (deadlineHours * 60 * 60 * 1000));
       
+      // Ensure all voters are included as participants
+      const allVoters = request.votes || [];
+      const existingParticipants = request.participants || [];
+      const requestCreator = request.userId || request.createdBy;
+      
+      // Combine voters, existing participants, and request creator
+      const allParticipants = [...new Set([...existingParticipants, ...allVoters])];
+      if (requestCreator && !allParticipants.includes(requestCreator)) {
+        allParticipants.push(requestCreator);
+      }
+      
       const updateData = {
         selectedTeacher: selectedTeacher,
         status: 'funding',
         paymentDeadline: paymentDeadlineTime,
         paymentDeadlineHours: deadlineHours,
+        participants: allParticipants,
+        participantCount: allParticipants.length,
         updatedAt: new Date()
       };
+      
+      console.log('🎯 Teacher Selection - Ensuring all voters are participants:', {
+        voters: allVoters,
+        existingParticipants,
+        allParticipants,
+        participantCount: allParticipants.length
+      });
       
       const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
       
@@ -660,11 +778,13 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           selectedTeacher: selectedTeacher,
           status: 'funding',
           paymentDeadline: paymentDeadlineTime,
-          paymentDeadlineHours: deadlineHours
+          paymentDeadlineHours: deadlineHours,
+          participants: allParticipants,
+          participantCount: allParticipants.length
         });
         setSelectedTeacher('');
         setPaymentDeadline('');
-        alert(`Teacher ${teacherNames[selectedTeacher] || selectedTeacher} has been selected! Payment deadline set to ${deadlineHours} hour(s).`);
+        alert(`Teacher ${teacherNames[selectedTeacher] || selectedTeacher} has been selected! Payment deadline set to ${deadlineHours} hour(s). All ${allParticipants.length} participants (including voters) are now required to pay.`);
       } else {
         alert(result.message || 'Failed to select teacher');
       }
@@ -675,6 +795,68 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       setLoading(false);
     }
   };
+
+  const handleCancelRequest = async () => {
+    if (!currentUserId || loading || !isOwner) return;
+
+    const reason = prompt('Please provide a reason for cancelling this request:');
+    if (!reason) return;
+
+    if (!window.confirm('Are you sure you want to cancel this request? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const updateData = {
+        status: 'cancelled',
+        cancellationReason: reason,
+        cancelledAt: new Date(),
+        cancelledBy: currentUserId,
+        updatedAt: new Date()
+      };
+
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      
+      if (result.success) {
+        onRequestUpdate?.(request.id, {
+          ...request,
+          ...updateData
+        });
+        alert('✅ Request cancelled successfully');
+      } else {
+        alert(result.message || 'Failed to cancel request');
+      }
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      alert('Failed to cancel request. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get user's role in this request
+  const getUserRole = () => {
+    if (currentUserId === request.userId || currentUserId === request.createdBy) {
+      return { role: 'owner', label: '👑 Owner', color: 'bg-purple-100 text-purple-700 border-purple-200' };
+    }
+    if (request.selectedTeacher === currentUserId) {
+      return { role: 'teacher', label: '🎯 Confirmed Teacher', color: 'bg-green-100 text-green-700 border-green-200' };
+    }
+    if (request.teachers && request.teachers.includes(currentUserId)) {
+      return { role: 'teacher_candidate', label: '👨‍🏫 Teacher Candidate', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+    }
+    if (request.votes && request.votes.includes(currentUserId)) {
+      return { role: 'voter', label: '🗳️ Voter & Participant', color: 'bg-orange-100 text-orange-700 border-orange-200' };
+    }
+    if (request.participants && request.participants.includes(currentUserId)) {
+      return { role: 'participant', label: '👥 Participant', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+    }
+    return { role: 'viewer', label: '👁️ Viewer', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+  };
+
+  const userRole = getUserRole();
 
   if (isEditing) {
     return (
@@ -766,11 +948,13 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rate</label>
                 <input
-                    type="text"
+                    type="number"
                     value={editedRequest.rate}
                     onChange={(e) => handleInputChange('rate', e.target.value)}
                     className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="$25/hour"
+                    placeholder="Rs. 2500/hour"
+                    min="0"
+                    step="0.01"
                 />
               </div>
               <div>
@@ -910,6 +1094,68 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           </div>
         </div>
 
+        {/* User Role Identification */}
+        <div className="mb-4">
+          <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border ${userRole.color} font-medium text-sm`}>
+            {userRole.label}
+            {userRole.role === 'owner' && (
+              <span className="text-xs bg-purple-200 text-purple-800 px-2 py-1 rounded-full">
+                Creator
+              </span>
+            )}
+            {userRole.role === 'teacher' && (
+              <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                Selected
+              </span>
+            )}
+            {userRole.role === 'teacher_candidate' && (
+              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
+                Applied
+              </span>
+            )}
+            {userRole.role === 'voter' && (
+              <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
+                Auto-Participant
+              </span>
+            )}
+            {userRole.role === 'participant' && (
+              <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded-full">
+                Joined
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Count Validation Banner */}
+        {(request.status === 'funding' || request.status === 'accepted') && (
+          <div className={`mb-4 p-3 rounded-lg border ${
+            expectedPaymentCount >= 6 
+              ? 'bg-green-50 border-green-200 text-green-800' 
+              : 'bg-yellow-50 border-yellow-200 text-yellow-800'
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">
+                {expectedPaymentCount >= 6 ? '✅' : '⚠️'}
+              </span>
+              <span className="font-medium">
+                {expectedPaymentCount >= 6 ? 'Counts Valid' : 'Counts Need Migration'}
+              </span>
+            </div>
+            <div className="text-sm space-y-1">
+              <div>• Expected Participants: <strong>{expectedPaymentCount}</strong> (Owner + Voters + Additional)</div>
+              <div>• Database Participants: <strong>{request.participants?.length || 0}</strong></div>
+              <div>• Database Votes: <strong>{request.votes?.length || 0}</strong></div>
+              <div>• Database Owner: <strong>{request.userId || request.createdBy ? 'Present' : 'Missing'}</strong></div>
+              <div>• Minimum Required: <strong>6</strong> (1 Owner + 5 Voters)</div>
+              {expectedPaymentCount < 6 && (
+                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700">
+                  ⚠️ This request needs database migration to include voters and owner as participants
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Message */}
         <p className="text-gray-700 text-sm mb-4 line-clamp-3">
           {request.message || request.description}
@@ -932,6 +1178,28 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         {/* State-specific content */}
         {request.status === 'pending' && (
             <div className="mb-4">
+              {/* Current User Role Information */}
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                <div className="text-xs text-blue-700 mb-2">
+                  🎭 <strong>Your Role in This Session:</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${userRole.color}`}>
+                      {userRole.label}
+                    </span>
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    {userRole.role === 'owner' && 'You created this session and are waiting for votes'}
+                    {userRole.role === 'teacher' && 'You can apply to teach this session'}
+                    {userRole.role === 'teacher_candidate' && 'You can apply to teach this session'}
+                    {userRole.role === 'voter' && 'You voted and are automatically a participant'}
+                    {userRole.role === 'participant' && 'You joined as a participant'}
+                    {userRole.role === 'viewer' && 'You can vote to approve this session'}
+                  </div>
+                </div>
+              </div>
+              
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Needs approval votes</span>
                 <span className="text-sm text-gray-600">{voteCount}/5 votes</span>
@@ -953,11 +1221,40 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
               >
                 {loading ? 'Processing...' : hasVoted ? '✓ Voted' : 'Vote to Approve'}
               </button>
+              
+              {/* Info about voting making you a participant */}
+              <div className="mt-2 text-center">
+                <p className="text-xs text-gray-600">
+                  💡 <strong>Note:</strong> Voting automatically makes you a participant in this session
+                </p>
+              </div>
             </div>
         )}
 
         {request.status === 'voting_open' && (
             <div className="mb-4">
+              {/* Current User Role Information */}
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                <div className="text-xs text-blue-700 mb-2">
+                  🎭 <strong>Your Role in This Session:</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${userRole.color}`}>
+                      {userRole.label}
+                    </span>
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    {userRole.role === 'owner' && 'You created this session and are waiting for votes'}
+                    {userRole.role === 'teacher' && 'You can apply to teach this session'}
+                    {userRole.role === 'teacher_candidate' && 'You can apply to teach this session'}
+                    {userRole.role === 'voter' && 'You voted and are automatically a participant'}
+                    {userRole.role === 'participant' && 'You joined as a participant'}
+                    {userRole.role === 'viewer' && 'You can vote to approve this session'}
+                  </div>
+                </div>
+              </div>
+              
               {/* Participants/Voters Section */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -997,6 +1294,16 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                       👑 Owner (Automatic Participant)
                     </div>
                   )}
+                </div>
+                
+                {/* Info about voting making you a participant */}
+                <div className="mt-2 text-center">
+                  <p className="text-xs text-gray-600">
+                    💡 <strong>Note:</strong> Voting automatically makes you a participant in this session
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    When a teacher is selected, all voters will be required to complete payment
+                  </p>
                 </div>
               </div>
 
@@ -1046,12 +1353,45 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
         {request.status === 'accepted' && (
             <div className="mb-4">
+              {/* Current User Role Information */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                <div className="text-xs text-blue-700 mb-2">
+                  🎭 <strong>Your Role in This Session:</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${userRole.color}`}>
+                      {userRole.label}
+                    </span>
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    {userRole.role === 'owner' && 'You created this session and can select teachers and set deadlines'}
+                    {userRole.role === 'teacher' && 'You are a teacher candidate for this session'}
+                    {userRole.role === 'teacher_candidate' && 'You applied to teach this session'}
+                    {userRole.role === 'voter' && 'You voted and are automatically a participant'}
+                    {userRole.role === 'participant' && 'You joined as a participant'}
+                    {userRole.role === 'viewer' && 'You can view this session but have not joined'}
+                  </div>
+                </div>
+              </div>
+              
               {/* Teachers Section - Only visible to owner */}
               {isOwner && (
                 <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
                     <span className="text-green-600">👨‍🏫</span>
                     <span className="text-sm font-medium text-green-800">Teachers</span>
+                    </div>
+                    {/* Cancel Request Button for Owner */}
+                    <button
+                      onClick={handleCancelRequest}
+                      disabled={loading}
+                      className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                      title="Cancel this request"
+                    >
+                      ❌ Cancel Request
+                    </button>
                   </div>
                   
                   {/* Show current teachers */}
@@ -1128,21 +1468,165 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                 </div>
               )}
 
+              {/* Role Selection for non-owners in accepted state - ONLY for users who haven't chosen any role */}
+              {/* Individual Role Buttons - Show only the role that hasn't been chosen yet */}
+              {!isOwner && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                <>
+                  {/* Show "Join as Participant" button only if user is not participating and not teaching */}
+                  {!isParticipating && !isTeaching && (
+                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="text-center mb-3">
+                        <h4 className="text-sm font-medium text-blue-800 mb-2">Join as Participant</h4>
+                        <p className="text-xs text-blue-600">Participate in this session as a learner</p>
+                      </div>
+                      
+                      <button
+                        onClick={handleParticipation}
+                        disabled={loading}
+                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      >
+                        {loading ? 'Processing...' : '👥 Join as Participant'}
+                      </button>
+                    </div>
+                  )}
 
+                  {/* Show "Want to Teach" button only if user is not teaching, not participating, and not a voter */}
+                  {!isTeaching && !isParticipating && !hasVoted && (
+                    <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="text-center mb-3">
+                        <h4 className="text-sm font-medium text-green-800 mb-2">Join as Teacher</h4>
+                        <p className="text-xs text-green-600">Mentor and guide participants in this session</p>
+                      </div>
+                      
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to join as a teacher for this session? You will be responsible for mentoring and guiding participants.')) {
+                            handleTeachingParticipation();
+                          }
+                        }}
+                        disabled={loading}
+                        className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+                      >
+                        {loading ? 'Processing...' : '🎯 Want to Teach'}
+                      </button>
+                    </div>
+                  )}
 
+                  {/* Show voter status - they are automatically participants */}
+                  {hasVoted && !isTeaching && (
+                    <div className="mt-4 bg-blue-100 border border-blue-300 rounded-lg p-3">
+                      <div className="text-center">
+                        <h4 className="text-sm font-medium text-blue-800 mb-2">🗳️ You're a Voter & Participant</h4>
+                        <p className="text-xs text-blue-600">You voted to approve this session, so you're automatically a participant</p>
+                        <div className="mt-2">
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to leave this session? This will also remove your vote.')) {
+                                handleParticipation();
+                              }
+                            }}
+                            disabled={loading}
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                          >
+                            ❌ Leave Session
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
+                  {/* Show current role status if user has already chosen one (non-voters) */}
+                  {isParticipating && !hasVoted && (
+                    <div className="mt-4 bg-blue-100 border border-blue-300 rounded-lg p-3">
+                      <div className="text-center">
+                        <h4 className="text-sm font-medium text-blue-800 mb-2">✅ You're a Participant</h4>
+                        <p className="text-xs text-blue-600">You've joined this session as a participant</p>
+                        <div className="mt-2">
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to leave this session as a participant?')) {
+                                handleParticipation();
+                              }
+                            }}
+                            disabled={loading}
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                          >
+                            ❌ Leave Session
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
+                  {isTeaching && (
+                    <div className="mt-4 bg-green-100 border border-green-300 rounded-lg p-3">
+                      <div className="text-center">
+                        <h4 className="text-sm font-medium text-green-800 mb-2">🎯 You're a Teacher</h4>
+                        <p className="text-xs text-green-600">You've joined this session as a teacher</p>
+                        <div className="mt-2">
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to leave this session as a teacher?')) {
+                                handleTeachingParticipation();
+                              }
+                            }}
+                            disabled={loading}
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                          >
+                            ❌ Leave Session
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
 
+              {/* Participant Actions - Show for participants */}
                 {isParticipating && (
                   <div className="mt-3 pt-2 border-t border-blue-200">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-blue-700">Payment Progress</span>
-                      <span className="text-sm text-blue-600">{paidCount}/{participantCount} paid</span>
+                    <span className="text-sm text-blue-600">{actualPaymentCount}/{expectedPaymentCount} paid</span>
                     </div>
+                    
+                    {/* Count Validation Display for Accepted State */}
+                    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                      <div className="text-xs text-yellow-800 font-medium mb-1">🔍 Count Validation:</div>
+                      <div className="text-xs text-yellow-700 space-y-1">
+                        <div>• Expected Participants: {expectedPaymentCount} (Owner + Voters + Additional)</div>
+                        <div>• Database Participants: {request.participants?.length || 0}</div>
+                        <div>• Database Votes: {request.votes?.length || 0}</div>
+                        <div>• Status: {expectedPaymentCount >= 6 ? '✅ Valid' : '⚠️ Needs Migration'}</div>
+                      </div>
+                    </div>
+
+                    {/* Payment Countdown Timer for Accepted State */}
+                    {request.paymentDeadline && (
+                      <div className="mb-2 p-2 bg-orange-50 border border-orange-200 rounded">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-orange-600">⏰</span>
+                          <span className="text-xs font-medium text-orange-700">Payment Deadline</span>
+                        </div>
+                        <PaymentCountdownTimer 
+                          deadline={request.paymentDeadline} 
+                          requestId={request.id}
+                          onRequestUpdate={onRequestUpdate}
+                          currentUserId={currentUserId}
+                        />
+                        <div className="text-xs text-orange-600 mt-1">
+                          Complete payment before time runs out!
+                        </div>
+                        <div className="text-xs text-green-600 mt-2 font-medium">
+                          💡 When countdown ends: Request automatically changes to "Session Ready" state
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
                       <div
                           className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
+                        style={{ width: `${expectedPaymentCount > 0 ? (actualPaymentCount / expectedPaymentCount) * 100 : 0}%` }}
                       />
                     </div>
                     {!hasPaid && (
@@ -1151,7 +1635,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                             disabled={loading}
                             className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
                         >
-                          {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
+                        {loading ? 'Processing Payment...' : `Pay Rs. ${request.rate || 'Now'}`}
                         </button>
                     )}
                     {hasPaid && (
@@ -1159,41 +1643,6 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                           ✓ Payment Complete - Waiting for others
                         </div>
                     )}
-                  </div>
-                )}
-              </div>
-
-              {/* Role Selection for non-owners in accepted state - ONLY for users who haven't chosen any role */}
-              {!isOwner && currentUserId !== request.userId && currentUserId !== request.createdBy && !isTeaching && !isParticipating && (
-                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="text-center mb-3">
-                    <h4 className="text-sm font-medium text-blue-800 mb-2">Choose Your Role</h4>
-                    <p className="text-xs text-blue-600">You haven't joined this session yet. Choose how you want to participate:</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Join as Participant Button */}
-                    <button
-                      onClick={handleParticipation}
-                      disabled={loading}
-                      className="bg-blue-600 text-white py-2 px-3 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
-                    >
-                      {loading ? 'Processing...' : '👥 Join as Participant'}
-                    </button>
-                    
-                    {/* Want to Teach Button */}
-                    <button
-                      onClick={handleTeachingParticipation}
-                      disabled={loading}
-                      className="bg-green-600 text-white py-2 px-3 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
-                    >
-                      {loading ? 'Processing...' : '🎯 Want to Teach'}
-                    </button>
-                  </div>
-                  
-                  <p className="text-xs text-blue-600 text-center mt-2">
-                    Participants can join the session, teachers can mentor and guide
-                  </p>
                 </div>
               )}
 
@@ -1210,78 +1659,117 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                   <span className="text-sm font-medium text-purple-800">Funding Phase</span>
                 </div>
                 
-                {/* Show selected teacher */}
-                {request.selectedTeacher && (
-                  <div className="mb-3 p-2 bg-purple-50 border border-purple-200 rounded">
-                    <div className="text-xs text-purple-700 mb-1">
-                      Selected Teacher: {teacherNames[request.selectedTeacher] || request.selectedTeacher}
+                {/* Payment Countdown Timer - Prominently displayed in funding header */}
+                {request.paymentDeadline ? (
+                  <div className="mb-4 p-3 bg-red-100 border-2 border-red-300 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600 text-lg">⏰</span>
+                        <span className="text-base font-bold text-red-800">Payment Deadline</span>
+                      </div>
+                      <span className="text-xs text-red-600 bg-red-200 px-2 py-1 rounded-full">
+                        Time Remaining
+                      </span>
                     </div>
-                    <div className="text-xs text-purple-600">
-                      Status: Awaiting payment from participants
+                    <div className="text-center">
+                      <PaymentCountdownTimer 
+                        deadline={request.paymentDeadline} 
+                        requestId={request.id}
+                        onRequestUpdate={onRequestUpdate}
+                        currentUserId={currentUserId}
+                      />
+                    </div>
+                    <div className="text-center mt-2">
+                      <div className="text-sm text-red-700 font-medium">
+                        Complete payment before time runs out!
+                      </div>
+                      <div className="text-xs text-green-600 mt-1 font-medium">
+                        💡 When countdown ends: Request automatically changes to "Session Ready" state
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-4 p-3 bg-yellow-100 border-2 border-yellow-300 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-yellow-600 text-lg">⚠️</span>
+                      <span className="text-base font-bold text-yellow-800">No Payment Deadline Set</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm text-yellow-700 font-medium">
+                        ⚠️ No payment deadline set. Please set a deadline to ensure timely payments.
+                      </div>
+                      <div className="text-xs text-yellow-600 mt-1">
+                        The owner needs to select a teacher and set a payment deadline to start the funding phase.
+                      </div>
                     </div>
                   </div>
                 )}
-
-                {/* Show participants who need to pay */}
-                {participantCount > 0 && (
-                  <div className="mb-3">
-                    <div className="text-xs text-purple-700 mb-2">
-                      {participantCount} participant(s) need to complete payment
-                    </div>
-                    <div className="space-y-1">
-                      {request.participants?.map((participantId, index) => (
-                        <div key={index} className="flex items-center justify-between bg-purple-50 rounded px-2 py-1">
-                          <span className="text-xs text-purple-600">
-                            Participant {index + 1}: {teacherNames[participantId] || participantId}
-                          </span>
-                          <span className="text-xs text-purple-500">
-                            {request.paidParticipants?.includes(participantId) ? '✓ Paid' : '⏳ Pending'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Payment progress bar - Always filled with auto-payment */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-purple-700">Payment Progress</span>
-                    <span className="text-xs text-purple-600">
-                      {paidCount || 0}/{participantCount} pays from participants
-                    </span>
-                  </div>
-                  <div className="w-full bg-purple-200 rounded-full h-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: '100%' }}
-                    />
+                
+                {/* Explanation of voter-to-participant system */}
+                <div className="mb-3 p-2 bg-purple-50 border border-purple-200 rounded">
+                  <div className="text-xs text-purple-700">
+                    💡 <strong>Note:</strong> All voters automatically become participants and must complete payment to proceed with the session.
                   </div>
                   <div className="text-xs text-purple-600 mt-1">
-                    Average cost per participant: ${request.rate || 'TBD'}
+                    👑 <strong>Owner:</strong> Session creator is automatically a participant and must pay.
+                  </div>
+                  <div className="text-xs text-purple-600 mt-1">
+                    🗳️ <strong>Voters:</strong> All 5 voters are automatically participants and must pay.
+                  </div>
+                  
+                  {/* Count Validation Display */}
+                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                    <div className="text-xs text-yellow-800 font-medium mb-1">🔍 Count Validation:</div>
+                    <div className="text-xs text-yellow-700 space-y-1">
+                      <div>• Expected Participants: {expectedPaymentCount} (Owner + Voters + Additional)</div>
+                      <div>• Database Participants: {request.participants?.length || 0}</div>
+                      <div>• Database Votes: {request.votes?.length || 0}</div>
+                      <div>• Database Owner: {request.userId || request.createdBy ? 'Present' : 'Missing'}</div>
+                      <div>• Status: {expectedPaymentCount >= 6 ? '✅ Valid' : '⚠️ Needs Migration'}</div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Participant Summary */}
+                <div className="mb-3 p-2 bg-purple-50 border border-purple-200 rounded">
+                  <div className="text-xs text-purple-700 mb-1">
+                    📊 <strong>Participant Breakdown:</strong>
+                  </div>
+                  <div className="text-xs text-purple-600 space-y-1">
+                    <div>• Owner: 1 (automatic participant)</div>
+                    <div>• Voters: {request.votes?.length || 0} (automatic participants)</div>
+                    <div>• Additional Participants: {(request.participants?.length || 0) - (request.votes?.length || 0)}</div>
+                    <div>• Total Required: {expectedPaymentCount}</div>
+                    <div>• Paid: {actualPaymentCount}</div>
+                    <div>• Pending: {pendingPaymentCount}</div>
                   </div>
                 </div>
 
-                {/* Payment Countdown Timer */}
-                {request.paymentDeadline && (
-                  <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-red-600">⏰</span>
-                      <span className="text-xs font-medium text-red-700">Payment Deadline</span>
-                    </div>
-                    <PaymentCountdownTimer 
-                      deadline={request.paymentDeadline} 
-                      requestId={request.id}
-                      onRequestUpdate={onRequestUpdate}
-                      currentUserId={currentUserId}
-                    />
-                    <div className="text-xs text-red-600 mt-1">
-                      Complete payment before time runs out!
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Role-based UI for different user types */}
+                
+                {/* Current User Role Information */}
+                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <div className="text-xs text-blue-700 mb-2">
+                    🎭 <strong>Your Role in This Session:</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${userRole.color}`}>
+                        {userRole.label}
+                      </span>
+                    </div>
+                    <div className="text-xs text-blue-600">
+                      {userRole.role === 'owner' && 'You created this session and are automatically a participant'}
+                      {userRole.role === 'teacher' && 'You are the selected teacher for this session'}
+                      {userRole.role === 'teacher_candidate' && 'You applied to teach but another teacher was selected'}
+                      {userRole.role === 'voter' && 'You voted and are automatically a participant'}
+                      {userRole.role === 'participant' && 'You joined as a participant'}
+                      {userRole.role === 'viewer' && 'You can view this session but have not joined'}
+                    </div>
+                  </div>
+                </div>
                 
                 {/* 1. Confirmed Teacher - See role getting message */}
                 {request.selectedTeacher === currentUserId && (
@@ -1324,7 +1812,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                     disabled={loading}
                     className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
                   >
-                    {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
+                    {loading ? 'Processing Payment...' : `Pay Rs. ${request.rate || 'Now'}`}
                   </button>
                 )}
 
@@ -1350,58 +1838,210 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                     </div>
                   </div>
                 )}
+
+                {/* Show selected teacher */}
+                {request.selectedTeacher && (
+                  <div className="mb-3 p-2 bg-purple-50 border border-purple-200 rounded">
+                    <div className="text-xs text-purple-700 mb-1">
+                      Selected Teacher: {teacherNames[request.selectedTeacher] || request.selectedTeacher}
+                    </div>
+                    <div className="text-xs text-purple-600">
+                      Status: Awaiting payment from participants
+                    </div>
+                  </div>
+                )}
+
+                {/* Show participants who need to pay */}
+                {expectedPaymentCount > 0 && (
+                  <div className="mb-3">
+                    <div className="text-xs text-purple-700 mb-2">
+                      {pendingPaymentCount} participant(s) need to complete payment
+                    </div>
+                    
+                    {/* Show voters who are automatically participants */}
+                    {request.votes && request.votes.length > 0 && (
+                      <div className="mb-2 p-2 bg-purple-50 border border-purple-200 rounded">
+                        <div className="text-xs text-purple-700 mb-1">
+                          🗳️ <strong>Voters (Automatically Participants):</strong>
+                    </div>
+                        <div className="space-y-1">
+                          {request.votes.map((voterId, index) => (
+                            <div key={index} className="flex items-center justify-between bg-purple-100 rounded px-2 py-1">
+                              <span className="text-xs text-purple-700">
+                                Voter {index + 1}: {teacherNames[voterId] || voterId}
+                              </span>
+                              <span className="text-xs text-purple-500">
+                                {request.paidParticipants?.includes(voterId) ? '✓ Paid' : '⏳ Pending'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show owner payment status */}
+                    <div className="mb-2 p-2 bg-purple-50 border border-purple-200 rounded">
+                      <div className="text-xs text-purple-700 mb-1">
+                        👑 <strong>Owner (Automatic Participant):</strong>
+                      </div>
+                      <div className="flex items-center justify-between bg-purple-100 rounded px-2 py-1">
+                        <span className="text-xs text-purple-700">
+                          Owner: {teacherNames[request.userId || request.createdBy] || (request.userId || request.createdBy)}
+                        </span>
+                        <span className="text-xs text-purple-500">
+                          {request.paidParticipants?.includes(request.userId || request.createdBy) ? '✓ Paid' : '⏳ Pending'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Show all participants */}
+                    <div className="space-y-1">
+                      {request.participants?.map((participantId, index) => (
+                        <div key={index} className="flex items-center justify-between bg-purple-50 rounded px-2 py-1">
+                          <span className="text-xs text-purple-600">
+                            Participant {index + 1}: {teacherNames[participantId] || participantId}
+                            {request.votes?.includes(participantId) && (
+                              <span className="ml-1 text-purple-500">(Voter)</span>
+                            )}
+                          </span>
+                          <span className="text-xs text-purple-500">
+                            {request.paidParticipants?.includes(participantId) ? '✓ Paid' : '⏳ Pending'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment progress bar - Show actual payment progress */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-purple-700">Payment Progress</span>
+                    <span className="text-xs text-purple-600">
+                      {actualPaymentCount}/{expectedPaymentCount} paid
+                    </span>
+                  </div>
+                  <div className="w-full bg-purple-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${expectedPaymentCount > 0 ? (actualPaymentCount / expectedPaymentCount) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-purple-600 mt-1">
+                    Average cost per participant: Rs. {request.rate || 'TBD'}
+                  </div>
+                </div>
               </div>
             </div>
         )}
 
         {request.status === 'paid' && (
             <div className="mb-4">
-              <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+              <div className="bg-green-100 border border-green-300 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-blue-600">✅</span>
-                  <span className="text-sm font-medium text-blue-800">Payment Complete</span>
+                  <span className="text-green-600">🎯</span>
+                  <span className="text-sm font-medium text-green-800">Session Ready</span>
                 </div>
                 
-                {/* Show selected teacher */}
-                {request.selectedTeacher && (
-                  <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded">
-                    <div className="text-xs text-blue-700 mb-1">
-                      Selected Teacher: {teacherNames[request.selectedTeacher] || request.selectedTeacher}
+                {/* Current User Role Information */}
+                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <div className="text-xs text-blue-700 mb-2">
+                    🎭 <strong>Your Role in This Session:</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${userRole.color}`}>
+                        {userRole.label}
+                      </span>
                     </div>
                     <div className="text-xs text-blue-600">
-                      Status: All payments completed successfully
+                      {userRole.role === 'owner' && 'You created this session and can start it when ready'}
+                      {userRole.role === 'teacher' && 'You are the confirmed teacher for this session'}
+                      {userRole.role === 'teacher_candidate' && 'Another teacher was selected for this session'}
+                      {userRole.role === 'voter' && 'You voted and are a participant in this session'}
+                      {userRole.role === 'participant' && 'You are a participant in this session'}
+                      {userRole.role === 'viewer' && 'You can view this session'}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Session Status */}
+                <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded">
+                  <div className="text-xs text-green-700 mb-1">
+                    🎉 <strong>Congratulations!</strong> All payments are complete and the session is ready to begin.
+                  </div>
+                  <div className="text-xs text-green-600">
+                    The funding deadline has been reached and all participants have completed their payments.
+                  </div>
+                </div>
+
+                {/* Meeting Link Section */}
+                {request.conferenceLink ? (
+                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-blue-600">🔗</span>
+                      <span className="text-sm font-medium text-blue-800">Jitsi Meeting Room</span>
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-xs text-blue-700 mb-1">
+                        Your meeting room is ready! Click the link below to join:
+                      </div>
+                      <a
+                        href={request.conferenceLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors text-center"
+                      >
+                        🚀 Join Meeting Room
+                      </a>
+                    </div>
+                    <div className="text-xs text-blue-600 text-center">
+                      Link generated on: {request.linkGeneratedAt ? new Date(request.linkGeneratedAt).toLocaleString() : 'Recently'}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-yellow-600">⚠️</span>
+                      <span className="text-sm font-medium text-yellow-800">Meeting Link Pending</span>
+                    </div>
+                    <div className="text-xs text-yellow-700 text-center">
+                      Meeting link is being generated. Please wait a moment...
                     </div>
                   </div>
                 )}
 
-                {/* Show payment summary */}
-                <div className="mb-3">
-                  <div className="text-xs text-blue-700 mb-2">
-                    Payment Summary
+                {/* Session Details */}
+                <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded">
+                  <div className="text-xs text-green-700 mb-1">
+                    📊 <strong>Session Summary:</strong>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-blue-600">Total Participants:</span>
-                      <span className="text-blue-700">{participantCount}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-blue-600">Total Paid:</span>
-                      <span className="text-blue-700">{paidCount}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-blue-600">Rate per Person:</span>
-                      <span className="text-blue-700">${request.rate || 'TBD'}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-blue-600">Total Collected:</span>
-                      <span className="text-blue-700">${request.totalPaid || 'TBD'}</span>
-                    </div>
+                  <div className="text-xs text-green-600 space-y-1">
+                    <div>• Total Participants: {expectedPaymentCount}</div>
+                    <div>• Confirmed Teacher: {teacherNames[request.selectedTeacher] || request.selectedTeacher}</div>
+                    <div>• Session Rate: Rs. {request.rate || 'TBD'}</div>
+                    <div>• Status: Ready to begin</div>
                   </div>
                 </div>
 
-                {/* Show next steps message */}
-                <div className="text-xs text-blue-600 text-center">
-                  🎉 All payments completed! Session can now proceed to scheduling.
+                {/* Action Buttons */}
+                <div className="space-y-2">
+                  {request.conferenceLink && (
+                    <button
+                      onClick={() => window.open(request.conferenceLink, '_blank')}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors"
+                    >
+                      🎯 Start Session Now
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => updateRequestStatus('in_progress')}
+                    disabled={loading || !request.conferenceLink}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Processing...' : '📝 Mark Session as Started'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1496,6 +2136,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
             </div>
         )}
 
+
+
         {/* Metadata */}
         <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
           <span>Duration: {request.duration || 'TBD'}</span>
@@ -1511,7 +2153,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           <span className={`text-xs px-2 py-1 rounded-full border ${getStatusStyle(request.status)}`}>
             {request.status === 'voting_open' ? 'Voting Open' :
                 request.status === 'funding' ? 'Funding Phase' :
-                request.status === 'paid' ? 'Payment Complete' :
+                request.status === 'paid' ? 'Session Ready' :
                 request.status === 'payment_complete' ? 'Ready to Start' :
                     request.status === 'in_progress' ? 'In Progress' :
                         request.status.charAt(0).toUpperCase() + request.status.slice(1)}
