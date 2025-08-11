@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { groupRequestService } from "@/services/groupRequestService";
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import groupRequestService from '@/services/groupRequestService';
 
 const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const [loading, setLoading] = useState(false);
@@ -9,6 +11,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedRequest, setEditedRequest] = useState({ ...request });
   const [showActions, setShowActions] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState('');
+  const [teacherNames, setTeacherNames] = useState({});
+  const [isOwner, setIsOwner] = useState(false);
 
   // Calculate time until session starts
   useEffect(() => {
@@ -460,6 +465,71 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const isParticipating = request.participants?.includes(currentUserId);
   const hasPaid = request.paidParticipants?.includes(currentUserId);
 
+  // Get user display name from database
+  const getUserDisplayName = async (userId) => {
+    if (!userId || teacherNames[userId]) return teacherNames[userId];
+    
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const displayName = userData.displayName || userData.name || 'Unknown User';
+        setTeacherNames(prev => ({ ...prev, [userId]: displayName }));
+        return displayName;
+      }
+    } catch (error) {
+      console.error('Error fetching user name:', error);
+    }
+    return 'Unknown User';
+  };
+
+  // Load teacher names when component mounts or teachers change
+  useEffect(() => {
+    if (request.teachers && request.teachers.length > 0) {
+      request.teachers.forEach(userId => {
+        getUserDisplayName(userId);
+      });
+    }
+  }, [request.teachers]);
+
+  // Check if current user is owner
+  useEffect(() => {
+    setIsOwner(currentUserId === request.userId || currentUserId === request.createdBy);
+  }, [currentUserId, request.userId, request.createdBy]);
+
+  // Handle teacher selection and confirmation
+  const handleTeacherSelection = async () => {
+    if (!selectedTeacher || !isOwner) return;
+    
+    try {
+      setLoading(true);
+      const updateData = {
+        selectedTeacher: selectedTeacher,
+        status: 'funding',
+        updatedAt: new Date()
+      };
+      
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      
+      if (result.success) {
+        onRequestUpdate?.(request.id, {
+          ...request,
+          selectedTeacher: selectedTeacher,
+          status: 'funding'
+        });
+        setSelectedTeacher('');
+        alert(`Teacher ${teacherNames[selectedTeacher] || selectedTeacher} has been selected!`);
+      } else {
+        alert(result.message || 'Failed to select teacher');
+      }
+    } catch (error) {
+      console.error('Error selecting teacher:', error);
+      alert('Failed to select teacher. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (isEditing) {
     return (
         <div className="bg-white rounded-lg shadow-sm border-2 border-blue-300 p-6">
@@ -820,118 +890,70 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
         {request.status === 'accepted' && (
             <div className="mb-4">
-              {/* Teachers Section */}
-              <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-green-600">👨‍🏫</span>
-                  <span className="text-sm font-medium text-green-800">Teachers</span>
-                </div>
-                
-                {/* Show current teachers */}
-                {teacherCount > 0 ? (
-                  <div className="mb-3">
+              {/* Teachers Section - Only visible to owner */}
+              {isOwner && (
+                <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-green-600">👨‍🏫</span>
+                    <span className="text-sm font-medium text-green-800">Teachers</span>
+                  </div>
+                  
+                  {/* Show current teachers */}
+                  {teacherCount > 0 ? (
+                    <div className="mb-3">
+                      <div className="text-xs text-green-700 mb-2">
+                        {teacherCount} teacher(s) joined
+                      </div>
+                      <div className="space-y-2">
+                        {request.teachers?.map((teacherId, index) => (
+                          <div key={index} className="flex items-center justify-between bg-green-50 rounded px-2 py-1">
+                            <span className="text-xs text-green-800">
+                              Teacher {index + 1}: {teacherNames[teacherId] || teacherId}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Teacher Selection Dropdown - Only for owner */}
+                      <div className="mt-3">
+                        <label htmlFor="teacherSelection" className="block text-sm font-medium text-green-700 mb-1">
+                          Select Teacher:
+                        </label>
+                        <select
+                          id="teacherSelection"
+                          value={selectedTeacher}
+                          onChange={(e) => setSelectedTeacher(e.target.value)}
+                          className="w-full border border-green-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                          <option value="">Select a teacher</option>
+                          {request.teachers?.map((teacherId) => (
+                            <option key={teacherId} value={teacherId}>
+                              {teacherNames[teacherId] || teacherId}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={handleTeacherSelection}
+                          disabled={loading || !selectedTeacher}
+                          className="mt-2 w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+                        >
+                          {loading ? 'Processing...' : `Confirm Teacher: ${teacherNames[selectedTeacher] || selectedTeacher}`}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                     <div className="text-xs text-green-700 mb-2">
-                      {teacherCount} teacher(s) joined
+                      No teachers joined yet
                     </div>
-                    <div className="space-y-2">
-                      {request.teachers?.map((teacherId, index) => (
-                        <div key={index} className="flex items-center justify-between bg-green-50 rounded px-2 py-1">
-                          <span className="text-xs text-green-800">
-                            Teacher {index + 1} (ID: {teacherId})
-                          </span>
-                          {/* Show cancel button for teachers */}
-                          {teacherId === currentUserId && (
-                            <button
-                              onClick={handleTeachingParticipation}
-                              disabled={loading}
-                              className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors disabled:opacity-50"
-                            >
-                              {loading ? '...' : 'Cancel'}
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-green-700 mb-2">
-                    No teachers joined yet
-                  </div>
-                )}
-
-                {/* Show Want to Teach button for non-teachers */}
-                {!isTeaching && currentUserId !== request.userId && currentUserId !== request.createdBy && (
-                  <div className="mt-2">
-                    <button
-                      onClick={handleTeachingParticipation}
-                      disabled={loading}
-                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
-                    >
-                      {loading ? 'Processing...' : '🎯 Want to Teach'}
-                    </button>
-                    <p className="text-xs text-green-600 text-center mt-1">
-                      Join as a teacher/mentor for this session
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Participants Section */}
-              <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-blue-600">👥</span>
-                  <span className="text-sm font-medium text-blue-800">Participants</span>
+                  )}
                 </div>
-                
-                {/* Show current participants */}
-                {participantCount > 0 ? (
-                  <div className="mb-3">
-                    <div className="text-xs text-blue-700 mb-2">
-                      {participantCount} participant(s) joined
-                    </div>
-                    <div className="space-y-2">
-                      {request.participants?.map((participantId, index) => (
-                        <div key={index} className="flex items-center justify-between bg-blue-50 rounded px-2 py-1">
-                          <span className="text-xs text-blue-800">
-                            Participant {index + 1} (ID: {participantId})
-                          </span>
-                          {/* Show cancel button for participants */}
-                          {participantId === currentUserId && (
-                            <button
-                              onClick={handleParticipation}
-                              disabled={loading}
-                              className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors disabled:opacity-50"
-                            >
-                              {loading ? '...' : 'Cancel'}
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-blue-700 mb-2">
-                    No participants joined yet
-                  </div>
-                )}
+              )}
 
-                {/* Show Join button for non-participants */}
-                {!isParticipating && currentUserId !== request.userId && currentUserId !== request.createdBy && (
-                  <div className="mt-2">
-                    <button
-                      onClick={handleParticipation}
-                      disabled={loading}
-                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 border-2 border-blue-500"
-                    >
-                      {loading ? 'Processing...' : '👥 Join as Participant'}
-                    </button>
-                    <p className="text-xs text-blue-600 text-center mt-1">
-                      Join as a participant for this session
-                    </p>
-                  </div>
-                )}
 
-                {/* Show payment section if user is participating */}
+
+
+
+
                 {isParticipating && (
                   <div className="mt-3 pt-2 border-t border-blue-200">
                     <div className="flex items-center justify-between mb-2">
@@ -961,6 +983,81 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                   </div>
                 )}
               </div>
+
+              {/* Role Selection for non-owners in accepted state */}
+              {!isOwner && currentUserId !== request.userId && currentUserId !== request.createdBy && !isTeaching && !isParticipating && (
+                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="text-center mb-3">
+                    <h4 className="text-sm font-medium text-blue-800 mb-2">Choose Your Role</h4>
+                    <p className="text-xs text-blue-600">You haven't joined this session yet. Choose how you want to participate:</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Join as Participant Button */}
+                    <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className="bg-blue-600 text-white py-2 px-3 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Processing...' : '👥 Join as Participant'}
+                    </button>
+                    
+                    {/* Want to Teach Button */}
+                    <button
+                      onClick={handleTeachingParticipation}
+                      disabled={loading}
+                      className="bg-green-600 text-white py-2 px-3 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Processing...' : '🎯 Want to Teach'}
+                    </button>
+                  </div>
+                  
+                  <p className="text-xs text-blue-600 text-center mt-2">
+                    Participants can join the session, teachers can mentor and guide
+                  </p>
+                </div>
+              )}
+
+              {/* Individual buttons for users who have already chosen a role */}
+              {!isOwner && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                <>
+                  {/* Show Join as Participant button if user is not participating */}
+                  {!isParticipating && (
+                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="text-center">
+                        <button
+                          onClick={handleParticipation}
+                          disabled={loading}
+                          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          {loading ? 'Processing...' : '👥 Join as Participant'}
+                        </button>
+                        <p className="text-xs text-blue-600 text-center mt-1">
+                          Join as a participant for this session
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show Want to Teach button if user is not teaching */}
+                  {!isTeaching && (
+                    <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="text-center">
+                        <button
+                          onClick={handleTeachingParticipation}
+                          disabled={loading}
+                          className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+                        >
+                          {loading ? 'Processing...' : '🎯 Want to Teach'}
+                        </button>
+                        <p className="text-xs text-green-600 text-center mt-1">
+                          Join as a teacher/mentor for this session
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
         )}
 
