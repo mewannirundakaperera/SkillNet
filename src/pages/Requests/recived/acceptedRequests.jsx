@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAcceptedRequests } from '@/hooks/useRequests';
-import integratedRequestService from '@/services/integratedRequestService';
+import unifiedRequestService from '@/services/unifiedRequestService';
 
 const AcceptedRequests = () => {
     const { user } = useAuth();

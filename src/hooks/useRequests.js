@@ -1,7 +1,7 @@
 // src/hooks/useRequests.js
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import databaseService from '@/services/databaseService';
+import unifiedRequestService from '@/services/unifiedRequestService';
 import { groupRequestService } from '@/services/groupRequestService';
 
 // Base hook for request management with proper flow handling
@@ -40,14 +40,14 @@ export const useRequests = (type = 'all', status = null, userId = null) => {
 
                 if (type === 'one-to-one') {
                     // One-to-one requests only
-                    unsubscribe = databaseService.getUserRequests(targetUserId, status, (data) => {
+                    unsubscribe = unifiedRequestService.getUserRequests(targetUserId, status, (data) => {
                         setRequests(data);
                         updateStats(data, []);
                         setLoading(false);
                     });
                 } else if (type === 'available') {
                     // Available requests from others (for pending offers)
-                    unsubscribe = databaseService.getAvailableRequests(targetUserId, (data) => {
+                    unsubscribe = unifiedRequestService.getAvailableRequests(targetUserId, (data) => {
                         setRequests(data);
                         updateStats(data, []);
                         setLoading(false);
@@ -64,7 +64,7 @@ export const useRequests = (type = 'all', status = null, userId = null) => {
 
                     // Get one-to-one requests
                     promises.push(new Promise((resolve) => {
-                        databaseService.getUserRequests(targetUserId, status, resolve);
+                        unifiedRequestService.getUserRequests(targetUserId, status, resolve);
                     }));
 
                     // Get group requests
@@ -162,14 +162,14 @@ export const useRequests = (type = 'all', status = null, userId = null) => {
                 // Use specific methods for the flow
                 switch (newStatus) {
                     case 'completed':
-                        result = await databaseService.completeRequest(requestId, targetUserId);
+                        result = await unifiedRequestService.completeRequest(requestId, targetUserId);
                         break;
                     case 'archived':
-                        result = await databaseService.archiveRequest(requestId, targetUserId);
+                        result = await unifiedRequestService.archiveRequest(requestId, targetUserId);
                         break;
                     default:
                         // For other status changes, update directly
-                        result = await databaseService.updateRequest(requestId, { status: newStatus }, targetUserId);
+                        result = await unifiedRequestService.updateRequest(requestId, { status: newStatus }, targetUserId);
                 }
             }
             return result;
@@ -185,7 +185,7 @@ export const useRequests = (type = 'all', status = null, userId = null) => {
             if (requestType === 'group') {
                 result = await groupRequestService.deleteGroupRequest(requestId, targetUserId);
             } else {
-                result = await databaseService.deleteRequest(requestId, targetUserId);
+                result = await unifiedRequestService.deleteRequest(requestId, targetUserId);
             }
             return result;
         } catch (err) {
@@ -196,7 +196,7 @@ export const useRequests = (type = 'all', status = null, userId = null) => {
 
     const publishDraft = useCallback(async (requestId) => {
         try {
-            return await databaseService.publishDraft(requestId, targetUserId);
+            return await unifiedRequestService.publishDraft(requestId, targetUserId);
         } catch (err) {
             console.error('Error publishing draft:', err);
             return { success: false, message: err.message };
@@ -205,7 +205,7 @@ export const useRequests = (type = 'all', status = null, userId = null) => {
 
     const respondToRequest = useCallback(async (requestId, responseData) => {
         try {
-            return await databaseService.respondToRequest(requestId, responseData, targetUserId);
+            return await unifiedRequestService.respondToRequest(requestId, responseData, targetUserId);
         } catch (err) {
             console.error('Error responding to request:', err);
             return { success: false, message: err.message };
@@ -252,7 +252,7 @@ export const useUserResponses = (status = null) => {
             return;
         }
 
-        const unsubscribe = databaseService.getUserResponses(user.id, status, (data) => {
+        const unsubscribe = unifiedRequestService.getUserResponses(user.id, status, (data) => {
             setResponses(data);
             setLoading(false);
         });

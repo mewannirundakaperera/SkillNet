@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import integratedRequestService from '@/services/integratedRequestService';
+import unifiedRequestService from '@/services/unifiedRequestService';
 import { groupRequestService } from '@/services/groupRequestService';
-import { databaseService } from '@/services/databaseService';
 
 const DraftRequests = () => {
     const { user } = useAuth();
@@ -27,7 +26,7 @@ const DraftRequests = () => {
 
                 // Load one-to-one draft requests
                 try {
-                    const allRequests = await databaseService.getUserRequestsDirect(user.id);
+                    const allRequests = await unifiedRequestService.getUserRequestsDirect(user.id);
                     const draftRequests = allRequests.filter(req => req.status === 'draft');
                     setOneToOneRequests(draftRequests);
                 } catch (oneToOneError) {
@@ -93,11 +92,11 @@ const DraftRequests = () => {
                             window.location.href = `/requests/edit/${requestId}?type=${requestType}`;
                             return;
                         }
-                        // Use the integrated service to publish draft (draft -> open)
-                        result = await integratedRequestService.publishDraft(requestId, user.id);
+                        // Use the unified service to publish draft (draft -> open)
+                        result = await unifiedRequestService.publishDraft(requestId, user.id);
                         break;
                     case 'delete':
-                        result = await integratedRequestService.deleteRequest(requestId, user.id);
+                        result = await unifiedRequestService.deleteRequest(requestId, user.id);
                         break;
                     default:
                         result = { success: false, message: 'Unknown action' };

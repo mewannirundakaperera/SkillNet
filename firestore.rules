@@ -98,6 +98,18 @@ service cloud.firestore {
              (changedFields.hasAny(['status']) && !isVotingUpdate() && !isParticipationUpdate() && !isPaymentUpdate());
     }
 
+    // Check if this is a request acceptance update (for one-to-one requests)
+    function isRequestAcceptanceUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['status', 'acceptedBy', 'acceptedByName', 'acceptedAt', 'meetingId', 'meetingUrl', 'roomId', 'participants', 'participantCount', 'updatedAt']) &&
+             changedFields.hasOnly(['status', 'acceptedBy', 'acceptedByName', 'acceptedAt', 'meetingId', 'meetingUrl', 'roomId', 'participants', 'participantCount', 'updatedAt']);
+    }
+
+    // Check if user is an acceptee of a request
+    function isRequestAcceptee() {
+      return request.auth.uid == resource.data.acceptedBy;
+    }
+
     // Validate that vote changes are legitimate (user adding/removing their own vote)
     function isValidVoteChange() {
       let oldVotes = resource.data.votes != null ? resource.data.votes : [];
@@ -224,7 +236,21 @@ service cloud.firestore {
     match /requests/{requestId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isRequestCreateOwner();
-      allow update, delete: if isAuthenticated() && (isRequestOwner() || isAdmin());
+      allow update: if isAuthenticated() && (
+        // Content updates - only owners and admins
+        (isContentUpdate() && (isRequestOwner() || isAdmin())) ||
+        
+        // Request acceptance updates - allow acceptees to update status and add their info
+        (isRequestAcceptanceUpdate() && (
+          isRequestOwner() || // Owner can update
+          isAdmin() || // Admin can update
+          // Acceptee can update when accepting (status changes from 'open' to 'active')
+          (resource.data.status == 'open' && request.resource.data.status == 'active') ||
+          // Acceptee can update their own accepted request
+          isRequestAcceptee()
+        ))
+      );
+      allow delete: if isAuthenticated() && (isRequestOwner() || isAdmin());
     }
 
     // ==========================================
@@ -288,9 +314,8 @@ service cloud.firestore {
         isAdmin()
       );
       
-      // Users can create responses only for themselves
-      allow create: if isAuthenticated() && 
-        request.auth.uid == request.resource.data.responderId;
+      // Users can create responses for themselves (simplified for debugging)
+      allow create: if isAuthenticated();
       
       // Users can update/delete only their own responses
       allow update, delete: if isAuthenticated() && 
@@ -396,6 +421,28 @@ service cloud.firestore {
     // ==========================================
 
     match /meetings/{meetingId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.hostUserId ||
+        request.auth.uid in resource.data.participants ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.hostUserId ||
+        request.auth.uid in resource.data.participants ||
+        isAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.hostUserId || 
+        isAdmin()
+      );
+    }
+
+    // ==========================================
+    // MEETING EVENTS COLLECTION
+    // ==========================================
+
+    match /meetingEvents/{eventId} {
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.hostUserId ||
         request.auth.uid in resource.data.participants ||

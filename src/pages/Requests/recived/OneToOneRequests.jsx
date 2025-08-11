@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import databaseService from '@/services/databaseService';
+import unifiedRequestService from '@/services/unifiedRequestService';
 import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  getDocs,
   doc,
   getDoc
 } from 'firebase/firestore';
@@ -129,56 +123,37 @@ const OneToOneRequests = () => {
         setLoading(true);
         setError(null);
 
-        // Get all available requests from other users
-        const requestsRef = collection(db, 'requests');
+        console.log('🔍 Using unifiedRequestService to fetch available requests...');
         
-        // First, let's check if there are any requests at all
-        console.log('🔍 Checking if there are any requests in the database...');
-        const allRequestsSnapshot = await getDocs(requestsRef);
-        console.log('📊 Total requests in database:', allRequestsSnapshot.size);
-        
-        if (allRequestsSnapshot.size === 0) {
-          console.log('❌ No requests found in database');
-          setRequests([]);
-          setLoading(false);
-          clearTimeout(timeoutId);
-          return;
-        }
-        
-        // Log all request statuses to see what's available
-        const allStatuses = allRequestsSnapshot.docs.map(doc => doc.data().status);
-        console.log('📋 Available request statuses:', [...new Set(allStatuses)]);
-        
-        // Get hidden requests for this user
-        const hiddenRequestIds = await databaseService.getHiddenRequests(user.id);
-        console.log('🚫 Hidden request IDs:', hiddenRequestIds);
-        
-        // Get all requests (excluding drafts and hidden requests)
-        let requestsQuery = query(
-            requestsRef,
-            where('status', 'in', ['open', 'active']), // Exclude draft requests
-            orderBy('createdAt', 'desc')
-        );
-        
-        console.log('🔍 Using filtered query to fetch open/active requests (excluding drafts and hidden)');
-
-        // Set up real-time listener
-        const unsubscribe = onSnapshot(requestsQuery, async (snapshot) => {
+        // Use the unified service to get available requests
+        const unsubscribe = unifiedRequestService.getAvailableRequests(user.id, async (availableRequests, errorInfo) => {
           try {
-            console.log('📥 Snapshot received:', snapshot.docs.length, 'documents');
+            if (errorInfo) {
+              console.error('❌ Error from unifiedRequestService:', errorInfo);
+              if (errorInfo.error === 'missing_index') {
+                setError('Firebase index required. Please create the composite index for requests collection. Check console for details.');
+              } else {
+                setError(`Failed to load requests: ${errorInfo.details}`);
+              }
+              setLoading(false);
+              clearTimeout(timeoutId);
+              return;
+            }
+
+            console.log('📥 Available requests received:', availableRequests?.length || 0);
+            
+            if (!availableRequests || availableRequests.length === 0) {
+              console.log('❌ No available requests found');
+              setRequests([]);
+              setLoading(false);
+              clearTimeout(timeoutId);
+              return;
+            }
+
             const fetchedRequests = [];
 
-            for (const docSnap of snapshot.docs) {
+            for (const requestData of availableRequests) {
               try {
-                const requestData = {
-                  id: docSnap.id,
-                  ...docSnap.data(),
-                  createdAt: docSnap.data().createdAt?.toDate() || 
-                             docSnap.data().createdAt || 
-                             docSnap.data().timestamp?.toDate() || 
-                             new Date()
-                };
-
                 console.log('🔍 Processing request:', requestData.id, 'Status:', requestData.status, 'User ID:', requestData.userId || requestData.createdBy);
                 console.log('📅 Created at:', requestData.createdAt, 'Type:', typeof requestData.createdAt);
                 console.log('💰 Payment:', requestData.paymentAmount, 'Currency:', requestData.currency);
@@ -187,12 +162,6 @@ const OneToOneRequests = () => {
                 const requestUserId = requestData.userId || requestData.createdBy;
                 if (requestUserId === user.id) {
                   console.log('⏭️ Skipping own request:', requestData.id);
-                  continue;
-                }
-
-                // Skip hidden requests
-                if (hiddenRequestIds.includes(requestData.id)) {
-                  console.log('🚫 Skipping hidden request:', requestData.id);
                   continue;
                 }
 
@@ -246,30 +215,21 @@ const OneToOneRequests = () => {
             setLoading(false);
             clearTimeout(timeoutId); // Clear timeout on success
           } catch (error) {
-            console.error('❌ Error processing snapshot:', error);
+            console.error('❌ Error processing requests:', error);
             setError('Error processing requests. Please try again.');
             setLoading(false);
             clearTimeout(timeoutId);
           }
-        }, (error) => {
-          // Handle onSnapshot errors (like missing indexes)
-          console.error('❌ onSnapshot error:', error);
-          if (error.code === 'failed-precondition') {
-            setError('Database index required. Please check console for details.');
-            console.error('🔗 Create this index:', error.message);
-          } else {
-            setError('Failed to load requests. Please try again.');
-          }
-          setLoading(false);
-          clearTimeout(timeoutId);
         });
 
         return () => {
-          unsubscribe();
+          if (unsubscribe && typeof unsubscribe === 'function') {
+            unsubscribe();
+          }
           clearTimeout(timeoutId);
         };
       } catch (error) {
-        console.error('❌ Error setting up query:', error);
+        console.error('❌ Error setting up request fetching:', error);
         setError('Failed to load requests. Please try again.');
         setLoading(false);
         clearTimeout(timeoutId);
@@ -290,7 +250,7 @@ const OneToOneRequests = () => {
       console.log('⏰ User responses loading timeout reached');
     }, 8000); // 8 second timeout
 
-    const unsubscribe = databaseService.getUserResponses(user.id, null, (responses, errorInfo) => {
+    const unsubscribe = unifiedRequestService.getUserResponses(user.id, null, (responses, errorInfo) => {
       try {
         if (errorInfo) {
           console.error('❌ Error from getUserResponses:', errorInfo);
@@ -369,11 +329,12 @@ const OneToOneRequests = () => {
 
       console.log('📤 Sending response data:', responseData);
 
-      const result = await databaseService.respondToRequest(requestId, responseData, user.id);
+      const result = await unifiedRequestService.respondToRequest(requestId, responseData, user.id);
 
       console.log('📥 Response result:', result);
 
-      if (result.success) {
+      if (result && result.success) {
+        console.log('✅ Response successful, updating UI...');
         alert(result.message);
 
         // If accepted and meeting created, show meeting info
@@ -411,7 +372,9 @@ const OneToOneRequests = () => {
             }));
         }
       } else {
-        alert(result.message);
+        console.error('❌ Response failed:', result);
+        const errorMessage = result?.message || 'Unknown error occurred';
+        alert(`Failed to respond to request: ${errorMessage}`);
       }
     } catch (error) {
       console.error('❌ Error responding to request:', error);

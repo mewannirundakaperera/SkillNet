@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useActiveRequests } from '@/hooks/useRequests';
-import integratedRequestService from '@/services/integratedRequestService';
-import databaseService from '@/services/databaseService';
+import unifiedRequestService from '@/services/unifiedRequestService';
 
 const ActiveRequests = () => {
     const { requests, stats, loading, error } = useActiveRequests();
@@ -19,7 +18,7 @@ const ActiveRequests = () => {
         setActionLoading(prev => ({ ...prev, [requestId]: 'completing' }));
 
         try {
-            const result = await integratedRequestService.completeRequest(requestId);
+            const result = await unifiedRequestService.completeRequest(requestId);
 
             if (result.success) {
                 alert(result.message);
@@ -42,7 +41,7 @@ const ActiveRequests = () => {
         setActionLoading(prev => ({ ...prev, [requestId]: 'archiving' }));
 
         try {
-            const result = await integratedRequestService.archiveRequest(requestId);
+            const result = await unifiedRequestService.archiveRequest(requestId);
 
             if (result.success) {
                 alert(result.message);
@@ -73,7 +72,7 @@ const ActiveRequests = () => {
         setLoadingResponses(prev => ({ ...prev, [requestId]: true }));
         
         try {
-            const responses = await databaseService.getRequestResponses(requestId);
+            const responses = await unifiedRequestService.getRequestResponses(requestId);
             setRequestResponses(prev => ({ ...prev, [requestId]: responses }));
         } catch (error) {
             console.error('Error fetching request responses:', error);

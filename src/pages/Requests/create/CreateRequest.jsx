@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/services/authService";
-import databaseService from "@/services/databaseService";
+import unifiedRequestService from "@/services/unifiedRequestService";
 
 export default function CreateRequest() {
   const { user } = useAuth();
@@ -202,7 +202,7 @@ export default function CreateRequest() {
         userAvatar: userProfile?.avatar || user?.photoURL || ''
       };
 
-      const result = await databaseService.createRequest(
+              const result = await unifiedRequestService.createRequest(
           requestData,
           user.id,
           true // isDraft = true
@@ -247,9 +247,9 @@ export default function CreateRequest() {
       let result;
 
       if (isEditing) {
-        result = await databaseService.updateRequest(editId, requestData, user.id);
+        result = await unifiedRequestService.updateRequest(editId, requestData, user.id);
       } else {
-        result = await databaseService.createRequest(
+        result = await unifiedRequestService.createRequest(
             requestData,
             user.id,
             false // isDraft = false (published as 'open')

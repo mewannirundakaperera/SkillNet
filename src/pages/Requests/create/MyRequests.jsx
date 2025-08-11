@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import databaseService from '@/services/databaseService';
+import unifiedRequestService from '@/services/unifiedRequestService';
 import { groupRequestService } from '@/services/groupRequestService';
 
 const MyRequests = () => {
@@ -27,13 +27,13 @@ const MyRequests = () => {
             setLoading(false);
         }, 10000); // 10 seconds timeout
 
-        // Load one-to-one requests using databaseService
-        const unsubscribeOneToOne = databaseService.getUserRequests(user.id, null, (userRequests, errorInfo) => {
+        // Load one-to-one requests using unifiedRequestService
+        const unsubscribeOneToOne = unifiedRequestService.getUserRequests(user.id, null, (userRequests, errorInfo) => {
             console.log('📝 Loaded one-to-one requests:', userRequests?.length || 0);
             console.log('📝 Request details:', userRequests);
             
             if (errorInfo) {
-                console.error('❌ Error from databaseService:', errorInfo);
+                console.error('❌ Error from unifiedRequestService:', errorInfo);
                 if (errorInfo.error === 'missing_index') {
                     setError('Firebase index required. Please create the composite index for requests collection. Check console for details.');
                 } else {
@@ -96,20 +96,20 @@ const MyRequests = () => {
                         result = { success: false, message: 'Unknown action' };
                 }
             } else {
-                // Use databaseService for one-to-one requests
+                // Use unifiedRequestService for one-to-one requests
                 switch (action) {
-                    case 'publish':
-                        result = await databaseService.publishDraft(requestId, user.id);
-                        break;
-                    case 'complete':
-                        result = await databaseService.completeRequest(requestId, user.id);
-                        break;
-                    case 'archive':
-                        result = await databaseService.archiveRequest(requestId, user.id);
-                        break;
-                    case 'delete':
-                        result = await databaseService.deleteRequest(requestId, user.id);
-                        break;
+                            case 'publish':
+          result = await unifiedRequestService.publishDraft(requestId, user.id);
+          break;
+        case 'complete':
+          result = await unifiedRequestService.completeRequest(requestId, user.id);
+          break;
+        case 'archive':
+          result = await unifiedRequestService.archiveRequest(requestId, user.id);
+          break;
+        case 'delete':
+          result = await unifiedRequestService.deleteRequest(requestId, user.id);
+          break;
                     default:
                         result = { success: false, message: 'Unknown action' };
                 }

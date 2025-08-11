@@ -35,7 +35,7 @@ import GroupDetails from "./pages/Group/GroupDetails";
 import GroupsList from "./pages/Group/GroupsList";
 import AllGroupRequests from "./pages/Group/AllGroupRequests";
 import JitsiMeeting from '@/components/Meeting/JitsiMeeting';
-import TestJitsiPage from './pages/TestJitsiPage';
+
 import HelpAndSupport from './pages/HelpAndSupport';
 import DatabaseTestToolComponent from './components/DatabaseTestTool';
 
@@ -289,14 +289,7 @@ const AppRoutes = () => {
             />
 
             {/* ===== TEST JITSI PAGE ===== */}
-            <Route
-                path="/test-jitsi"
-                element={
-                    <ProtectedRoute>
-                        <TestJitsiPage />
-                    </ProtectedRoute>
-                }
-            />
+            
 
             {/* ===== LEGACY PATHS FOR BACKWARD COMPATIBILITY ===== */}
             <Route path="/OneToOneRequests" element={<Navigate to="/requests/available" replace />} />
