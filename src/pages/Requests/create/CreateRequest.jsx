@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/services/authService";
-import { requestService } from "@/services/requestService";
+import databaseService from "@/services/databaseService";
 
 export default function CreateRequest() {
   const { user } = useAuth();
@@ -15,9 +15,10 @@ export default function CreateRequest() {
   const [draftSaving, setDraftSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Form state
+  // Form state with proper field names for the database
   const [formData, setFormData] = useState({
     topic: '',
+    title: '', // Will sync with topic
     description: '',
     subject: '',
     preferredDate: '',
@@ -79,7 +80,7 @@ export default function CreateRequest() {
   useEffect(() => {
     if (editId && user?.id) {
       setIsEditing(true);
-      // TODO: Load existing request data
+      // TODO: Load existing request data using integratedRequestService
       console.log('Loading request for editing:', editId);
     }
   }, [editId, user]);
@@ -97,12 +98,23 @@ export default function CreateRequest() {
     }));
   }, []);
 
-  // Handle form input changes
+  // Handle form input changes with proper field syncing
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+
+      // Sync topic and title fields for database consistency
+      if (field === 'topic') {
+        updated.title = value;
+      } else if (field === 'title') {
+        updated.topic = value;
+      }
+
+      return updated;
+    });
 
     // Clear error when user starts typing
     if (errors[field]) {
@@ -156,13 +168,24 @@ export default function CreateRequest() {
       if (!formData.paymentAmount || parseFloat(formData.paymentAmount) < 200) {
         newErrors.paymentAmount = 'Payment amount must be at least Rs.200.00';
       }
+
+      // Validate date is not in the past
+      if (formData.preferredDate) {
+        const selectedDate = new Date(formData.preferredDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+          newErrors.preferredDate = 'Date cannot be in the past';
+        }
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Save as draft
+  // Save as draft (draft status)
   const handleSaveDraft = async () => {
     if (!validateForm(false)) {
       return;
@@ -171,7 +194,19 @@ export default function CreateRequest() {
     setDraftSaving(true);
 
     try {
-      const result = await requestService.saveDraft(formData, user.id, isEditing ? editId : null);
+      // Prepare data for the database with user information
+      const requestData = {
+        ...formData,
+        userName: userProfile?.displayName || user?.name || 'User',
+        userEmail: user?.email || '',
+        userAvatar: userProfile?.avatar || user?.photoURL || ''
+      };
+
+      const result = await databaseService.createRequest(
+          requestData,
+          user.id,
+          true // isDraft = true
+      );
 
       if (result.success) {
         alert(result.message);
@@ -190,7 +225,7 @@ export default function CreateRequest() {
     }
   };
 
-  // Handle form submission (publish)
+  // Handle form submission (publish - open status)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -201,18 +236,30 @@ export default function CreateRequest() {
     setLoading(true);
 
     try {
+      // Prepare data for the database with user information
+      const requestData = {
+        ...formData,
+        userName: userProfile?.displayName || user?.name || 'User',
+        userEmail: user?.email || '',
+        userAvatar: userProfile?.avatar || user?.photoURL || ''
+      };
+
       let result;
 
       if (isEditing) {
-        result = await requestService.updateRequest(editId, formData, user.id);
+        result = await databaseService.updateRequest(editId, requestData, user.id);
       } else {
-        result = await requestService.createRequest(formData, user.id, false);
+        result = await databaseService.createRequest(
+            requestData,
+            user.id,
+            false // isDraft = false (published as 'open')
+        );
       }
 
       if (result.success) {
         alert(result.message);
         if (result.requestId) {
-          navigate(`/requests/details/${result.requestId}`);
+          navigate(`/requests/details/${result.requestId}?type=one-to-one`);
         } else {
           navigate('/requests/my-requests');
         }
@@ -220,8 +267,8 @@ export default function CreateRequest() {
         alert(result.message);
       }
     } catch (error) {
-      console.error('Error creating request:', error);
-      alert('Failed to create request. Please try again.');
+      console.error('Error creating/updating request:', error);
+      alert('Failed to process request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -246,27 +293,29 @@ export default function CreateRequest() {
   const summary = getRequestSummary();
 
   return (
-      <div className="min-h-screen bg-slate-900 flex flex-col">
+      <div className="bg-slate-900 p-8">
         {/* Main Content */}
-        <main className="flex-1 flex gap-8 p-8 max-w-7xl mx-auto w-full">
+        <div className="flex gap-8 max-w-7xl mx-auto w-full">
           {/* Left: Form */}
           <section className="flex-1 flex flex-col gap-6">
-            <div className="flex items-center gap-4 mb-6 p-6 bg-slate-800 rounded-2xl shadow-lg border border-slate-700">
-              {userProfile && (
-                  <div className="relative">
-                  <img
-                      src={userProfile.avatar}
-                      alt={userProfile.displayName}
-                        className="w-12 h-12 rounded-full object-cover border-4 border-white shadow-lg"
-                  />
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                  </div>
-              )}
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  {isEditing ? 'Edit Request' : 'Create New Request'}
-                </h1>
-                <p className="text-slate-300 mt-1 font-medium">Share your learning goals and connect with others</p>
+            <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300 mb-6">
+              <div className="flex items-center gap-4">
+                {userProfile && (
+                    <div className="relative">
+                      <img
+                          src={userProfile.avatar}
+                          alt={userProfile.displayName}
+                          className="w-12 h-12 rounded-full object-cover border-4 border-white shadow-lg"
+                      />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                    </div>
+                )}
+                <div>
+                  <h1 className="text-3xl font-bold text-white">
+                    {isEditing ? 'Edit Request' : 'Create New One-to-One Request'}
+                  </h1>
+                  <p className="text-slate-300 mt-1 font-medium">Share your learning goals and connect with others</p>
+                </div>
               </div>
             </div>
 
@@ -274,7 +323,7 @@ export default function CreateRequest() {
               {/* Request Details */}
               <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -295,9 +344,9 @@ export default function CreateRequest() {
                         value={formData.topic}
                         onChange={(e) => handleInputChange('topic', e.target.value)}
                         className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 bg-slate-700 text-white placeholder-slate-400 ${
-                          errors.topic 
-                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
-                            : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
+                            errors.topic
+                                ? 'border-red-400 focus:border-red-300 focus:ring-red-900'
+                                : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
                         }`}
                         placeholder="e.g., Advanced Calculus Review, React Native Workshop"
                     />
@@ -317,9 +366,9 @@ export default function CreateRequest() {
                         value={formData.subject}
                         onChange={(e) => handleInputChange('subject', e.target.value)}
                         className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 bg-slate-700 text-white border-slate-600 focus:border-blue-400 focus:ring-blue-900 ${
-                          errors.subject 
-                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
-                            : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
+                            errors.subject
+                                ? 'border-red-400 focus:border-red-300 focus:ring-red-900'
+                                : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
                         }`}
                     >
                       <option value="">Select a subject</option>
@@ -343,9 +392,9 @@ export default function CreateRequest() {
                         value={formData.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}
                         className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 resize-none bg-slate-700 text-white placeholder-slate-400 ${
-                          errors.description 
-                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
-                            : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
+                            errors.description
+                                ? 'border-red-400 focus:border-red-300 focus:ring-red-900'
+                                : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
                         }`}
                         rows={4}
                         placeholder="Provide a detailed description of what you need help with or want to discuss. Include any specific topics, goals, or expectations."
@@ -363,7 +412,7 @@ export default function CreateRequest() {
               {/* Scheduling Details */}
               <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -384,10 +433,10 @@ export default function CreateRequest() {
                         value={formData.preferredDate}
                         onChange={(e) => handleInputChange('preferredDate', e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
-                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-900 bg-slate-700 text-white ${
-                          errors.preferredDate 
-                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
-                            : 'border-slate-600 focus:border-green-400 focus:ring-green-900'
+                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 bg-slate-700 text-white ${
+                            errors.preferredDate
+                                ? 'border-red-400 focus:border-red-300 focus:ring-red-900'
+                                : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
                         }`}
                     />
                     {errors.preferredDate && <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
@@ -405,10 +454,10 @@ export default function CreateRequest() {
                         type="time"
                         value={formData.preferredTime}
                         onChange={(e) => handleInputChange('preferredTime', e.target.value)}
-                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-900 bg-slate-700 text-white ${
-                          errors.preferredTime 
-                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
-                            : 'border-slate-600 focus:border-green-400 focus:ring-green-900'
+                        className={`w-full border-2 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 bg-slate-700 text-white ${
+                            errors.preferredTime
+                                ? 'border-red-400 focus:border-red-300 focus:ring-red-900'
+                                : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
                         }`}
                     />
                     {errors.preferredTime && <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
@@ -425,7 +474,7 @@ export default function CreateRequest() {
                   <select
                       value={formData.duration}
                       onChange={(e) => handleInputChange('duration', e.target.value)}
-                      className="w-full border-2 border-slate-600 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-900 focus:border-green-400 bg-slate-700 text-white"
+                      className="w-full border-2 border-slate-600 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 focus:border-blue-400 bg-slate-700 text-white"
                   >
                     {durations.map(duration => (
                         <option key={duration.value} value={duration.value}>{duration.label}</option>
@@ -437,7 +486,7 @@ export default function CreateRequest() {
               {/* Payment Information */}
               <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                     </svg>
@@ -460,10 +509,10 @@ export default function CreateRequest() {
                         step="0.01"
                         value={formData.paymentAmount}
                         onChange={(e) => handleInputChange('paymentAmount', e.target.value)}
-                        className={`w-full border-2 rounded-xl pl-12 pr-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-orange-900 bg-slate-700 text-white placeholder-slate-400 ${
-                          errors.paymentAmount 
-                            ? 'border-red-400 focus:border-red-300 focus:ring-red-900' 
-                            : 'border-slate-600 focus:border-orange-400 focus:ring-orange-900'
+                        className={`w-full border-2 rounded-xl pl-12 pr-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 bg-slate-700 text-white placeholder-slate-400 ${
+                            errors.paymentAmount
+                                ? 'border-red-400 focus:border-red-300 focus:ring-red-900'
+                                : 'border-slate-600 focus:border-blue-400 focus:ring-blue-900'
                         }`}
                         placeholder="200.00"
                     />
@@ -474,19 +523,19 @@ export default function CreateRequest() {
                     </svg>
                     {errors.paymentAmount}
                   </p>}
-                  <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                    <svg className="w-4 h-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    Minimum amount: Rs.200.00
-                  </p>
+                                      <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                      <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      Minimum amount: Rs.200.00
+                    </p>
                 </div>
               </div>
 
               {/* Additional Options */}
               <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-8 hover:shadow-2xl transition-all duration-300">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -500,11 +549,11 @@ export default function CreateRequest() {
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-semibold mb-2 text-slate-700">Request Visibility</label>
+                    <label className="block text-sm font-semibold mb-2 text-slate-200">Request Visibility</label>
                     <select
                         value={formData.visibility}
                         onChange={(e) => handleInputChange('visibility', e.target.value)}
-                        className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-400"
+                        className="w-full border-2 border-slate-600 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 focus:border-blue-400 bg-slate-700 text-white"
                     >
                       <option value="public">Public (Visible to all students)</option>
                       <option value="private">Private (Only invited students)</option>
@@ -515,12 +564,12 @@ export default function CreateRequest() {
                     <label className="block text-sm font-semibold mb-2 text-slate-200">Tags</label>
                     <div className="flex flex-wrap gap-2 mb-3">
                       {formData.tags.map((tag, index) => (
-                          <span key={index} className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 shadow-lg">
+                          <span key={index} className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 shadow-lg">
                         {tag}
                             <button
                                 type="button"
                                 onClick={() => handleRemoveTag(tag)}
-                                className="text-white hover:text-red-200 transition-colors"
+                                className="text-white hover:text-blue-200 transition-colors"
                             >
                           ×
                         </button>
@@ -533,13 +582,13 @@ export default function CreateRequest() {
                           value={currentTag}
                           onChange={(e) => setCurrentTag(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                          className="flex-1 border-2 border-slate-600 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-purple-900 focus:border-purple-400 bg-slate-700 text-white placeholder-slate-400"
+                          className="flex-1 border-2 border-slate-600 rounded-xl px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-900 focus:border-blue-400 bg-slate-700 text-white placeholder-slate-400"
                           placeholder="Add tags (e.g., beginner, advanced, exam-prep)"
                       />
                       <button
                           type="button"
                           onClick={handleAddTag}
-                          className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl px-6 py-3 text-sm font-semibold hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl px-6 py-3 text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                       >
                         Add
                       </button>
@@ -552,7 +601,7 @@ export default function CreateRequest() {
               <div className="flex gap-4 justify-between mt-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
                 <div className="flex gap-3">
                   <Link
-                      to="/requests/group"
+                      to="/requests/my-requests"
                       className="border-2 border-slate-600 rounded-xl px-6 py-3 font-semibold text-slate-200 hover:bg-slate-700 hover:border-slate-500 transition-all duration-200"
                   >
                     Cancel
@@ -569,7 +618,7 @@ export default function CreateRequest() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl px-8 py-3 font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl px-8 py-3 font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {loading ? "Publishing..." : isEditing ? "Update Request" : "Publish Request"}
                 </button>
@@ -582,7 +631,7 @@ export default function CreateRequest() {
             {/* Enhanced Request Summary */}
             <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 hover:shadow-2xl transition-all duration-300">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -634,10 +683,29 @@ export default function CreateRequest() {
               </div>
             </div>
 
+            {/* Flow Status Info */}
+            <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 hover:shadow-2xl transition-all duration-300">
+              <h3 className="text-lg font-bold text-white mb-4">Request Flow</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-3 p-2 bg-slate-800 rounded-lg border border-slate-600">
+                  <span className="text-yellow-200">Draft - Save and edit later</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-slate-800 rounded-lg border border-slate-600">
+                  <span className="text-green-200">Open - Visible to others</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-slate-800 rounded-lg border border-slate-600">
+                  <span className="text-blue-200">Active - Accepted with meeting</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-slate-800 rounded-lg border border-slate-600">
+                  <span className="text-purple-200">Completed - Session finished</span>
+                </div>
+              </div>
+            </div>
+
             {/* Tips for Great Requests */}
             <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 hover:shadow-2xl transition-all duration-300">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
@@ -645,29 +713,25 @@ export default function CreateRequest() {
                 <h3 className="text-lg font-bold text-white">Tips for Great Requests</h3>
               </div>
               <ol className="list-decimal list-inside text-sm text-slate-300 space-y-3">
-                <li className="p-2 bg-green-900 rounded-lg border-l-4 border-green-400">
-                  <strong className="text-green-200">Be Specific:</strong> 
-                  <span className="text-green-100"> Clearly state your learning goals and what you need help with.</span>
+                <li className="p-2 bg-slate-800 rounded-lg border-l-4 border-slate-500">
+                  <strong className="text-slate-200">Be Specific:</strong>
+                  <span className="text-slate-300"> Clearly state your learning goals and what you need help with.</span>
                 </li>
-                <li className="p-2 bg-blue-900 rounded-lg border-l-4 border-blue-400">
-                  <strong className="text-blue-200">Set Realistic Expectations:</strong> 
-                  <span className="text-blue-100"> Define the scope and difficulty level appropriately.</span>
+                <li className="p-2 bg-slate-800 rounded-lg border-l-4 border-slate-500">
+                  <strong className="text-slate-200">Set Realistic Expectations:</strong>
+                  <span className="text-slate-300"> Define the scope and difficulty level appropriately.</span>
                 </li>
-                <li className="p-2 bg-purple-900 rounded-lg border-l-4 border-purple-400">
-                  <strong className="text-purple-200">Plan Ahead:</strong> 
-                  <span className="text-purple-100"> Schedule with enough time for participants to prepare.</span>
+                <li className="p-2 bg-slate-800 rounded-lg border-l-4 border-slate-500">
+                  <strong className="text-slate-200">Plan Ahead:</strong>
+                  <span className="text-slate-300"> Schedule with enough time for participants to prepare.</span>
                 </li>
-                <li className="p-2 bg-orange-900 rounded-lg border-l-4 border-orange-400">
-                  <strong className="text-orange-200">Use Tags:</strong> 
-                  <span className="text-orange-100"> Help others find your request with relevant keywords.</span>
+                <li className="p-2 bg-slate-800 rounded-lg border-l-4 border-slate-500">
+                  <strong className="text-slate-200">Use Tags:</strong>
+                  <span className="text-slate-300"> Help others find your request with relevant keywords.</span>
                 </li>
-                <li className="p-2 bg-indigo-900 rounded-lg border-l-4 border-indigo-400">
-                  <strong className="text-indigo-200">Save Drafts:</strong> 
-                  <span className="text-indigo-100"> Use the "Save Draft" button to work on your request over time.</span>
-                </li>
-                <li className="p-2 bg-pink-900 rounded-lg border-l-4 border-pink-400">
-                  <strong className="text-pink-200">Write a Good Description:</strong> 
-                  <span className="text-pink-100"> Include context and specific areas you need help with.</span>
+                <li className="p-2 bg-slate-800 rounded-lg border-l-4 border-slate-500">
+                  <strong className="text-slate-200">Save Drafts:</strong>
+                  <span className="text-slate-300"> Use "Save Draft" to work on your request over time.</span>
                 </li>
               </ol>
             </div>
@@ -677,11 +741,11 @@ export default function CreateRequest() {
                 <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-2xl p-6 border border-blue-700 shadow-lg">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="relative">
-                    <img
-                        src={userProfile.avatar}
-                        alt={userProfile.displayName}
+                      <img
+                          src={userProfile.avatar}
+                          alt={userProfile.displayName}
                           className="w-12 h-12 rounded-full object-cover border-4 border-white shadow-lg"
-                    />
+                      />
                       <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                     </div>
                     <div>
@@ -694,19 +758,14 @@ export default function CreateRequest() {
                       <span className="text-blue-300 text-lg">💡</span>
                       <div>
                         <strong>Tip:</strong> Your profile information will be visible to participants.
-                    Make sure your profile is complete to attract more responses.
+                        Make sure your profile is complete to attract more responses.
                       </div>
                     </div>
                   </div>
                 </div>
             )}
           </aside>
-        </main>
-
-        {/* Footer */}
-        <footer className="text-xs text-slate-400 px-6 py-4 text-center border-t border-slate-700 bg-slate-800">
-          <div>© 2025 Skill-Net. All rights reserved.</div>
-        </footer>
+        </div>
       </div>
   );
 }

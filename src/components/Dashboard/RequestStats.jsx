@@ -250,48 +250,48 @@ const RequestStats = () => {
             {/* Main Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* One-to-One Created */}
-                <Link to="/requests/my-requests" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border-l-4 border-blue-500">
+                <Link to="/requests/my-requests" className="bg-[#1A202C] rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border-l-4 border-blue-500">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">My 1:1 Requests</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.oneToOne.created}</p>
-                            <p className="text-xs text-gray-500">Created by you</p>
+                            <p className="text-sm font-medium text-[#A0AEC0]">My 1:1 Requests</p>
+                            <p className="text-2xl font-bold text-white">{stats.oneToOne.created}</p>
+                            <p className="text-xs text-[#718096]">Created by you</p>
                         </div>
                         <div className="text-blue-500 text-2xl">👤</div>
                     </div>
                 </Link>
 
                 {/* One-to-One Received */}
-                <Link to="/OneToOneRequests" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border-l-4 border-green-500">
+                <Link to="/OneToOneRequests" className="bg-[#1A202C] rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border-l-4 border-green-500">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">1:1 Available</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.oneToOne.received}</p>
-                            <p className="text-xs text-gray-500">From other students</p>
+                            <p className="text-sm font-medium text-[#A0AEC0]">1:1 Available</p>
+                            <p className="text-2xl font-bold text-white">{stats.oneToOne.received}</p>
+                            <p className="text-xs text-[#718096]">From other students</p>
                         </div>
                         <div className="text-green-500 text-2xl">💬</div>
                     </div>
                 </Link>
 
                 {/* Group Created */}
-                <Link to="/requests/my-requests" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border-l-4 border-purple-500">
+                <Link to="/requests/my-requests" className="bg-[#1A202C] rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border-l-4 border-purple-500">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">My Group Requests</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.group.created}</p>
-                            <p className="text-xs text-gray-500">Created by you</p>
+                            <p className="text-sm font-medium text-[#A0AEC0]">My Group Requests</p>
+                            <p className="text-2xl font-bold text-white">{stats.group.created}</p>
+                            <p className="text-xs text-[#718096]">Created by you</p>
                         </div>
                         <div className="text-purple-500 text-2xl">👥</div>
                     </div>
                 </Link>
 
                 {/* Group Available */}
-                <Link to="/requests/group-received" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border-l-4 border-orange-500">
+                <Link to="/requests/group-received" className="bg-[#1A202C] rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow border-l-4 border-orange-500">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">Group Available</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.group.received}</p>
-                            <p className="text-xs text-gray-500">From your groups</p>
+                            <p className="text-sm font-medium text-[#A0AEC0]">Group Available</p>
+                            <p className="text-2xl font-bold text-white">{stats.group.received}</p>
+                            <p className="text-xs text-[#718096]">From your groups</p>
                         </div>
                         <div className="text-orange-500 text-2xl">🎯</div>
                     </div>
@@ -301,83 +301,83 @@ const RequestStats = () => {
             {/* Secondary Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* One-to-One Accepted */}
-                <Link to="/OneToOneRequests/accepted" className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+                <Link to="/requests/accepted" className="bg-[#1A202C] rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
                     <div className="text-center">
                         <p className="text-2xl font-bold text-green-600">{stats.oneToOne.accepted}</p>
-                        <p className="text-sm text-gray-600">1:1 Accepted</p>
+                        <p className="text-sm text-[#A0AEC0]">1:1 Accepted</p>
                     </div>
                 </Link>
 
                 {/* One-to-One Completed */}
-                <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="bg-[#1A202C] rounded-lg shadow-sm p-6">
                     <div className="text-center">
                         <p className="text-2xl font-bold text-gray-600">{stats.oneToOne.completed}</p>
-                        <p className="text-sm text-gray-600">1:1 Completed</p>
+                        <p className="text-sm text-[#A0AEC0]">1:1 Completed</p>
                     </div>
                 </div>
 
                 {/* Group Participating */}
-                <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="bg-[#1A202C] rounded-lg shadow-sm p-6">
                     <div className="text-center">
                         <p className="text-2xl font-bold text-purple-600">{stats.group.participating}</p>
-                        <p className="text-sm text-gray-600">Group Participating</p>
+                        <p className="text-sm text-[#A0AEC0]">Group Participating</p>
                     </div>
                 </div>
 
                 {/* Group Completed */}
-                <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="bg-[#1A202C] rounded-lg shadow-sm p-6">
                     <div className="text-center">
                         <p className="text-2xl font-bold text-gray-600">{stats.group.completed}</p>
-                        <p className="text-sm text-gray-600">Group Completed</p>
+                        <p className="text-sm text-[#A0AEC0]">1:1 Completed</p>
                     </div>
                 </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="bg-[#1A202C] rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link
                         to="/requests/create"
-                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 p-4 border border-[#2D3748] rounded-lg hover:bg-[#2D3748] transition-colors"
                     >
                         <div className="bg-blue-100 text-blue-600 rounded-full p-2">👤</div>
                         <div>
-                            <p className="font-medium text-gray-900">Create 1:1 Request</p>
-                            <p className="text-sm text-gray-500">Get individual help</p>
+                            <p className="font-medium text-white">Create 1:1 Request</p>
+                            <p className="text-sm text-[#A0AEC0]">Get individual help</p>
                         </div>
                     </Link>
 
                     <Link
                         to="/requests/create-group"
-                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 p-4 border border-[#2D3748] rounded-lg hover:bg-[#2D3748] transition-colors"
                     >
                         <div className="bg-purple-100 text-purple-600 rounded-full p-2">👥</div>
                         <div>
-                            <p className="font-medium text-gray-900">Create Group Request</p>
-                            <p className="text-sm text-gray-500">Collaborate with groups</p>
+                            <p className="font-medium text-white">Create Group Request</p>
+                            <p className="text-sm text-[#A0AEC0]">Collaborate with groups</p>
                         </div>
                     </Link>
 
                     <Link
                         to="/OneToOneRequests"
-                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 p-4 border border-[#2D3748] rounded-lg hover:bg-[#2D3748] transition-colors"
                     >
                         <div className="bg-green-100 text-green-600 rounded-full p-2">💬</div>
                         <div>
-                            <p className="font-medium text-gray-900">Browse 1:1 Requests</p>
-                            <p className="text-sm text-gray-500">Help other students</p>
+                            <p className="font-medium text-white">Browse 1:1 Requests</p>
+                            <p className="text-sm text-[#A0AEC0]">Help other students</p>
                         </div>
                     </Link>
 
                     <Link
                         to="/requests/group-received"
-                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 p-4 border border-[#2D3748] rounded-lg hover:bg-[#2D3748] transition-colors"
                     >
                         <div className="bg-orange-100 text-orange-600 rounded-full p-2">🎯</div>
                         <div>
-                            <p className="font-medium text-gray-900">Browse Group Requests</p>
-                            <p className="text-sm text-gray-500">Join group sessions</p>
+                            <p className="font-medium text-white">Browse Group Requests</p>
+                            <p className="text-sm text-[#A0AEC0]">Join group sessions</p>
                         </div>
                     </Link>
                 </div>
@@ -385,27 +385,27 @@ const RequestStats = () => {
 
             {/* Recent Activity */}
             {recentActivity.length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                <div className="bg-[#1A202C] rounded-lg shadow-sm p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
                     <div className="space-y-4">
                         {recentActivity.map((activity, index) => (
-                            <div key={`${activity.id}-${index}`} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50">
+                            <div key={`${activity.id}-${index}`} className="flex items-center gap-4 p-3 rounded-lg hover:bg-[#2D3748]">
                                 <div className={`rounded-full p-2 ${
                                     activity.type === 'group' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                                 }`}>
                                     {activity.type === 'group' ? '👥' : '👤'}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">
+                                    <p className="text-sm font-medium text-white">
                                         {activity.user} {activity.action} a {activity.type} request
                                     </p>
-                                    <p className="text-sm text-gray-600 truncate">{activity.title}</p>
+                                    <p className="text-sm text-[#A0AEC0] truncate">{activity.title}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className={`text-xs font-medium ${getStatusColor(activity.status, activity.type)}`}>
                                         {activity.status}
                                     </p>
-                                    <p className="text-xs text-gray-500">{formatTimeAgo(activity.time)}</p>
+                                    <p className="text-xs text-[#718096]">{formatTimeAgo(activity.time)}</p>
                                 </div>
                             </div>
                         ))}

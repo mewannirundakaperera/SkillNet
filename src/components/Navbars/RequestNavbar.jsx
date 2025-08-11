@@ -7,6 +7,7 @@ const navItems = [
   { to: "/RequestHistory", label: "Request History" },
   { to: "/MyRequests", label: "My Requests" },
   { to: "/Profile", label: "Profile" },
+  { to: "/test-jitsi", label: "🧪 Test Jitsi" },
 ];
 
 export default function RequestNavbar() {

@@ -1,7 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 // Import your existing components
 import SignUp from "./pages/Login and Signup/SignUp";
@@ -36,6 +35,8 @@ import GroupDetails from "./pages/Group/GroupDetails";
 import GroupsList from "./pages/Group/GroupsList";
 import AllGroupRequests from "./pages/Group/AllGroupRequests";
 import JitsiMeeting from '@/components/Meeting/JitsiMeeting';
+import TestJitsiPage from './pages/TestJitsiPage';
+import HelpAndSupport from './pages/HelpAndSupport';
 
 // Import the updated layout system
 import RequestLayout, { SimpleLayout, FullWidthLayout, ProfileLayout } from "@/components/Layouts/RequestLayout";
@@ -181,14 +182,14 @@ const AppRoutes = () => {
                 path="/requests/create"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="Create Request" subtitle="Share your learning goals and connect with others">
+                        <RequestLayout title="Create Request" subtitle="Create a new one-to-one learning request">
                             <CreateRequest />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* ===== MY REQUESTS SECTION ===== */}
+            {/* ===== MY REQUESTS SECTION (Flow: draft -> open -> active -> completed/archived) ===== */}
             <Route
                 path="/requests/my-requests"
                 element={
@@ -200,8 +201,9 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* DRAFT REQUESTS (Status: draft) */}
             <Route
-                path="/requests/draft"
+                path="/requests/drafts"
                 element={
                     <ProtectedRoute>
                         <RequestLayout title="Draft Requests" subtitle="Requests you've started but haven't published yet">
@@ -211,17 +213,19 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* ACTIVE REQUESTS (Status: active - accepted with meeting) */}
             <Route
                 path="/requests/active"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="Active Requests" subtitle="Your currently published and ongoing requests">
+                        <RequestLayout title="Active Requests" subtitle="Your currently active requests with meetings">
                             <ActiveRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
+            {/* COMPLETED REQUESTS (Status: completed) */}
             <Route
                 path="/requests/completed"
                 element={
@@ -233,70 +237,101 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===== RECEIVED REQUESTS SECTION ===== */}
+            {/* ===== RECEIVED REQUESTS SECTION (Flow: available -> pending -> accepted -> archived) ===== */}
+
+            {/* ALL AVAILABLE REQUESTS (Status: open, from others) */}
             <Route
-                path="/OneToOneRequests"
+                path="/requests/available"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="All Received Requests" subtitle="Browse and manage all requests from other users">
+                        <RequestLayout title="Available Requests" subtitle="Browse learning requests from other students">
                             <OneToOneRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
+            {/* PENDING OFFERS (Status: open, available for response) */}
             <Route
-                path="/OneToOneRequests/pending"
+                path="/requests/pending-offers"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="Pending Offers" subtitle="Requests waiting for your response">
+                        <RequestLayout title="Available Requests" subtitle="Requests you can accept or decline">
                             <PendingRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
+            {/* ACCEPTED REQUESTS (Status: accepted responses) */}
             <Route
-                path="/OneToOneRequests/accepted"
+                path="/requests/accepted"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="Accepted Requests" subtitle="Requests you have accepted">
+                        <RequestLayout title="Accepted Requests" subtitle="Requests you have accepted and are managing">
                             <AcceptedRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
+            {/* ARCHIVED REQUESTS (Status: archived responses) */}
             <Route
-                path="/OneToOneRequests/archived"
+                path="/requests/archived"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="Archived Requests" subtitle="Completed and archived requests">
+                        <RequestLayout title="Archived Requests" subtitle="Completed, declined, and archived requests">
                             <ArchiveRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* ===== GROUP REQUEST ROUTES - FIXED ===== */}
-            {/* User's Own Group Requests (accessible through request sidebar) */}
+            {/* ===== TEST JITSI PAGE ===== */}
+            <Route
+                path="/test-jitsi"
+                element={
+                    <ProtectedRoute>
+                        <TestJitsiPage />
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* ===== LEGACY PATHS FOR BACKWARD COMPATIBILITY ===== */}
+            <Route path="/OneToOneRequests" element={<Navigate to="/requests/available" replace />} />
+            <Route path="/OneToOneRequests/pending" element={<Navigate to="/requests/pending-offers" replace />} />
+            <Route path="/OneToOneRequests/accepted" element={<Navigate to="/requests/accepted" replace />} />
+            <Route path="/OneToOneRequests/archived" element={<Navigate to="/requests/archived" replace />} />
+            <Route path="/requests/draft" element={<Navigate to="/requests/drafts" replace />} />
+
+            {/* ===== GROUP REQUEST ROUTES ===== */}
             <Route
                 path="/requests/group"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="Group Requests" subtitle="Browse and participate in group learning requests from your communities">
+                        <RequestLayout title="Group Requests" subtitle="Browse and participate in group learning requests">
                             <GroupRequests />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* Create Group Request */}
+            <Route
+                path="/requests/create-group"
+                element={
+                    <ProtectedRoute>
+                        <RequestLayout title="Create Group Request" subtitle="Create a new group request to collaborate with your team members">
+                            <CreateGroupRequest />
+                        </RequestLayout>
+                    </ProtectedRoute>
+                }
+            />
+
             <Route
                 path="/group/create-group-request"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="Create Group Request" subtitle="Request help or collaboration from your group members">
+                        <RequestLayout title="Create Group Request" subtitle="Create a new group request to collaborate with your team members">
                             <CreateGroupRequest />
                         </RequestLayout>
                     </ProtectedRoute>
@@ -307,14 +342,14 @@ const AppRoutes = () => {
                 path="/group/create-group-request/:groupId"
                 element={
                     <ProtectedRoute>
-                        <RequestLayout title="Create Group Request" subtitle="Request help or collaboration from your group members">
+                        <RequestLayout title="Create Group Request" subtitle="Create a new group request to collaborate with your team members">
                             <CreateGroupRequest />
                         </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* ===== REQUEST DETAILS AND HISTORY ===== */}
+            {/* ===== REQUEST DETAILS AND EDITING ===== */}
             <Route
                 path="/requests/details/:id"
                 element={
@@ -322,6 +357,17 @@ const AppRoutes = () => {
                         <RequestLayout title="Request Details" subtitle="View and manage request information">
                             <RequestDetails />
                         </RequestLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/requests/edit/:id"
+                element={
+                    <ProtectedRoute>
+                        <FullWidthLayout>
+                            <CreateRequest />
+                        </FullWidthLayout>
                     </ProtectedRoute>
                 }
             />
@@ -337,6 +383,29 @@ const AppRoutes = () => {
                 }
             />
 
+            {/* ===== MEETING ROUTES ===== */}
+            <Route
+                path="/meeting/:requestId?"
+                element={
+                    <ProtectedRoute>
+                        <FullWidthLayout>
+                            <JitsiMeeting />
+                        </FullWidthLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/meeting/:requestId/:meetingId"
+                element={
+                    <ProtectedRoute>
+                        <FullWidthLayout>
+                            <JitsiMeeting />
+                        </FullWidthLayout>
+                    </ProtectedRoute>
+                }
+            />
+
             {/* ===== PROFILE ROUTES ===== */}
             <Route
                 path="/Profile"
@@ -345,6 +414,18 @@ const AppRoutes = () => {
                         <ProfileLayout>
                             <Profile />
                         </ProfileLayout>
+                    </ProtectedRoute>
+                }
+            />
+
+            {/* ===== HELP AND SUPPORT ROUTE ===== */}
+            <Route
+                path="/help-and-support"
+                element={
+                    <ProtectedRoute>
+                        <SimpleLayout>
+                            <HelpAndSupport />
+                        </SimpleLayout>
                     </ProtectedRoute>
                 }
             />
@@ -383,26 +464,24 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* All Group Requests (Only accessible through groups - NO SIDEBAR) */}
             <Route
                 path="/groups/requests"
                 element={
                     <ProtectedRoute>
-                        <FullWidthLayout>
+                        <RequestLayout title="Group Requests" subtitle="Browse and manage group learning requests">
                             <AllGroupRequests />
-                        </FullWidthLayout>
+                        </RequestLayout>
                     </ProtectedRoute>
                 }
             />
 
-            {/* Alternative path for direct access - NO SIDEBAR */}
             <Route
                 path="/AllGroupRequests"
                 element={
                     <ProtectedRoute>
-                        <FullWidthLayout>
+                        <RequestLayout title="Group Requests" subtitle="Browse and manage group learning requests">
                             <AllGroupRequests />
-                        </FullWidthLayout>
+                        </RequestLayout>
                     </ProtectedRoute>
                 }
             />
@@ -541,29 +620,15 @@ const AppRoutes = () => {
                 }
             />
 
-            {/* ===== JITSI MEETING ROUTES ===== */}
-            <Route
-                path="/meeting/:requestId?"
-                element={
-                    <ProtectedRoute>
-                        <FullWidthLayout>
-                            <JitsiMeeting />
-                        </FullWidthLayout>
-                    </ProtectedRoute>
-                }
-            />
-
-            {/* ===== LEGACY ROUTES (for backward compatibility) ===== */}
+            {/* ===== ADDITIONAL LEGACY ROUTES (for backward compatibility) ===== */}
             <Route path="/studentconnect" element={<Navigate to="/StudentConnect" replace />} />
             <Route path="/CreateRequest" element={<Navigate to="/requests/create" replace />} />
             <Route path="/RequestDetails" element={<Navigate to="/requests/details" replace />} />
             <Route path="/profile" element={<Navigate to="/Profile" replace />} />
             <Route path="/settings" element={<Navigate to="/Settings" replace />} />
+            <Route path="/help" element={<Navigate to="/help-and-support" replace />} />
             <Route path="/groups/list" element={<Navigate to="/groups" replace />} />
             <Route path="/groups/browse" element={<Navigate to="/groups/discover" replace />} />
-
-            {/* REMOVED: Conflicting/duplicate routes */}
-            {/* These were causing conflicts with the main routes above */}
 
             {/* 404 Route - must be last */}
             <Route path="*" element={<NotFound />} />

@@ -502,7 +502,7 @@ const StudentConnect = () => {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-2xl font-bold text-green-400">{dashboardData.receivedRequests.total}</span>
-              <Link to="/OneToOneRequests" className="text-green-400 text-sm hover:text-green-300 transition-colors">View All</Link>
+              <Link to="/requests/available" className="text-green-400 text-sm hover:text-green-300 transition-colors">View All</Link>
             </div>
             <div className="text-sm text-[#A0AEC0] space-y-1">
               <div className="flex justify-between">

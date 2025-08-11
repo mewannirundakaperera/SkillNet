@@ -197,10 +197,10 @@ export default function IntelligentNavbar() {
         showProfile: false,
         rightSection: (
           <div className="flex items-center space-x-4">
-            <Link
-              to="/login"
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
+                         <Link
+               to="/login"
+               className="text-white hover:text-[#4299E1] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+             >
               Sign In
             </Link>
             <Link
@@ -366,15 +366,15 @@ export default function IntelligentNavbar() {
 
     const isActive = location.pathname === path || isGroupsActive;
 
-    return isActive
-      ? `${baseClass} text-indigo-600 bg-indigo-50`
-      : `${baseClass} text-gray-700`;
+         return isActive
+       ? `${baseClass} text-[#4299E1] bg-[#1A202C]`
+       : `${baseClass} text-white`;
   };
 
   const navConfig = getNavConfig();
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+          <nav className="bg-[#0A0D14] shadow-sm border-b border-[#2D3748] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -410,10 +410,10 @@ export default function IntelligentNavbar() {
                     placeholder={navConfig.searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    className="border border-gray-200 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-gray-600 w-64"
+                    className="border border-[#2D3748] rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-900 bg-[#1A202C] text-white placeholder-[#A0AEC0] w-64"
                   />
                   <svg
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+                                         className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#A0AEC0]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -424,7 +424,7 @@ export default function IntelligentNavbar() {
 
                 {/* Search Results Dropdown */}
                 {showSearchResults && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-80 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 bg-[#1A202C] border border-[#2D3748] rounded-lg shadow-lg mt-1 max-h-80 overflow-y-auto">
                     {searchLoading ? (
                       <div className="p-4 text-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
@@ -439,7 +439,7 @@ export default function IntelligentNavbar() {
                               result.type === 'group' ? `/chat/${result.id}` :
                               `/requests/details/${result.id}`
                             }
-                            className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                            className="flex items-center gap-3 p-3 hover:bg-[#2D3748] border-b border-[#2D3748] last:border-b-0"
                             onClick={() => {
                               setShowSearchResults(false);
                               setSearchQuery("");
@@ -455,10 +455,10 @@ export default function IntelligentNavbar() {
                               className="w-8 h-8 rounded-full object-cover"
                             />
                             <div className="flex-1">
-                              <div className="font-medium text-sm">
+                              <div className="font-medium text-sm text-white">
                                 {result.displayName || result.name || result.title}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-[#A0AEC0]">
                                 {result.type === 'user' ?
                                   result.bio?.substring(0, 50) + (result.bio?.length > 50 ? '...' : '') ||
                                   result.location || 'Skill-Net Member' :
@@ -466,7 +466,7 @@ export default function IntelligentNavbar() {
                                  result.subject || 'Request'}
                               </div>
                             </div>
-                            <span className="ml-auto text-xs bg-gray-100 px-2 py-1 rounded">
+                            <span className="ml-auto text-xs bg-[#2D3748] px-2 py-1 rounded">
                               {result.type === 'user' ? 'Person' :
                                result.type === 'group' ? 'Group' : 'Request'}
                             </span>
@@ -474,7 +474,7 @@ export default function IntelligentNavbar() {
                         ))}
                       </>
                     ) : searchQuery.length >= 2 ? (
-                      <div className="p-4 text-center text-gray-500">
+                      <div className="p-4 text-center text-[#A0AEC0]">
                         No results found for "{searchQuery}"
                       </div>
                     ) : null}
@@ -489,7 +489,7 @@ export default function IntelligentNavbar() {
             {/* Notifications (conditional) */}
             {navConfig.showNotifications && (
               <div className="relative">
-                <button className="relative p-2 text-gray-600 hover:text-indigo-600 transition-colors">
+                <button className="relative p-2 text-[#A0AEC0] hover:text-[#4299E1] transition-colors">
                   <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-3.5-3.5a8.38 8.38 0 010-6L20 4h-5M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -507,18 +507,18 @@ export default function IntelligentNavbar() {
               <div className="relative" ref={profileMenuRef}>
                 <button
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                  className="flex items-center gap-2 hover:bg-[#2D3748] px-2 py-1 rounded transition-colors"
                 >
                   <img
                     src={userProfile.avatar}
                     alt={userProfile.displayName}
                     className="h-8 w-8 rounded-full object-cover border-2 border-white shadow"
                   />
-                  <span className="font-medium text-gray-700 text-sm">
+                  <span className="font-medium text-white text-sm">
                     {userProfile.displayName}
                   </span>
                   <svg
-                    className={`h-4 w-4 text-gray-400 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`}
+                    className={`h-4 w-4 text-[#A0AEC0] transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -529,55 +529,55 @@ export default function IntelligentNavbar() {
 
                 {/* Profile Dropdown */}
                 {profileMenuOpen && (
-                  <div className="absolute top-full right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 w-64 py-2">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <div className="font-medium text-sm">{userProfile.displayName}</div>
-                      <div className="text-xs text-gray-500">{userProfile.email}</div>
-                    </div>
+                  <div className="absolute top-full right-0 bg-[#1A202C] border border-[#2D3748] rounded-lg shadow-lg mt-1 w-64 py-2">
+                                          <div className="px-4 py-2 border-b border-[#2D3748]">
+                        <div className="font-medium text-sm text-white">{userProfile.displayName}</div>
+                        <div className="text-xs text-[#A0AEC0]">{userProfile.email}</div>
+                      </div>
 
                     <Link
                       to="/profile"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      <span className="text-sm">View Profile</span>
+                      <span className="text-sm text-white">View Profile</span>
                     </Link>
 
                     <Link
                       to="/settings"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span className="text-sm">Settings</span>
+                      <span className="text-sm text-white">Settings</span>
                     </Link>
 
                     <Link
-                      to="/help"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                      to="/help-and-support"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span className="text-sm">Help & Support</span>
+                      <span className="text-sm text-white">Help & Support</span>
                     </Link>
 
-                    <div className="border-t border-gray-100 mt-2">
+                    <div className="border-t border-[#2D3748] mt-2">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors w-full text-left text-red-600"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors w-full text-left text-red-600"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
-                        <span className="text-sm">Sign Out</span>
+                        <span className="text-sm text-white">Sign Out</span>
                       </button>
                     </div>
                   </div>
@@ -588,7 +588,7 @@ export default function IntelligentNavbar() {
 
           {/* Mobile Hamburger */}
           <button
-            className="md:hidden flex items-center p-2 text-indigo-700 focus:outline-none"
+            className="md:hidden flex items-center p-2 text-white focus:outline-none"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
@@ -600,7 +600,7 @@ export default function IntelligentNavbar() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
+          <div className="md:hidden border-t border-[#2D3748] py-4">
             {/* Mobile Search */}
             {navConfig.showSearch && (
               <div className="px-4 mb-4">
@@ -609,22 +609,22 @@ export default function IntelligentNavbar() {
                   placeholder={navConfig.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-100 text-gray-600"
+                  className="w-full border border-[#2D3748] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900 bg-[#1A202C] text-white placeholder-[#A0AEC0]"
                 />
               </div>
             )}
 
             {/* Mobile Profile Info */}
             {navConfig.showProfile && userProfile && (
-              <div className="flex items-center gap-3 px-4 mb-4 pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-3 px-4 mb-4 pb-4 border-b border-[#2D3748]">
                 <img
                   src={userProfile.avatar}
                   alt={userProfile.displayName}
-                  className="h-10 w-10 rounded-full object-cover border-2 border-indigo-100"
+                  className="h-10 w-10 rounded-full object-cover border-2 border-[#4299E1]"
                 />
                 <div>
-                  <div className="font-medium text-sm">{userProfile.displayName}</div>
-                  <div className="text-xs text-gray-500">{userProfile.email}</div>
+                  <div className="font-medium text-sm text-white">{userProfile.displayName}</div>
+                  <div className="text-xs text-[#A0AEC0]">{userProfile.email}</div>
                 </div>
               </div>
             )}
@@ -638,8 +638,8 @@ export default function IntelligentNavbar() {
                   className={`block px-3 py-2 rounded-md text-sm font-medium ${
                     location.pathname === item.to ||
                     (item.to === "/groups" && (location.pathname.startsWith("/chat/") || location.pathname === "/GroupChat" || location.pathname.startsWith("/groups/")))
-                      ? 'text-indigo-600 bg-indigo-50'
-                      : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
+                      ? 'text-[#4299E1] bg-[#1A202C]'
+                      : 'text-white hover:text-[#4299E1] hover:bg-[#2D3748]'
                   } transition-colors`}
                   onClick={() => setMenuOpen(false)}
                 >
@@ -653,13 +653,13 @@ export default function IntelligentNavbar() {
               {isAuthenticated ? (
                 <>
                   {navConfig.rightSection && (
-                    <div className="pb-4 border-b border-gray-200">
+                    <div className="pb-4 border-b border-[#2D3748]">
                       {navConfig.rightSection}
                     </div>
                   )}
                   <button
                     onClick={handleLogout}
-                    className="w-full px-4 py-2 border border-red-600 text-red-600 rounded hover:bg-red-50 font-semibold text-sm"
+                                         className="w-full px-4 py-2 border border-red-600 text-red-400 rounded hover:bg-red-900 font-semibold text-sm"
                   >
                     Sign Out
                   </button>
@@ -668,14 +668,14 @@ export default function IntelligentNavbar() {
                 <>
                   <Link
                     to="/login"
-                    className="block w-full px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50 font-semibold text-sm text-center"
+                                         className="block w-full px-4 py-2 border border-[#4299E1] text-[#4299E1] rounded hover:bg-[#1A202C] font-semibold text-sm text-center"
                     onClick={() => setMenuOpen(false)}
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/signup"
-                    className="block w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-semibold text-sm text-center"
+                                         className="block w-full px-4 py-2 bg-[#4299E1] text-white rounded hover:bg-[#3182CE] font-semibold text-sm text-center"
                     onClick={() => setMenuOpen(false)}
                   >
                     Get Started

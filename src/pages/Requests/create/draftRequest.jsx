@@ -1,58 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { requestService } from '@/services/requestService';
+import { useDraftRequests } from '@/hooks/useRequests';
+import integratedRequestService from '@/services/integratedRequestService';
 import { groupRequestService } from '@/services/groupRequestService';
 
 const DraftRequests = () => {
     const { user } = useAuth();
-    const [requests, setRequests] = useState([]);
+    const { requests: oneToOneRequests, loading: oneToOneLoading } = useDraftRequests();
     const [groupRequests, setGroupRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState({});
 
-    // Load draft requests from both collections
+    // Load group draft requests separately
     useEffect(() => {
-        if (!user?.id) return;
+        const loadGroupDrafts = async () => {
+            if (!user?.id) return;
 
-        const fetchRequests = async () => {
             try {
-                setLoading(true);
-
-                // Load one-to-one draft requests
-                const unsubscribeOneToOne = requestService.getUserRequestsByStatus(user.id, 'draft', (draftRequests) => {
-                    console.log('📝 Loaded one-to-one drafts:', draftRequests.length);
-                    setRequests(draftRequests);
-                });
-
-                // Load group draft requests
-                const loadGroupDrafts = async () => {
-                    try {
-                        const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id, 'draft');
-                        console.log('👥 Loaded group drafts:', userGroupRequests.length);
-                        setGroupRequests(userGroupRequests);
-                    } catch (error) {
-                        console.error('❌ Error loading group drafts:', error);
-                        setGroupRequests([]);
-                    }
-                };
-
-                await loadGroupDrafts();
-                setLoading(false);
-
-                return () => {
-                    if (unsubscribeOneToOne) {
-                        unsubscribeOneToOne();
-                    }
-                };
+                const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id, 'draft');
+                console.log('👥 Loaded group drafts:', userGroupRequests.length);
+                setGroupRequests(userGroupRequests);
             } catch (error) {
-                console.error('❌ Error setting up draft requests listener:', error);
-                setLoading(false);
+                console.error('❌ Error loading group drafts:', error);
+                setGroupRequests([]);
             }
         };
 
-        fetchRequests();
+        loadGroupDrafts();
     }, [user]);
+
+    // Update loading state
+    useEffect(() => {
+        setLoading(oneToOneLoading);
+    }, [oneToOneLoading]);
 
     // Handle request actions
     const handleRequestAction = async (requestId, action, requestType = 'one-to-one') => {
@@ -75,10 +56,11 @@ const DraftRequests = () => {
             } else {
                 switch (action) {
                     case 'publish':
-                        result = await requestService.publishDraft(requestId, user.id);
+                        // Use the integrated service to publish draft (draft -> open)
+                        result = await integratedRequestService.publishDraft(requestId, user.id);
                         break;
                     case 'delete':
-                        result = await requestService.deleteRequest(requestId, user.id);
+                        result = await integratedRequestService.deleteRequest(requestId, user.id);
                         break;
                     default:
                         result = { success: false, message: 'Unknown action' };
@@ -87,6 +69,8 @@ const DraftRequests = () => {
 
             if (result.success) {
                 alert(result.message);
+                // Refresh the page to update the list
+                window.location.reload();
             } else {
                 alert(result.message);
             }
@@ -103,7 +87,7 @@ const DraftRequests = () => {
         let combined = [];
 
         // Add one-to-one requests
-        const oneToOneFormatted = requests.map(req => ({
+        const oneToOneFormatted = oneToOneRequests.map(req => ({
             ...req,
             type: 'one-to-one',
             title: req.topic || req.title || 'Untitled Request'
@@ -166,13 +150,10 @@ const DraftRequests = () => {
 
     // Calculate stats
     const statsData = {
-        total: requests.length + groupRequests.length,
-        oneToOne: requests.length,
+        total: oneToOneRequests.length + groupRequests.length,
+        oneToOne: oneToOneRequests.length,
         group: groupRequests.length,
-        draft: allDrafts.length,
-        active: 0,
-        completed: 0,
-        archived: 0
+        readyToPublish: allDrafts.filter(r => r.title && r.description && (r.subject || r.category)).length
     };
 
     if (loading) {
@@ -205,10 +186,21 @@ const DraftRequests = () => {
                     </Link>
                     <Link
                         to="/requests/create-group"
-                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                     >
                         + New Group Request
                     </Link>
+                </div>
+            </div>
+
+            {/* Flow Info */}
+            <div className="bg-blue-900 rounded-lg p-4 mb-8 border border-blue-700">
+                <div className="flex items-center gap-3 mb-2">
+                    <span className="text-blue-400 text-xl">📋</span>
+                    <h3 className="font-semibold text-blue-200">Draft Request Flow</h3>
+                </div>
+                <div className="text-blue-100 text-sm">
+                    <p>📝 <strong>Draft:</strong> Save your work and edit anytime • 🟢 <strong>Publish:</strong> Make visible to others • 🔵 <strong>Active:</strong> When someone accepts • ✅ <strong>Complete:</strong> After session ends</p>
                 </div>
             </div>
 
@@ -227,7 +219,7 @@ const DraftRequests = () => {
                     <div className="text-slate-300 text-sm">Group</div>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-400">0</div>
+                    <div className="text-lg font-bold text-green-400">{statsData.readyToPublish}</div>
                     <div className="text-slate-300 text-sm">Ready to Publish</div>
                 </div>
             </div>
@@ -242,107 +234,138 @@ const DraftRequests = () => {
                     </div>
 
                     <div className="divide-y divide-slate-700">
-                        {allDrafts.map((request) => (
-                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-slate-700 transition-colors">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <span className="text-xl">{getStatusIcon()}</span>
-                                            <h3 className="text-lg font-semibold text-white">{request.title}</h3>
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor()}`}>
-                                                draft
-                                            </span>
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                request.type === 'group' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'
-                                            }`}>
-                                                {request.type === 'group' ? '👥 Group' : '👤 1:1'}
-                                            </span>
-                                        </div>
+                        {allDrafts.map((request) => {
+                            const isComplete = request.title && request.description && (request.subject || request.category);
 
-                                        <p className="text-slate-300 mb-3 line-clamp-2">{request.description || 'No description yet...'}</p>
-
-                                        <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
-                                            {request.type === 'one-to-one' && (
-                                                <>
-                                                    <span>📚 {request.subject || 'No subject'}</span>
-                                                    <span>📅 {formatDate(request.preferredDate)}</span>
-                                                    <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                                    <span>💰 Rs.{request.paymentAmount || '0'}</span>
-                                                    <span>⏱️ {request.duration || '60'} min</span>
-                                                </>
-                                            )}
-                                            {request.type === 'group' && (
-                                                <>
-                                                    <span>🏷️ {request.category || 'No category'}</span>
-                                                    {request.maxParticipants && <span>👥 Max: {request.maxParticipants}</span>}
-                                                    {request.rate && <span>💰 {request.rate}</span>}
-                                                    {request.deadline && <span>📅 Due: {formatDate(request.deadline)}</span>}
-                                                </>
-                                            )}
-                                        </div>
-
-                                        {request.tags && request.tags.length > 0 && (
-                                            <div className="flex gap-2 mb-3">
-                                                {request.tags.map((tag, index) => (
-                                                    <span key={index} className="bg-slate-700 text-slate-200 px-2 py-1 rounded text-xs">
-                                                        {tag}
+                            return (
+                                <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-slate-700 transition-colors">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="text-xl">{getStatusIcon()}</span>
+                                                <h3 className="text-lg font-semibold text-white">{request.title}</h3>
+                                                <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor()}`}>
+                                                    draft
+                                                </span>
+                                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                    request.type === 'group' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'
+                                                }`}>
+                                                    {request.type === 'group' ? '👥 Group' : '👤 1:1'}
+                                                </span>
+                                                {isComplete && (
+                                                    <span className="px-2 py-1 rounded text-xs font-medium bg-green-900 text-green-200">
+                                                        ✅ Ready
                                                     </span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {request.skills && request.skills.length > 0 && (
-                                            <div className="flex gap-2 mb-3">
-                                                {request.skills.map((skill, index) => (
-                                                    <span key={index} className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
-                                                        {skill}
+                                                )}
+                                                {!isComplete && (
+                                                    <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-900 text-yellow-200">
+                                                        ⚠️ Incomplete
                                                     </span>
-                                                ))}
+                                                )}
                                             </div>
-                                        )}
 
-                                        <div className="text-xs text-slate-500">
-                                            Created {formatTimeAgo(request.createdAt)}
-                                            {request.updatedAt && request.updatedAt > request.createdAt && (
-                                                <span> • Updated {formatTimeAgo(request.updatedAt)}</span>
+                                            <p className="text-slate-300 mb-3 line-clamp-2">{request.description || 'No description yet...'}</p>
+
+                                            <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
+                                                {request.type === 'one-to-one' && (
+                                                    <>
+                                                        <span>📚 {request.subject || 'No subject'}</span>
+                                                        <span>📅 {formatDate(request.preferredDate)}</span>
+                                                        <span>⏰ {request.preferredTime || 'Not set'}</span>
+                                                        <span>💰 Rs.{request.paymentAmount || '0'}</span>
+                                                        <span>⏱️ {request.duration || '60'} min</span>
+                                                    </>
+                                                )}
+                                                {request.type === 'group' && (
+                                                    <>
+                                                        <span>🏷️ {request.category || 'No category'}</span>
+                                                        {request.maxParticipants && <span>👥 Max: {request.maxParticipants}</span>}
+                                                        {request.rate && <span>💰 {request.rate}</span>}
+                                                        {request.deadline && <span>📅 Due: {formatDate(request.deadline)}</span>}
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            {request.tags && request.tags.length > 0 && (
+                                                <div className="flex gap-2 mb-3">
+                                                    {request.tags.map((tag, index) => (
+                                                        <span key={index} className="bg-slate-700 text-slate-200 px-2 py-1 rounded text-xs">
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {request.skills && request.skills.length > 0 && (
+                                                <div className="flex gap-2 mb-3">
+                                                    {request.skills.map((skill, index) => (
+                                                        <span key={index} className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
+                                                            {skill}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="text-xs text-slate-500">
+                                                Created {formatTimeAgo(request.createdAt)}
+                                                {request.updatedAt && request.updatedAt > request.createdAt && (
+                                                    <span> • Updated {formatTimeAgo(request.updatedAt)}</span>
+                                                )}
+                                            </div>
+
+                                            {/* Completion Status */}
+                                            {!isComplete && (
+                                                <div className="mt-3 p-3 bg-yellow-900 rounded-lg border border-yellow-700">
+                                                    <div className="text-sm text-yellow-200">
+                                                        <strong>Missing fields:</strong>
+                                                        {!request.title && <span className="ml-2">• Title</span>}
+                                                        {!request.description && <span className="ml-2">• Description</span>}
+                                                        {!request.subject && !request.category && <span className="ml-2">• Subject/Category</span>}
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
 
-                                    <div className="flex flex-col gap-2 ml-4">
-                                        <Link
-                                            to={`/requests/details/${request.id}?type=${request.type}`}
-                                            className="bg-slate-700 text-slate-200 px-3 py-1 rounded text-sm font-medium hover:bg-slate-600 transition-colors text-center"
-                                        >
-                                            Preview
-                                        </Link>
+                                        <div className="flex flex-col gap-2 ml-4">
+                                            <Link
+                                                to={`/requests/details/${request.id}?type=${request.type}`}
+                                                className="bg-slate-700 text-slate-200 px-3 py-1 rounded text-sm font-medium hover:bg-slate-600 transition-colors text-center"
+                                            >
+                                                Preview
+                                            </Link>
 
-                                        <Link
-                                            to={`/requests/edit/${request.id}?type=${request.type}`}
-                                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
-                                        >
-                                            Continue Editing
-                                        </Link>
+                                            <Link
+                                                to={`/requests/edit/${request.id}?type=${request.type}`}
+                                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
+                                            >
+                                                Continue Editing
+                                            </Link>
 
-                                        <button
-                                            onClick={() => handleRequestAction(request.id, 'publish', request.type)}
-                                            disabled={actionLoading[request.id] === 'publish'}
-                                            className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                                        >
-                                            {actionLoading[request.id] === 'publish' ? 'Publishing...' : 'Publish Now'}
-                                        </button>
+                                            <button
+                                                onClick={() => handleRequestAction(request.id, 'publish', request.type)}
+                                                disabled={actionLoading[request.id] === 'publish' || !isComplete}
+                                                className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                title={!isComplete ? 'Complete all required fields first' : 'Publish request'}
+                                            >
+                                                {actionLoading[request.id] === 'publish' ? 'Publishing...' : 'Publish Now'}
+                                            </button>
 
-                                        <button
-                                            onClick={() => handleRequestAction(request.id, 'delete', request.type)}
-                                            disabled={actionLoading[request.id] === 'delete'}
-                                            className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
-                                        >
-                                            {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete Draft'}
-                                        </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (window.confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
+                                                        handleRequestAction(request.id, 'delete', request.type);
+                                                    }
+                                                }}
+                                                disabled={actionLoading[request.id] === 'delete'}
+                                                className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
+                                            >
+                                                {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete Draft'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             ) : (
@@ -363,7 +386,7 @@ const DraftRequests = () => {
                         </Link>
                         <Link
                             to="/requests/create-group"
-                            className="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                         >
                             Create Group Request
                         </Link>
@@ -376,11 +399,12 @@ const DraftRequests = () => {
                 <div className="mt-8 bg-blue-900 rounded-lg p-6">
                     <h3 className="font-semibold text-blue-200 mb-3">💡 Tips for Managing Drafts</h3>
                     <ul className="text-sm text-blue-100 space-y-1">
-                        <li>• Complete all required fields before publishing</li>
+                        <li>• Complete all required fields before publishing (Title, Description, Subject/Category)</li>
                         <li>• Use clear, descriptive titles to help others find your request</li>
                         <li>• Set realistic deadlines and payment amounts</li>
                         <li>• Add relevant tags to improve discoverability</li>
                         <li>• Review your draft carefully before publishing</li>
+                        <li>• Published requests will appear in "Available Requests" for others to accept</li>
                     </ul>
                 </div>
             )}

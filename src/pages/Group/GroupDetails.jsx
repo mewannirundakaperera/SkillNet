@@ -413,7 +413,7 @@ export default function GroupDetails() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
+      <div className="bg-[#1A202C] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
           <p className="mt-4 text-[#A0AEC0]">Loading group details...</p>
@@ -425,7 +425,7 @@ export default function GroupDetails() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
+      <div className="bg-[#1A202C] flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-400 text-4xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold text-white mb-2">Error</h2>

@@ -1,51 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useActiveRequests } from '@/hooks/useRequests';
+import integratedRequestService from '@/services/integratedRequestService';
 
 const ActiveRequests = () => {
-    const {
-        requests,
-        stats,
-        loading,
-        error,
-        changeStatus,
-        deleteRequest
-    } = useActiveRequests();
-
+    const { requests, stats, loading, error } = useActiveRequests();
     const [actionLoading, setActionLoading] = useState({});
 
-    // Handle request actions
-    const handleMarkCompleted = async (requestId, requestType) => {
-        if (!window.confirm('Mark this request as completed?')) {
+    // Handle request actions for active requests
+    const handleCompleteRequest = async (requestId, requestType) => {
+        if (!window.confirm('Mark this request as completed? This will end the meeting and complete the session.')) {
             return;
         }
 
         setActionLoading(prev => ({ ...prev, [requestId]: 'completing' }));
 
         try {
-            const result = await changeStatus(requestId, 'completed', requestType);
+            const result = await integratedRequestService.completeRequest(requestId);
+
             if (result.success) {
                 alert(result.message);
             } else {
                 alert(result.message);
             }
         } catch (error) {
-            console.error('Error marking request as completed:', error);
-            alert('Failed to update request status. Please try again.');
+            console.error('Error completing request:', error);
+            alert('Failed to complete request. Please try again.');
         } finally {
             setActionLoading(prev => ({ ...prev, [requestId]: null }));
         }
     };
 
     const handleArchiveRequest = async (requestId, requestType) => {
-        if (!window.confirm('Archive this request?')) {
+        if (!window.confirm('Archive this request? You can still access it in your archived requests.')) {
             return;
         }
 
         setActionLoading(prev => ({ ...prev, [requestId]: 'archiving' }));
 
         try {
-            const result = await changeStatus(requestId, 'archived', requestType);
+            const result = await integratedRequestService.archiveRequest(requestId);
+
             if (result.success) {
                 alert(result.message);
             } else {
@@ -59,25 +54,12 @@ const ActiveRequests = () => {
         }
     };
 
-    const handleDeleteRequest = async (requestId, requestType) => {
-        if (!window.confirm('Are you sure you want to delete this request? This action cannot be undone.')) {
-            return;
-        }
-
-        setActionLoading(prev => ({ ...prev, [requestId]: 'deleting' }));
-
-        try {
-            const result = await deleteRequest(requestId, requestType);
-            if (result.success) {
-                alert(result.message);
-            } else {
-                alert(result.message);
-            }
-        } catch (error) {
-            console.error('Error deleting request:', error);
-            alert('Failed to delete request. Please try again.');
-        } finally {
-            setActionLoading(prev => ({ ...prev, [requestId]: null }));
+    const handleJoinMeeting = (meetingUrl, requestId) => {
+        if (meetingUrl) {
+            // Open meeting in new tab
+            window.open(meetingUrl, '_blank');
+        } else {
+            alert('Meeting link not available. Please contact support.');
         }
     };
 
@@ -107,11 +89,11 @@ const ActiveRequests = () => {
     };
 
     const getStatusColor = () => {
-        return 'bg-green-100 text-green-700';
+        return 'bg-blue-100 text-blue-700';
     };
 
     const getStatusIcon = () => {
-        return '🟢';
+        return '🔵';
     };
 
     if (loading) {
@@ -151,7 +133,7 @@ const ActiveRequests = () => {
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-white mb-2">Active Requests</h1>
-                    <p className="text-slate-300">Your currently published and ongoing requests</p>
+                    <p className="text-slate-300">Your requests that have been accepted and have active meetings</p>
                 </div>
                 <div className="flex gap-3">
                     <Link
@@ -163,27 +145,46 @@ const ActiveRequests = () => {
                 </div>
             </div>
 
+            {/* Flow Info */}
+            <div className="bg-blue-900 rounded-lg p-4 mb-8 border border-blue-700">
+                <div className="flex items-center gap-3 mb-2">
+                    <span className="text-blue-400 text-xl">🔵</span>
+                    <h3 className="font-semibold text-blue-200">Active Request Status</h3>
+                </div>
+                <div className="text-blue-100 text-sm">
+                    <p>These requests have been <strong>accepted by others</strong> and have <strong>active meeting rooms</strong>. You can join meetings, communicate with participants, and complete sessions when finished.</p>
+                </div>
+            </div>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-5 gap-4 mb-8">
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-400">
-                    <div className="text-lg font-bold text-white">{stats.total}</div>
-                    <div className="text-slate-300 text-sm">Total Requests</div>
-                </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
-                    <div className="text-lg font-bold text-slate-300">{stats.byStatus?.draft || 0}</div>
-                    <div className="text-slate-300 text-sm">Draft</div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+                    <div className="text-lg font-bold text-blue-400">{requests.length}</div>
+                    <div className="text-slate-300 text-sm">Active Requests</div>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-400">{stats.active}</div>
-                    <div className="text-slate-300 text-sm">Active</div>
-                </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <div className="text-lg font-bold text-blue-400">{stats.completed}</div>
-                    <div className="text-slate-300 text-sm">Completed</div>
+                    <div className="text-lg font-bold text-green-400">
+                        {requests.filter(r => r.meetingUrl).length}
+                    </div>
+                    <div className="text-slate-300 text-sm">With Meetings</div>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-400">{stats.archived}</div>
-                    <div className="text-slate-300 text-sm">Archived</div>
+                    <div className="text-lg font-bold text-purple-400">
+                        {requests.filter(r => r.participantCount > 0).length}
+                    </div>
+                    <div className="text-slate-300 text-sm">With Participants</div>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
+                    <div className="text-lg font-bold text-orange-400">
+                        {requests.filter(r => r.paymentAmount && parseFloat(r.paymentAmount) > 0).length}
+                    </div>
+                    <div className="text-slate-300 text-sm">Paid Sessions</div>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-teal-500">
+                    <div className="text-lg font-bold text-teal-400">
+                        {requests.filter(r => r.acceptedAt && new Date() - r.acceptedAt < 24 * 60 * 60 * 1000).length}
+                    </div>
+                    <div className="text-slate-300 text-sm">Accepted Today</div>
                 </div>
             </div>
 
@@ -203,18 +204,18 @@ const ActiveRequests = () => {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="text-xl">{getStatusIcon()}</span>
-                                            <h3 className="text-lg font-semibold text-white">{request.title}</h3>
+                                            <h3 className="text-lg font-semibold text-white">{request.title || request.topic}</h3>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor()}`}>
-                                                {request.status}
+                                                active
                                             </span>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${
                                                 request.type === 'group' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'
                                             }`}>
                                                 {request.type === 'group' ? '👥 Group' : '👤 1:1'}
                                             </span>
-                                            {request.featured && (
-                                                <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-900 text-yellow-200">
-                                                    ⭐ Featured
+                                            {request.meetingUrl && (
+                                                <span className="px-2 py-1 rounded text-xs font-medium bg-green-900 text-green-200">
+                                                    🎥 Meeting Ready
                                                 </span>
                                             )}
                                         </div>
@@ -222,27 +223,13 @@ const ActiveRequests = () => {
                                         <p className="text-slate-300 mb-3 line-clamp-2">{request.description}</p>
 
                                         <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
-                                            {request.type === 'one-to-one' && (
-                                                <>
-                                                    <span>📚 {request.subject}</span>
-                                                    <span>📅 {formatDate(request.preferredDate)}</span>
-                                                    <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                                    <span>💰 Rs.{request.paymentAmount}</span>
-                                                    <span>⏱️ {request.duration || '60'} min</span>
-                                                    <span>👥 {request.participants?.length || 0}/{request.maxParticipants || 5} participants</span>
-                                                </>
-                                            )}
-                                            {request.type === 'group' && (
-                                                <>
-                                                    <span>🏷️ {request.category}</span>
-                                                    <span>👍 {request.voteCount || 0} votes</span>
-                                                    <span>👥 {request.participantCount || 0} participants</span>
-                                                    {request.rate && <span>💰 {request.rate}</span>}
-                                                    {request.deadline && <span>📅 Due: {formatDate(request.deadline)}</span>}
-                                                </>
-                                            )}
-                                            {request.views > 0 && (
-                                                <span>👀 {request.views} views</span>
+                                            <span>📚 {request.subject}</span>
+                                            <span>📅 {formatDate(request.preferredDate)}</span>
+                                            <span>⏰ {request.preferredTime || 'Not set'}</span>
+                                            <span>💰 Rs.{request.paymentAmount || '0'}</span>
+                                            <span>⏱️ {request.duration || '60'} min</span>
+                                            {request.acceptedBy && (
+                                                <span className="text-green-400">✅ Accepted by {request.acceptedByName}</span>
                                             )}
                                         </div>
 
@@ -256,15 +243,26 @@ const ActiveRequests = () => {
                                             </div>
                                         )}
 
-                                        {request.skills && request.skills.length > 0 && (
-                                            <div className="flex gap-2 mb-3">
-                                                {request.skills.map((skill, index) => (
-                                                    <span key={index} className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
-                                                        {skill}
-                                                    </span>
-                                                ))}
+                                        {/* Acceptance and Meeting Info */}
+                                        <div className="bg-blue-900 rounded-lg p-3 mb-3 border border-blue-700">
+                                            <div className="flex items-start gap-3">
+                                                <span className="text-blue-300 text-lg">🎯</span>
+                                                <div className="flex-1">
+                                                    <div className="font-medium text-blue-200 mb-1">Request Status</div>
+                                                    <div className="text-blue-100 text-sm space-y-1">
+                                                        {request.acceptedAt && (
+                                                            <div>• Accepted {formatTimeAgo(request.acceptedAt)} by {request.acceptedByName}</div>
+                                                        )}
+                                                        {request.meetingStatus && (
+                                                            <div>• Meeting Status: {request.meetingStatus}</div>
+                                                        )}
+                                                        {request.participants && request.participants.length > 0 && (
+                                                            <div>• {request.participants.length} participant(s) joined</div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        )}
+                                        </div>
 
                                         <div className="text-xs text-slate-500">
                                             Created {formatTimeAgo(request.createdAt)}
@@ -282,19 +280,35 @@ const ActiveRequests = () => {
                                             View Details
                                         </Link>
 
-                                        <Link
-                                            to={`/requests/edit/${request.id}?type=${request.type}`}
-                                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
-                                        >
-                                            Edit
-                                        </Link>
+                                        {/* Meeting Access */}
+                                        {request.meetingUrl ? (
+                                            <button
+                                                onClick={() => handleJoinMeeting(request.meetingUrl, request.id)}
+                                                className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors"
+                                            >
+                                                🎥 Join Meeting
+                                            </button>
+                                        ) : (
+                                            <div className="bg-yellow-900 text-yellow-300 px-3 py-1 rounded text-xs text-center border border-yellow-700">
+                                                Meeting being set up...
+                                            </div>
+                                        )}
 
+                                        {/* Communication Options */}
                                         <button
-                                            onClick={() => handleMarkCompleted(request.id, request.type)}
+                                            onClick={() => alert('Messaging feature coming soon!')}
+                                            className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+                                        >
+                                            💬 Message
+                                        </button>
+
+                                        {/* Session Management */}
+                                        <button
+                                            onClick={() => handleCompleteRequest(request.id, request.type)}
                                             disabled={actionLoading[request.id] === 'completing'}
                                             className="bg-purple-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
                                         >
-                                            {actionLoading[request.id] === 'completing' ? 'Completing...' : 'Mark Complete'}
+                                            {actionLoading[request.id] === 'completing' ? 'Completing...' : '✅ Complete Session'}
                                         </button>
 
                                         <button
@@ -302,15 +316,7 @@ const ActiveRequests = () => {
                                             disabled={actionLoading[request.id] === 'archiving'}
                                             className="bg-gray-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
                                         >
-                                            {actionLoading[request.id] === 'archiving' ? 'Archiving...' : 'Archive'}
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleDeleteRequest(request.id, request.type)}
-                                            disabled={actionLoading[request.id] === 'deleting'}
-                                            className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
-                                        >
-                                            {actionLoading[request.id] === 'deleting' ? 'Deleting...' : 'Delete'}
+                                            {actionLoading[request.id] === 'archiving' ? 'Archiving...' : '📁 Archive'}
                                         </button>
                                     </div>
                                 </div>
@@ -320,54 +326,67 @@ const ActiveRequests = () => {
                 </div>
             ) : (
                 <div className="bg-slate-800 rounded-lg shadow-sm p-12 text-center">
-                    <div className="text-slate-400 text-4xl mb-4">🟢</div>
+                    <div className="text-slate-400 text-4xl mb-4">🔵</div>
                     <h3 className="text-lg font-semibold text-white mb-2">
                         No active requests found
                     </h3>
                     <p className="text-slate-300 mb-6">
-                        You don't have any active requests. Create one to start connecting with others!
+                        You don't have any active requests. Create a request and wait for someone to accept it!
                     </p>
                     <div className="flex gap-3 justify-center">
                         <Link
                             to="/requests/create"
                             className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                         >
-                            Create 1:1 Request
+                            Create Request
                         </Link>
                         <Link
-                            to="/requests/create-group"
-                            className="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                            to="/requests/my-requests"
+                            className="text-blue-400 hover:text-blue-300 font-medium px-6 py-2"
                         >
-                            Create Group Request
+                            View All My Requests
                         </Link>
                     </div>
                 </div>
             )}
 
-            {/* Quick Stats Summary */}
+            {/* Quick Actions Summary */}
             {requests.length > 0 && (
-                <div className="mt-8 bg-green-900 rounded-lg p-6">
-                    <h3 className="font-semibold text-green-200 mb-3">📊 Active Requests Summary</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div className="text-center">
-                            <div className="text-lg font-bold text-green-300">{stats.oneToOne}</div>
-                            <div className="text-green-200">One-to-One</div>
+                <div className="mt-8 bg-gradient-to-r from-blue-900 to-green-900 rounded-lg p-6">
+                    <h3 className="font-semibold text-white mb-4">🎯 Active Session Management</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-green-400">{requests.filter(r => r.meetingUrl).length}</div>
+                            <div className="text-sm text-slate-300">Ready for Meetings</div>
                         </div>
-                        <div className="text-center">
-                            <div className="text-lg font-bold text-purple-300">{stats.group}</div>
-                            <div className="text-purple-200">Group Sessions</div>
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-blue-400">{requests.filter(r => r.participantCount > 0).length}</div>
+                            <div className="text-sm text-slate-300">Active Participants</div>
                         </div>
-                        <div className="text-center">
-                            <div className="text-lg font-bold text-blue-300">
-                                {requests.filter(r => r.participants?.length > 0).length}
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-purple-400">
+                                {requests.reduce((sum, r) => sum + (parseFloat(r.paymentAmount) || 0), 0).toFixed(0)}
                             </div>
-                            <div className="text-blue-200">With Participants</div>
+                            <div className="text-sm text-slate-300">Total Value (Rs.)</div>
                         </div>
-                        <div className="text-center">
-                            <div className="text-lg font-bold text-orange-300">
-                                {requests.filter(r => r.views > 0).length}
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-orange-400">
+                                {requests.reduce((sum, r) => sum + (parseInt(r.duration) || 60), 0)}
                             </div>
-                            <div className="text-orange-200">With Views</div>
+                            <div className="text-sm text-slate-300">Total Minutes</div>
+                        </div>
+                    </div>
+
+                    {/* Quick Tips */}
+                    <div className="mt-4 p-4 bg-slate-800 rounded-lg shadow-sm">
+                        <div className="text-sm text-slate-300">
+                            <strong className="text-white">💡 Quick Tips:</strong>
+                            <div className="mt-2 space-y-1">
+                                <div>• Click "Join Meeting" to start your session when ready</div>
+                                <div>• Use "Message" to communicate with participants before/during sessions</div>
+                                <div>• Complete sessions when finished to help track your progress</div>
+                                <div>• Archive old requests to keep your active list organized</div>
+                            </div>
                         </div>
                     </div>
                 </div>

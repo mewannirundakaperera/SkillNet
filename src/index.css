@@ -53,13 +53,14 @@ body {
 
 /* Button Gradients */
 .btn-gradient-primary {
-  background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%);
+  background: var(--accent-blue);
   color: var(--text-primary);
   border: none;
   transition: all 0.3s ease;
 }
 
 .btn-gradient-primary:hover {
+  background: #3182CE;
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(66, 153, 225, 0.3);
 }
@@ -152,7 +153,7 @@ body {
 
 /* Mobile Navigation */
 .mobile-nav {
-  background: var(--secondary-bg);
+  background: var(--primary-bg);
   border: 1px solid var(--border-color);
 }
 
@@ -197,4 +198,46 @@ body {
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+/* Line Clamp Utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Text Overflow Utilities */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-ellipsis {
+  text-overflow: ellipsis;
+}
+
+.break-words {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.break-all {
+  word-break: break-all;
 }

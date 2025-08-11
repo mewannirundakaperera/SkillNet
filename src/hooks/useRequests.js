@@ -1,482 +1,278 @@
 // src/hooks/useRequests.js
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { requestService } from '@/services/requestService';
+import databaseService from '@/services/databaseService';
 import { groupRequestService } from '@/services/groupRequestService';
 
-export const useRequests = (options = {}) => {
-    const {
-        type = 'all', // 'all', 'one-to-one', 'group'
-        status = null, // null for all, or specific status
-        userId = null, // null for current user
-        includeOwn = true,
-        includeOthers = false,
-        realTime = true
-    } = options;
-
+// Base hook for request management with proper flow handling
+export const useRequests = (type = 'all', status = null, userId = null) => {
     const { user } = useAuth();
     const [requests, setRequests] = useState([]);
-    const [groupRequests, setGroupRequests] = useState([]);
+    const [stats, setStats] = useState({
+        total: 0,
+        oneToOne: 0,
+        group: 0,
+        draft: 0,
+        open: 0,
+        active: 0,
+        completed: 0,
+        archived: 0,
+        pending: 0,
+        byStatus: {}
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const targetUserId = userId || user?.id;
 
-    // Load requests based on options
     useEffect(() => {
-        if (!targetUserId) return;
-
-        setLoading(true);
-        setError(null);
-
-        const unsubscribers = [];
-
-        try {
-            // Load one-to-one requests
-            if (type === 'all' || type === 'one-to-one') {
-                if (includeOwn) {
-                    if (status) {
-                        // Load specific status
-                        const unsubscribe = requestService.getUserRequestsByStatus(
-                            targetUserId,
-                            status,
-                            (data) => {
-                                setRequests(data);
-                                setLoading(false);
-                            }
-                        );
-                        unsubscribers.push(unsubscribe);
-                    } else {
-                        // Load all user requests
-                        const unsubscribe = requestService.getAllUserRequests(
-                            targetUserId,
-                            (data) => {
-                                setRequests(data);
-                                setLoading(false);
-                            }
-                        );
-                        unsubscribers.push(unsubscribe);
-                    }
-                } else if (includeOthers) {
-                    // Load available requests from others
-                    const unsubscribe = requestService.getAllAvailableRequests(
-                        targetUserId,
-                        (data) => {
-                            setRequests(data);
-                            setLoading(false);
-                        }
-                    );
-                    unsubscribers.push(unsubscribe);
-                }
-            }
-
-            // Load group requests
-            if (type === 'all' || type === 'group') {
-                const loadGroupRequests = async () => {
-                    try {
-                        let groupData;
-                        if (status) {
-                            groupData = await groupRequestService.getUserGroupRequests(targetUserId, status);
-                        } else if (includeOwn) {
-                            groupData = await groupRequestService.getUserGroupRequests(targetUserId);
-                        } else if (includeOthers) {
-                            groupData = await groupRequestService.getAllGroupRequests({
-                                userId: targetUserId,
-                                isAdmin: false
-                            });
-                        } else {
-                            groupData = [];
-                        }
-
-                        setGroupRequests(groupData);
-                    } catch (error) {
-                        console.error('Error loading group requests:', error);
-                        setGroupRequests([]);
-                    } finally {
-                        if (type === 'group') {
-                            setLoading(false);
-                        }
-                    }
-                };
-
-                loadGroupRequests();
-            }
-
-        } catch (error) {
-            console.error('Error setting up requests listeners:', error);
-            setError(error.message);
+        if (!targetUserId) {
             setLoading(false);
+            return;
         }
+
+        let unsubscribe = null;
+
+        const loadRequests = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                if (type === 'one-to-one') {
+                    // One-to-one requests only
+                    unsubscribe = databaseService.getUserRequests(targetUserId, status, (data) => {
+                        setRequests(data);
+                        updateStats(data, []);
+                        setLoading(false);
+                    });
+                } else if (type === 'available') {
+                    // Available requests from others (for pending offers)
+                    unsubscribe = databaseService.getAvailableRequests(targetUserId, (data) => {
+                        setRequests(data);
+                        updateStats(data, []);
+                        setLoading(false);
+                    });
+                } else if (type === 'group') {
+                    // Group requests only
+                    const groupRequests = await groupRequestService.getUserGroupRequests(targetUserId, status);
+                    setRequests(groupRequests);
+                    updateStats([], groupRequests);
+                    setLoading(false);
+                } else {
+                    // All requests (both types) - for My Requests page
+                    const promises = [];
+
+                    // Get one-to-one requests
+                    promises.push(new Promise((resolve) => {
+                        databaseService.getUserRequests(targetUserId, status, resolve);
+                    }));
+
+                    // Get group requests
+                    promises.push(groupRequestService.getUserGroupRequests(targetUserId, status));
+
+                    const [oneToOneRequests, groupRequests] = await Promise.all(promises);
+
+                    const combined = [
+                        ...oneToOneRequests.map(req => ({ ...req, type: 'one-to-one' })),
+                        ...groupRequests.map(req => ({ ...req, type: 'group' }))
+                    ];
+
+                    // Sort by updated date
+                    combined.sort((a, b) => {
+                        const aTime = a.updatedAt || a.createdAt || new Date(0);
+                        const bTime = b.updatedAt || b.createdAt || new Date(0);
+                        return bTime - aTime;
+                    });
+
+                    setRequests(combined);
+                    updateStats(oneToOneRequests, groupRequests);
+                    setLoading(false);
+                }
+            } catch (err) {
+                console.error('Error loading requests:', err);
+                setError(err.message);
+                setLoading(false);
+            }
+        };
+
+        loadRequests();
 
         return () => {
-            unsubscribers.forEach(unsubscribe => {
-                if (typeof unsubscribe === 'function') {
-                    unsubscribe();
-                }
-            });
+            if (unsubscribe && typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
         };
-    }, [targetUserId, type, status, includeOwn, includeOthers]);
+    }, [targetUserId, type, status]);
 
-    // Combine requests
-    const combinedRequests = useCallback(() => {
-        const combined = [];
+    const updateStats = useCallback((oneToOneRequests = [], groupRequests = []) => {
+        const allRequests = [...oneToOneRequests, ...groupRequests];
 
-        // Add one-to-one requests
-        if (type === 'all' || type === 'one-to-one') {
-            const oneToOneFormatted = requests.map(req => ({
-                ...req,
-                type: 'one-to-one',
-                title: req.topic || req.title || 'Untitled Request'
-            }));
-            combined.push(...oneToOneFormatted);
-        }
+        const newStats = {
+            total: allRequests.length,
+            oneToOne: oneToOneRequests.length,
+            group: groupRequests.length,
+            draft: 0,
+            open: 0,
+            active: 0,
+            completed: 0,
+            archived: 0,
+            pending: 0,
+            byStatus: {}
+        };
 
-        // Add group requests
-        if (type === 'all' || type === 'group') {
-            const groupFormatted = groupRequests.map(req => ({
-                ...req,
-                type: 'group',
-                title: req.title || 'Untitled Group Request',
-                topic: req.title
-            }));
-            combined.push(...groupFormatted);
-        }
+        allRequests.forEach(req => {
+            const status = req.status || 'unknown';
+            newStats.byStatus[status] = (newStats.byStatus[status] || 0) + 1;
 
-        // Sort by updated date
-        combined.sort((a, b) => {
-            const aTime = a.updatedAt || a.createdAt || new Date(0);
-            const bTime = b.updatedAt || b.createdAt || new Date(0);
-            return bTime - aTime;
+            // Count specific statuses according to the flow
+            switch (status) {
+                case 'draft':
+                    newStats.draft++;
+                    break;
+                case 'open':
+                    newStats.open++;
+                    break;
+                case 'active':
+                case 'voting_open':
+                case 'accepted':
+                    newStats.active++;
+                    break;
+                case 'completed':
+                    newStats.completed++;
+                    break;
+                case 'archived':
+                case 'cancelled':
+                    newStats.archived++;
+                    break;
+                case 'pending':
+                    newStats.pending++;
+                    break;
+            }
         });
 
-        return combined;
-    }, [requests, groupRequests, type]);
+        setStats(newStats);
+    }, []);
 
-    // Request actions
-    const createRequest = useCallback(async (requestData, isDraft = false) => {
-        try {
-            const result = await requestService.createRequest(requestData, targetUserId, isDraft);
-            return result;
-        } catch (error) {
-            console.error('Error creating request:', error);
-            return { success: false, message: error.message };
-        }
-    }, [targetUserId]);
-
-    // ✅ FIXED: Dangerous routing default with proper validation
-    const updateRequest = useCallback(async (requestId, updateData, requestType = 'one-to-one') => {
-        // ✅ ADDED: Validation to prevent routing errors
-        if (!requestId || !updateData || !targetUserId) {
-            console.error('❌ Missing required parameters for updateRequest:', { requestId, updateData, targetUserId });
-            return { success: false, message: 'Missing required parameters: requestId, updateData, or userId' };
-        }
-
-        if (!['one-to-one', 'group'].includes(requestType)) {
-            console.error('❌ Invalid requestType:', requestType);
-            return { success: false, message: `Invalid requestType: ${requestType}. Must be 'one-to-one' or 'group'` };
-        }
-
-        try {
-            let result;
-
-            if (requestType === 'group') {
-                console.log('🔄 Routing to groupRequestService.updateGroupRequest for requestId:', requestId);
-                result = await groupRequestService.updateGroupRequest(requestId, updateData, targetUserId);
-            } else {
-                console.log('🔄 Routing to requestService.updateRequest for requestId:', requestId);
-                result = await requestService.updateRequest(requestId, updateData, targetUserId);
-            }
-
-            if (result.success) {
-                console.log('✅ Request update successful via', requestType, 'service');
-            } else {
-                console.warn('⚠️ Request update failed:', result.message);
-            }
-
-            return result;
-        } catch (error) {
-            console.error('❌ Error updating request:', error);
-            return { success: false, message: error.message };
-        }
-    }, [targetUserId]);
-
-    // ✅ FIXED: Delete with proper validation
-    const deleteRequest = useCallback(async (requestId, requestType = 'one-to-one') => {
-        // ✅ ADDED: Validation
-        if (!requestId || !targetUserId) {
-            return { success: false, message: 'Missing required parameters: requestId or userId' };
-        }
-
-        if (!['one-to-one', 'group'].includes(requestType)) {
-            return { success: false, message: `Invalid requestType: ${requestType}. Must be 'one-to-one' or 'group'` };
-        }
-
-        try {
-            let result;
-            if (requestType === 'group') {
-                console.log('🔄 Routing to groupRequestService.deleteGroupRequest');
-                result = await groupRequestService.deleteGroupRequest(requestId, targetUserId);
-            } else {
-                console.log('🔄 Routing to requestService.deleteRequest');
-                result = await requestService.deleteRequest(requestId, targetUserId);
-            }
-            return result;
-        } catch (error) {
-            console.error('Error deleting request:', error);
-            return { success: false, message: error.message };
-        }
-    }, [targetUserId]);
-
-    // ✅ FIXED: Publish draft with proper validation
-    const publishDraft = useCallback(async (requestId, requestType = 'one-to-one') => {
-        // ✅ ADDED: Validation
-        if (!requestId || !targetUserId) {
-            return { success: false, message: 'Missing required parameters: requestId or userId' };
-        }
-
-        if (!['one-to-one', 'group'].includes(requestType)) {
-            return { success: false, message: `Invalid requestType: ${requestType}. Must be 'one-to-one' or 'group'` };
-        }
-
-        try {
-            let result;
-            if (requestType === 'group') {
-                console.log('🔄 Routing to groupRequestService.changeRequestStatus');
-                result = await groupRequestService.changeRequestStatus(requestId, 'pending', targetUserId);
-            } else {
-                console.log('🔄 Routing to requestService.publishDraft');
-                result = await requestService.publishDraft(requestId, targetUserId);
-            }
-            return result;
-        } catch (error) {
-            console.error('Error publishing draft:', error);
-            return { success: false, message: error.message };
-        }
-    }, [targetUserId]);
-
-    // ✅ FIXED: Change status with proper validation
     const changeStatus = useCallback(async (requestId, newStatus, requestType = 'one-to-one') => {
-        // ✅ ADDED: Validation
-        if (!requestId || !newStatus || !targetUserId) {
-            return { success: false, message: 'Missing required parameters: requestId, newStatus, or userId' };
-        }
-
-        if (!['one-to-one', 'group'].includes(requestType)) {
-            return { success: false, message: `Invalid requestType: ${requestType}. Must be 'one-to-one' or 'group'` };
-        }
-
         try {
             let result;
             if (requestType === 'group') {
-                console.log('🔄 Routing to groupRequestService.changeRequestStatus');
                 result = await groupRequestService.changeRequestStatus(requestId, newStatus, targetUserId);
             } else {
-                console.log('🔄 Routing to requestService.changeRequestStatus');
-                result = await requestService.changeRequestStatus(requestId, newStatus, targetUserId);
+                // Use specific methods for the flow
+                switch (newStatus) {
+                    case 'completed':
+                        result = await databaseService.completeRequest(requestId, targetUserId);
+                        break;
+                    case 'archived':
+                        result = await databaseService.archiveRequest(requestId, targetUserId);
+                        break;
+                    default:
+                        // For other status changes, update directly
+                        result = await databaseService.updateRequest(requestId, { status: newStatus }, targetUserId);
+                }
             }
             return result;
-        } catch (error) {
-            console.error('Error changing status:', error);
-            return { success: false, message: error.message };
+        } catch (err) {
+            console.error('Error changing status:', err);
+            return { success: false, message: err.message };
         }
     }, [targetUserId]);
 
-    const saveDraft = useCallback(async (requestData, requestId = null) => {
+    const deleteRequest = useCallback(async (requestId, requestType = 'one-to-one') => {
         try {
-            const result = await requestService.saveDraft(requestData, targetUserId, requestId);
+            let result;
+            if (requestType === 'group') {
+                result = await groupRequestService.deleteGroupRequest(requestId, targetUserId);
+            } else {
+                result = await databaseService.deleteRequest(requestId, targetUserId);
+            }
             return result;
-        } catch (error) {
-            console.error('Error saving draft:', error);
-            return { success: false, message: error.message };
+        } catch (err) {
+            console.error('Error deleting request:', err);
+            return { success: false, message: err.message };
         }
     }, [targetUserId]);
 
-    // ✅ ADDED: Safe group request operations (recommended for group requests)
-    const updateGroupRequestSafe = useCallback(async (requestId, updateData) => {
-        console.log('🔒 Using safe group request update method');
-        return updateRequest(requestId, updateData, 'group');
-    }, [updateRequest]);
+    const publishDraft = useCallback(async (requestId) => {
+        try {
+            return await databaseService.publishDraft(requestId, targetUserId);
+        } catch (err) {
+            console.error('Error publishing draft:', err);
+            return { success: false, message: err.message };
+        }
+    }, [targetUserId]);
 
-    const deleteGroupRequestSafe = useCallback(async (requestId) => {
-        console.log('🔒 Using safe group request delete method');
-        return deleteRequest(requestId, 'group');
-    }, [deleteRequest]);
-
-    const changeGroupRequestStatusSafe = useCallback(async (requestId, newStatus) => {
-        console.log('🔒 Using safe group request status change method');
-        return changeStatus(requestId, newStatus, 'group');
-    }, [changeStatus]);
-
-    // Statistics
-    const getStats = useCallback(() => {
-        const combined = combinedRequests();
-        return {
-            total: combined.length,
-            oneToOne: requests.length,
-            group: groupRequests.length,
-            draft: combined.filter(r => r.status === 'draft').length,
-            active: combined.filter(r => ['open', 'active', 'pending', 'voting_open'].includes(r.status)).length,
-            completed: combined.filter(r => r.status === 'completed').length,
-            archived: combined.filter(r => ['archived', 'cancelled'].includes(r.status)).length,
-            byStatus: combined.reduce((acc, req) => {
-                acc[req.status] = (acc[req.status] || 0) + 1;
-                return acc;
-            }, {})
-        };
-    }, [combinedRequests, requests, groupRequests]);
+    const respondToRequest = useCallback(async (requestId, responseData) => {
+        try {
+            return await databaseService.respondToRequest(requestId, responseData, targetUserId);
+        } catch (err) {
+            console.error('Error responding to request:', err);
+            return { success: false, message: err.message };
+        }
+    }, [targetUserId]);
 
     return {
-        // Data
-        requests: combinedRequests(),
-        oneToOneRequests: requests,
-        groupRequests,
-        stats: getStats(),
-
-        // States
+        requests,
+        stats,
         loading,
         error,
-
-        // ✅ FIXED: General actions with improved validation
-        createRequest,
-        updateRequest,
+        changeStatus,
         deleteRequest,
         publishDraft,
-        changeStatus,
-        saveDraft,
-
-        // ✅ ADDED: Safe group-specific actions (recommended for group requests)
-        updateGroupRequestSafe,
-        deleteGroupRequestSafe,
-        changeGroupRequestStatusSafe,
-
-        // Utils
-        refresh: () => {
-            setLoading(true);
-            // The useEffect will re-run and refresh the data
-        }
+        respondToRequest
     };
 };
 
-// Specific hooks for common use cases
-export const useMyRequests = (status = null) => {
-    return useRequests({
-        type: 'all',
-        status,
-        includeOwn: true,
-        includeOthers: false
-    });
-};
+// Hook for user's own requests (My Requests page)
+export const useMyRequests = () => useRequests('all');
 
-export const useDraftRequests = () => {
-    return useRequests({
-        type: 'all',
-        status: 'draft',
-        includeOwn: true,
-        includeOthers: false
-    });
-};
+// Hook for draft requests (Draft page)
+export const useDraftRequests = () => useRequests('one-to-one', 'draft');
 
-export const useActiveRequests = () => {
-    return useRequests({
-        type: 'all',
-        status: 'active',
-        includeOwn: true,
-        includeOthers: false
-    });
-};
+// Hook for active requests created by user (Active Requests page)
+export const useActiveRequests = () => useRequests('one-to-one', 'active');
 
-export const useCompletedRequests = () => {
-    return useRequests({
-        type: 'all',
-        status: 'completed',
-        includeOwn: true,
-        includeOthers: false
-    });
-};
+// Hook for completed requests (Completed page)
+export const useCompletedRequests = () => useRequests('one-to-one', 'completed');
 
-export const useAvailableRequests = () => {
-    return useRequests({
-        type: 'all',
-        includeOwn: false,
-        includeOthers: true
-    });
-};
+// Hook for available requests from others (Pending Offers page)
+export const usePendingOffers = () => useRequests('available');
 
-export const useOneToOneRequests = () => {
-    return useRequests({
-        type: 'one-to-one',
-        includeOwn: false,
-        includeOthers: true
-    });
-};
-
-export const useGroupRequests = () => {
-    return useRequests({
-        type: 'group',
-        includeOwn: false,
-        includeOthers: true
-    });
-};
-
-// ✅ ADDED: Hook specifically for safe group request operations
-export const useGroupRequestsSafe = () => {
+// Hook specifically for user responses with enhanced data
+export const useUserResponses = (status = null) => {
     const { user } = useAuth();
+    const [responses, setResponses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const updateGroupRequest = useCallback(async (requestId, updateData) => {
+    useEffect(() => {
         if (!user?.id) {
-            return { success: false, message: 'User not authenticated' };
+            setLoading(false);
+            return;
         }
 
-        if (!requestId) {
-            return { success: false, message: 'Request ID is required' };
-        }
-
-        if (!updateData) {
-            return { success: false, message: 'Update data is required' };
-        }
-
-        console.log('🔄 Safe group request update:', {
-            requestId,
-            userId: user.id,
-            updateDataKeys: Object.keys(updateData),
-            isVoting: updateData.votes !== undefined,
-            isParticipation: updateData.participants !== undefined,
-            isPayment: updateData.paidParticipants !== undefined
+        const unsubscribe = databaseService.getUserResponses(user.id, status, (data) => {
+            setResponses(data);
+            setLoading(false);
         });
 
-        try {
-            const result = await groupRequestService.updateGroupRequest(requestId, updateData, user.id);
-
-            if (result.success) {
-                console.log('✅ Safe group request update successful');
-            } else {
-                console.warn('⚠️ Safe group request update failed:', result.message);
+        return () => {
+            if (unsubscribe && typeof unsubscribe === 'function') {
+                unsubscribe();
             }
-
-            return result;
-        } catch (error) {
-            console.error('❌ Safe group request update error:', error);
-            return { success: false, message: error.message };
-        }
-    }, [user]);
-
-    const voteOnRequest = useCallback(async (requestId) => {
-        return updateGroupRequest(requestId, {
-            _action: 'vote',
-            _timestamp: new Date().toISOString()
-        });
-    }, [updateGroupRequest]);
-
-    const joinRequest = useCallback(async (requestId) => {
-        return updateGroupRequest(requestId, {
-            _action: 'join',
-            _timestamp: new Date().toISOString()
-        });
-    }, [updateGroupRequest]);
+        };
+    }, [user?.id, status]);
 
     return {
-        updateGroupRequest,
-        voteOnRequest,
-        joinRequest
+        responses,
+        loading,
+        error
     };
 };
+
+// Hook for accepted requests (requests the user has accepted)
+export const useAcceptedRequests = () => useUserResponses('accepted');
+
+// Hook for archived responses
+export const useArchivedResponses = () => useUserResponses('archived');

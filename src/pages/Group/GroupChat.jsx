@@ -371,7 +371,7 @@ export default function GroupChat() {
   }
 
   return (
-      <div className="h-[calc(100vh-4rem)] bg-gradient-to-br from-[#1A202C] to-[#2D3748] flex overflow-hidden">
+      <div className="h-[calc(100vh-4rem)] bg-[#050709] flex overflow-hidden">
         {/* LEFT SIDEBAR - MY GROUPS */}
         <MyGroupsSidebar
             userGroups={userGroups}

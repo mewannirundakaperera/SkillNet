@@ -18,9 +18,9 @@ const GroupChatMain = ({
   const groupedMessages = groupMessages(messages);
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-white">
+    <div className="flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-[#0A0D14]">
       {/* Enhanced Chat Header */}
-      <div className="bg-gradient-to-r from-white to-gray-50 border-b border-gray-200 px-8 py-6 flex items-center justify-between flex-shrink-0 shadow-sm" style={{ minHeight: '76px' }}>
+      <div className="bg-gradient-to-r from-[#0A0D14] to-[#1A202C] border-b border-[#2D3748] px-8 py-6 flex items-center justify-between flex-shrink-0 shadow-sm" style={{ minHeight: '76px' }}>
         <div className="flex items-center gap-6">
           {/* Group Picture */}
           <div className="flex-shrink-0">
@@ -42,17 +42,17 @@ const GroupChatMain = ({
           {/* Group Info */}
           <button
             onClick={onNavigateToDetails}
-            className="hover:bg-white/80 p-3 rounded-xl transition-all duration-200 hover:shadow-sm text-left flex-1"
+            className="hover:bg-[#2D3748]/80 p-3 rounded-xl transition-all duration-200 hover:shadow-sm text-left flex-1"
           >
-            <h1 className="font-bold text-2xl text-gray-800">{currentGroup?.name || 'Loading...'}</h1>
-            <div className="text-sm text-gray-600 mt-1 flex items-center gap-2">
+            <h1 className="font-bold text-2xl text-white">{currentGroup?.name || 'Loading...'}</h1>
+            <div className="text-sm text-[#A0AEC0] mt-1 flex items-center gap-2">
               <span>Click to view details</span>
-              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+              <span className="w-1 h-1 bg-[#4A5568] rounded-full"></span>
               <span className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 {onlineUsers.length} online
               </span>
-              <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+              <span className="w-1 h-1 bg-[#4A5568] rounded-full"></span>
               <span>{currentGroup?.memberCount || 0} total members</span>
             </div>
           </button>
@@ -81,16 +81,26 @@ const GroupChatMain = ({
       </div>
 
       {/* Chat Messages Area - Scrollable */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-white">
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#0A0D14]">
         <div
-          className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
+          className="flex-1 overflow-y-auto px-8 py-6 space-y-4"
           ref={chatRef}
+          style={{
+            backgroundImage: 'url(/chatbackground.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed',
+            minHeight: '400px',
+            width: '100%',
+            height: '100%'
+          }}
         >
           {groupedMessages.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-gray-400 text-4xl mb-4">💬</div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Welcome to {currentGroup?.name}!</h3>
-              <p className="text-gray-500">Start the conversation by sending the first message.</p>
+              <div className="text-blue-400 text-4xl mb-4 drop-shadow-lg">💬</div>
+              <h3 className="text-lg font-semibold text-white mb-2 drop-shadow-lg">Welcome to {currentGroup?.name}!</h3>
+              <p className="text-blue-200 drop-shadow-md">Start the conversation by sending the first message.</p>
             </div>
           ) : (
             groupedMessages.map((messageGroup) => (
@@ -102,24 +112,42 @@ const GroupChatMain = ({
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm">{messageGroup.userName}</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="font-semibold text-sm text-blue-200 drop-shadow-md">{messageGroup.userName}</span>
+                    <span className="text-xs text-blue-300/80 drop-shadow-sm">
                       {formatTime(messageGroup.timestamp)}
                     </span>
                   </div>
                   <div className="space-y-1">
-                    {messageGroup.messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`rounded-lg px-4 py-2 text-sm break-words ${
-                          message.userId === user?.id
-                            ? "bg-blue-500 text-white ml-auto max-w-lg"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {message.text}
-                      </div>
-                    ))}
+                    {messageGroup.messages.map((message) => {
+                      // Calculate message width based on text length
+                      const textLength = message.text.length;
+                      let widthClass = '';
+                      
+                      if (textLength <= 20) {
+                        widthClass = 'max-w-xs';
+                      } else if (textLength <= 50) {
+                        widthClass = 'max-w-sm';
+                      } else if (textLength <= 100) {
+                        widthClass = 'max-w-md';
+                      } else if (textLength <= 200) {
+                        widthClass = 'max-w-lg';
+                      } else {
+                        widthClass = 'max-w-2xl';
+                      }
+                      
+                      return (
+                        <div
+                          key={message.id}
+                          className={`rounded-lg px-4 py-2 text-sm break-words shadow-lg backdrop-blur-sm ${widthClass} ${
+                            message.userId === user?.id
+                              ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white ml-auto border border-blue-400/30"
+                              : "bg-black/40 text-white border border-white/20 backdrop-blur-md"
+                          }`}
+                        >
+                          {message.text}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -129,12 +157,12 @@ const GroupChatMain = ({
 
         {/* Typing Indicator - Fixed above input */}
         {typingUsers.length > 0 && (
-          <div className="px-6 py-2 bg-white border-t border-gray-100 flex-shrink-0">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="px-6 py-2 bg-[#0A0D14] border-t border-[#2D3748] flex-shrink-0">
+            <div className="flex items-center gap-2 text-sm text-[#A0AEC0]">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-[#A0AEC0] rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-[#A0AEC0] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-[#A0AEC0] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
               <span>
                 {typingUsers.length === 1
@@ -148,10 +176,10 @@ const GroupChatMain = ({
       </div>
 
       {/* Message Input - Fixed at bottom */}
-      <form className="bg-white border-t px-6 py-4 flex items-center gap-2 flex-shrink-0" onSubmit={onSendMessage}>
+      <form className="bg-[#0A0D14] border-t border-[#2D3748] px-6 py-4 flex items-center gap-2 flex-shrink-0" onSubmit={onSendMessage}>
         <input
           type="text"
-          className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          className="flex-1 border border-[#2D3748] rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-[#1A202C] text-white placeholder-[#A0AEC0]"
           placeholder="Type your message here..."
           value={input}
           onChange={onInputChange}

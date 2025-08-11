@@ -143,12 +143,12 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
 
   if (loading) {
     return (
-        <aside className="w-80 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0 bg-white" style={{ minHeight: '76px' }}>
+        <aside className="w-72 bg-[#0A0D14] border-l border-[#2D3748] flex flex-col h-full overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-600 flex-shrink-0 bg-slate-800" style={{ minHeight: '76px' }}>
             <div className="flex items-center justify-between h-full w-full">
               <div className="flex flex-col justify-center">
-                <h3 className="font-semibold text-lg mb-1">Recent Group Requests</h3>
-                <p className="text-xs text-gray-500">Loading requests...</p>
+                <h3 className="font-semibold text-lg mb-1 text-white">Recent Group Requests</h3>
+                <p className="text-xs text-slate-400">Loading requests...</p>
               </div>
             </div>
           </div>
@@ -157,10 +157,10 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
               {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                      <div className="w-10 h-10 bg-slate-600 rounded-full"></div>
                       <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-slate-600 rounded mb-2"></div>
+                        <div className="h-3 bg-slate-600 rounded w-3/4"></div>
                       </div>
                     </div>
                   </div>
@@ -172,20 +172,20 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
   }
 
   return (
-      <aside className="w-96 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden shadow-lg">
+      <aside className="w-80 bg-[#0A0D14] border-l border-[#2D3748] flex flex-col h-full overflow-hidden shadow-lg">
         {/* Enhanced Header */}
-        <div className="px-6 py-6 border-b border-gray-200 flex-shrink-0 bg-gradient-to-r from-purple-50 to-pink-50" style={{ minHeight: '76px' }}>
+        <div className="px-6 py-6 border-b border-[#2D3748] flex-shrink-0 bg-[#1A202C]" style={{ minHeight: '76px' }}>
           <div className="flex items-center justify-between h-full w-full">
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-bold text-xl text-gray-800">Group Requests</h3>
-                  <p className="text-sm text-gray-600">Latest learning opportunities</p>
+                  <h3 className="font-bold text-xl text-white">Group Requests</h3>
+                  <p className="text-sm text-slate-300">Latest learning opportunities</p>
                 </div>
               </div>
             </div>
@@ -197,7 +197,7 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
           {topRequests.length > 0 ? (
               <div className="space-y-4">
                 {topRequests.map((request) => (
-                    <div key={request.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div key={request.id} className="border border-[#2D3748] rounded-lg p-4 hover:bg-[#1A202C] transition-colors bg-[#1A202C]">
                       <div className="flex items-start gap-3">
                         <img
                             src={request.avatar}
@@ -205,13 +205,13 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
                             className="w-10 h-10 rounded-full object-cover"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm text-gray-900 line-clamp-1">
+                          <h4 className="font-medium text-sm text-white line-clamp-1">
                             {request.title}
                           </h4>
-                          <p className="text-xs text-gray-600 mb-1">
+                          <p className="text-xs text-slate-300 mb-1">
                             by {request.name} • {formatTimeAgo(request.updatedAt || request.createdAt)}
                           </p>
-                          <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                          <p className="text-xs text-slate-400 line-clamp-2 mb-2">
                             {request.description || request.message}
                           </p>
 
@@ -223,7 +223,7 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
                                     request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                       </span>
 
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 text-xs text-slate-400">
                               {request.status === 'pending' && (
                                   <span>🗳️ {request.voteCount}/5</span>
                               )}
@@ -235,7 +235,7 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
 
                           <Link
                               to={`/requests/details/${request.id}`}
-                              className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                              className="inline-block mt-2 text-xs text-blue-400 hover:text-blue-300 font-medium"
                           >
                             View Details →
                           </Link>
@@ -246,9 +246,9 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
               </div>
           ) : (
               <div className="text-center py-6">
-                <div className="text-gray-400 text-2xl mb-2">📚</div>
-                <p className="text-sm text-gray-500 mb-3">No group requests available</p>
-                <p className="text-xs text-gray-400">
+                <div className="text-slate-400 text-2xl mb-2">📚</div>
+                <p className="text-sm text-slate-300 mb-3">No group requests available</p>
+                <p className="text-xs text-slate-400">
                   Join more groups to see learning requests
                 </p>
               </div>
@@ -256,11 +256,11 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
         </div>
 
         {/* Fixed Footer - Simplified with main action only */}
-        <div className="p-6 border-t border-gray-200 flex-shrink-0">
+        <div className="p-6 border-t border-[#2D3748] flex-shrink-0">
           <div className="flex flex-col gap-3">
             <Link
                 to="/groups/requests"
-                className="text-center py-2 px-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                className="text-center py-2 px-3 bg-[#1A202C] text-slate-200 rounded-lg hover:bg-[#2D3748] transition-colors text-sm font-medium"
             >
               Browse All Requests
             </Link>
@@ -279,25 +279,25 @@ const GroupRequestsSidebar = ({ currentGroupId = null }) => {
 
           {/* Stats Section */}
           {topRequests.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="mt-4 pt-4 border-t border-[#2D3748]">
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="p-2">
-                    <div className="text-lg font-bold text-yellow-600">
+                    <div className="text-lg font-bold text-yellow-400">
                       {topRequests.filter(r => r.status === 'pending').length}
                     </div>
-                    <div className="text-xs text-gray-500">Pending</div>
+                    <div className="text-xs text-slate-300">Pending</div>
                   </div>
                   <div className="p-2">
-                    <div className="text-lg font-bold text-orange-600">
+                    <div className="text-lg font-bold text-orange-400">
                       {topRequests.filter(r => r.status === 'voting_open').length}
                     </div>
-                    <div className="text-xs text-gray-500">Active</div>
+                    <div className="text-xs text-slate-300">Active</div>
                   </div>
                   <div className="p-2">
-                    <div className="text-lg font-bold text-blue-600">
+                    <div className="text-lg font-bold text-blue-400">
                       {topRequests.filter(r => r.status === 'in_progress').length}
                     </div>
-                    <div className="text-xs text-gray-500">Live</div>
+                    <div className="text-xs text-slate-300">Live</div>
                   </div>
                 </div>
               </div>

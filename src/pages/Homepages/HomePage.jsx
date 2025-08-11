@@ -98,11 +98,19 @@ export default function HomePage() {
     countries: "50+"
   });
 
-  // ✅ NEW: Track auth initialization
+  // ✅ NEW: Track auth initialization with timeout protection
   useEffect(() => {
     if (!authLoading) {
       setAuthInitialized(true);
     }
+    
+    // Add timeout protection to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ HomePage auth timeout reached, forcing initialization');
+      setAuthInitialized(true);
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timeoutId);
   }, [authLoading]);
 
   // ✅ UPDATED: Load user profile data with proper loading management
@@ -286,34 +294,34 @@ export default function HomePage() {
   const getMockGroups = () => [
     {
       id: 'ai-ml-group',
-      name: 'Computer science & technology degree (20/21)',
-      description: 'A community of degrees common studies ',
+      name: 'Computer Science & Technology Degree (20/21)',
+      description: 'A community of computer science students and professionals sharing knowledge, projects, and career insights.',
       members: 15432,
-      image: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=facearea&w=96&h=96',
+      image: '/brain-logo.png',
       category: 'Technology'
     },
     {
       id: 'product-mgmt-group',
       name: 'Product Management Forum',
-      description: 'Dedicated to product managers, owners, and strategists',
+      description: 'Dedicated to product managers, owners, and strategists. Share best practices, tools, and industry insights.',
       members: 8765,
-      image: 'https://images.unsplash.com/photo-1503676382389-4809596d5290?auto=format&fit=facearea&w=96&h=96',
+      image: '/brain-logo.png',
       category: 'Business'
     },
     {
       id: 'startup-founders-group',
       name: 'Startup Founders Network',
-      description: 'Connect with fellow entrepreneurs, share challenges',
+      description: 'Connect with fellow entrepreneurs, share challenges, and learn from each other\'s startup journey experiences.',
       members: 4120,
-      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=facearea&w=96&h=96',
+      image: '/brain-logo.png',
       category: 'Entrepreneurship'
     },
     {
       id: 'digital-marketing-group',
       name: 'Digital Marketing Masters',
-      description: 'A hub for digital marketers to discuss SEO, SEM, and more',
+      description: 'A hub for digital marketers to discuss SEO, SEM, social media, content strategy, and emerging trends.',
       members: 11200,
-      image: 'https://images.unsplash.com/photo-1521737852567-6949f3f9f2b5?auto=format&fit=facearea&w=96&h=96',
+      image: '/brain-logo.png',
       category: 'Marketing'
     }
   ];
@@ -413,12 +421,20 @@ export default function HomePage() {
   // ✅ UPDATED: Show loading screen while auth is being determined OR user profile is loading
   if (authLoading || (!authInitialized) || (isAuthenticated && loading)) {
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
+            <p className="mt-4 text-[#A0AEC0] text-lg">
               {authLoading || !authInitialized ? 'Checking authentication...' : 'Loading your dashboard...'}
             </p>
+            <p className="mt-2 text-[#718096] text-sm">
+              {authLoading ? 'Verifying your login status...' : 
+               !authInitialized ? 'Initializing application...' : 'Preparing your personalized dashboard...'}
+            </p>
+            {/* Add a progress indicator */}
+            <div className="mt-6 w-64 bg-[#2D3748] rounded-full h-2 mx-auto">
+              <div className="bg-[#4299E1] h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+            </div>
           </div>
         </div>
     );
@@ -575,7 +591,7 @@ export default function HomePage() {
   return (
       <div className="min-h-screen bg-[#1A202C]">
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col lg:flex-row gap-8">
+        <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8">
           <div className="flex-1 flex flex-col gap-8">
             {/* Welcome Banner with Dynamic User Data */}
             <section className="card-dark p-8 flex flex-col items-center text-center mb-2">
@@ -585,11 +601,11 @@ export default function HomePage() {
                     alt={userProfile?.displayName}
                     className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1]"
                 />
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white truncate">
                     Welcome Back, {userProfile?.displayName || 'User'}!
                   </h1>
-                  <p className="text-[#A0AEC0] text-sm">
+                  <p className="text-[#A0AEC0] text-sm truncate" title={userProfile?.email}>
                     {userProfile?.email}
                   </p>
                 </div>
@@ -601,6 +617,12 @@ export default function HomePage() {
                     className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold transition-all duration-300"
                 >
                   View Profile
+                </Link>
+                <Link
+                    to="/test-jitsi"
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-300"
+                >
+                  🧪 Test Jitsi
                 </Link>
               </div>
             </section>
@@ -628,12 +650,12 @@ export default function HomePage() {
                                 alt={activity.actorName}
                                 className="w-8 h-8 rounded-full object-cover border border-[#4A5568]"
                             />
-                            <div>
-                        <span className="text-white">
+                            <div className="min-w-0 flex-1">
+                        <span className="text-white block truncate">
                           <b className="text-[#4299E1]">{activity.actorName}</b> <span className="text-[#E0E0E0]">{activity.action}</span>
                         </span>
                               {activity.description && (
-                                  <div className="text-[#A0AEC0] text-xs mt-1">{activity.description}</div>
+                                  <div className="text-[#A0AEC0] text-xs mt-1 line-clamp-2" title={activity.description}>{activity.description}</div>
                               )}
                               <span className="text-[#A0AEC0] text-xs block mt-1">
                           {formatTimeAgo(activity.timestamp)}
@@ -643,7 +665,7 @@ export default function HomePage() {
                           {activity.actionable && (
                               <Link
                                   to={`/profile/${activity.actorId || '#'}`}
-                                  className="text-[#4299E1] text-sm font-medium hover:text-[#00BFFF] transition-colors"
+                                  className="text-[#4299E1] text-sm font-medium hover:text-[#00BFFF] transition-colors flex-shrink-0"
                               >
                                 View Profile
                               </Link>
@@ -665,7 +687,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Sidebar */}
-          <aside className="w-full lg:w-96 flex flex-col gap-8">
+          <aside className="w-full xl:w-96 flex flex-col gap-8">
             {/* Enhanced Dashboard with Real Stats */}
             <section className="card-dark p-6 flex flex-col items-center mb-2">
               <h3 className="text-base font-bold mb-4 text-white">My Dashboard</h3>
@@ -693,43 +715,74 @@ export default function HomePage() {
             <section className="card-dark p-6 mb-2">
               <h3 className="text-base font-bold mb-4 text-white">Suggested Groups</h3>
               {suggestedGroups.length > 0 ? (
-                  <div className="flex flex-col gap-4">
+                  <div className="space-y-4">
                     {suggestedGroups.slice(0, 4).map((group) => (
-                        <div key={group.id} className="flex gap-4 items-center p-3 rounded-lg hover:bg-[#1A202C] transition-colors duration-200">
-                          <img
-                              src={group.image}
-                              alt={group.name}
-                              className="w-16 h-16 rounded-lg object-cover border border-[#4A5568]"
-                          />
-                          <div className="flex-1">
-                            <div className="font-semibold text-sm text-white">{group.name}</div>
-                            <div className="text-xs text-[#A0AEC0] mb-1">
-                              {group.members?.toLocaleString() || 0} Members
+                        <div key={group.id} className="group bg-[#1A202C] rounded-lg p-4 hover:bg-[#2D3748] transition-all duration-200 border border-[#2D3748] hover:border-[#4A5568]">
+                          <div className="flex items-start gap-4">
+                            {/* Group Image */}
+                            <div className="flex-shrink-0">
+                              <img
+                                  src={group.image || "/brain-logo.png"}
+                                  alt={group.name}
+                                  className="w-16 h-16 rounded-lg object-cover border-2 border-[#4A5568] group-hover:border-[#4299E1] transition-colors duration-200"
+                                  onError={(e) => {
+                                    e.target.src = "/brain-logo.png";
+                                    e.target.onerror = null;
+                                  }}
+                              />
                             </div>
-                            <div className="text-xs text-[#E0E0E0] line-clamp-2">
-                              {group.description}
+                            
+                            {/* Group Content */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm text-white mb-1 line-clamp-1 group-hover:text-[#4299E1] transition-colors duration-200">
+                                {group.name}
+                              </h4>
+                              <div className="text-xs text-[#A0AEC0] mb-2">
+                                {group.members?.toLocaleString() || 0} Members
+                              </div>
+                              <p className="text-xs text-[#E0E0E0] mb-3 line-clamp-2 leading-relaxed">
+                                {group.description}
+                              </p>
+                              {group.category && (
+                                  <span className="inline-block px-2 py-1 bg-[#4A5568] text-[#E0E0E0] text-xs rounded-full border border-[#2D3748]">
+                                    {group.category}
+                                  </span>
+                              )}
                             </div>
-                            {group.category && (
-                                <span className="inline-block mt-1 px-2 py-1 bg-[#4A5568] text-[#E0E0E0] text-xs rounded">
-                          {group.category}
-                        </span>
-                            )}
+                            
+                            {/* Join Button */}
+                            <div className="flex-shrink-0">
+                              <button
+                                  onClick={() => handleJoinGroup(group.id, group.name)}
+                                  disabled={joiningGroups.has(group.id)}
+                                  className="btn-gradient-primary px-4 py-2 font-medium text-xs rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+                              >
+                                {joiningGroups.has(group.id) ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                        <span>Joining...</span>
+                                    </div>
+                                ) : (
+                                    'Join Group'
+                                )}
+                              </button>
+                            </div>
                           </div>
-                          <button
-                              onClick={() => handleJoinGroup(group.id, group.name)}
-                              disabled={joiningGroups.has(group.id)}
-                              className="btn-gradient-primary px-4 py-2 font-medium text-xs transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {joiningGroups.has(group.id) ? 'Joining...' : 'Join Group'}
-                          </button>
                         </div>
                     ))}
                   </div>
               ) : (
-                  <div className="text-center py-4 text-[#A0AEC0]">
-                    <p>No new groups to suggest right now.</p>
-                    <Link to="/groups" className="text-[#4299E1] hover:text-[#00BFFF] transition-colors text-sm">
-                      Browse all groups
+                  <div className="text-center py-8 text-[#A0AEC0]">
+                    <div className="text-4xl mb-3">👥</div>
+                    <p className="mb-3">No new groups to suggest right now.</p>
+                    <Link 
+                        to="/groups" 
+                        className="inline-flex items-center gap-2 text-[#4299E1] hover:text-[#00BFFF] transition-colors text-sm font-medium hover:underline"
+                    >
+                        <span>Browse all groups</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                     </Link>
                   </div>
               )}

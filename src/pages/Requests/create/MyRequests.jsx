@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { requestService } from '@/services/requestService';
+import databaseService from '@/services/databaseService';
 import { groupRequestService } from '@/services/groupRequestService';
 
 const MyRequests = () => {
@@ -9,6 +9,7 @@ const MyRequests = () => {
     const [requests, setRequests] = useState([]);
     const [groupRequests, setGroupRequests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState({});
     const [selectedTab, setSelectedTab] = useState('all'); // all, one-to-one, group
     const [selectedStatus, setSelectedStatus] = useState('all'); // all, draft, active, completed, etc.
@@ -18,11 +19,32 @@ const MyRequests = () => {
         if (!user?.id) return;
 
         setLoading(true);
+        setError(null);
 
-        // Load one-to-one requests
-        const unsubscribeOneToOne = requestService.getAllUserRequests(user.id, (oneToOneRequests) => {
-            console.log('📝 Loaded one-to-one requests:', oneToOneRequests.length);
-            setRequests(oneToOneRequests);
+        // Add timeout to prevent infinite loading
+        const loadingTimeout = setTimeout(() => {
+            console.warn('⏰ Loading timeout reached, setting loading to false');
+            setLoading(false);
+        }, 10000); // 10 seconds timeout
+
+        // Load one-to-one requests using databaseService
+        const unsubscribeOneToOne = databaseService.getUserRequests(user.id, null, (userRequests, errorInfo) => {
+            console.log('📝 Loaded one-to-one requests:', userRequests?.length || 0);
+            console.log('📝 Request details:', userRequests);
+            
+            if (errorInfo) {
+                console.error('❌ Error from databaseService:', errorInfo);
+                if (errorInfo.error === 'missing_index') {
+                    setError('Firebase index required. Please create the composite index for requests collection. Check console for details.');
+                } else {
+                    setError(`Failed to load requests: ${errorInfo.details}`);
+                }
+                setLoading(false);
+                return;
+            }
+            
+            clearTimeout(loadingTimeout);
+            setRequests(userRequests);
             setLoading(false);
         });
 
@@ -40,7 +62,9 @@ const MyRequests = () => {
 
         loadGroupRequests();
 
+        // Cleanup subscription and timeout
         return () => {
+            clearTimeout(loadingTimeout);
             if (unsubscribeOneToOne) {
                 unsubscribeOneToOne();
             }
@@ -72,18 +96,19 @@ const MyRequests = () => {
                         result = { success: false, message: 'Unknown action' };
                 }
             } else {
+                // Use databaseService for one-to-one requests
                 switch (action) {
                     case 'publish':
-                        result = await requestService.publishDraft(requestId, user.id);
+                        result = await databaseService.publishDraft(requestId, user.id);
                         break;
                     case 'complete':
-                        result = await requestService.changeRequestStatus(requestId, 'completed', user.id);
+                        result = await databaseService.completeRequest(requestId, user.id);
                         break;
                     case 'archive':
-                        result = await requestService.changeRequestStatus(requestId, 'archived', user.id);
+                        result = await databaseService.archiveRequest(requestId, user.id);
                         break;
                     case 'delete':
-                        result = await requestService.deleteRequest(requestId, user.id);
+                        result = await databaseService.deleteRequest(requestId, user.id);
                         break;
                     default:
                         result = { success: false, message: 'Unknown action' };
@@ -92,6 +117,15 @@ const MyRequests = () => {
 
             if (result.success) {
                 alert(result.message);
+                // Reload requests to reflect changes
+                if (requestType === 'one-to-one') {
+                    // The onSnapshot listener will automatically update the requests
+                    // No need to manually reload since we're using real-time updates
+                    console.log('✅ Request updated, real-time listener will handle refresh');
+                } else {
+                    const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id);
+                    setGroupRequests(userGroupRequests);
+                }
             } else {
                 alert(result.message);
             }
@@ -218,6 +252,62 @@ const MyRequests = () => {
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                         <p className="mt-4 text-slate-300">Loading your requests...</p>
+                        <p className="mt-2 text-slate-400 text-sm">
+                            This may take a moment. If loading continues, check the console for index requirements.
+                        </p>
+                        <div className="mt-4 text-slate-500 text-xs">
+                            <div>⏰ Loading timeout: 10 seconds</div>
+                            <div>🔍 Check browser console for any errors</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-8 bg-slate-900 min-h-screen">
+                <div className="flex items-center justify-center min-h-96">
+                    <div className="text-center max-w-2xl">
+                        <div className="text-red-400 text-6xl mb-4">⚠️</div>
+                        <h2 className="text-2xl font-bold text-red-400 mb-4">Error Loading Requests</h2>
+                        <p className="text-slate-300 mb-6">{error}</p>
+                        
+                        {error.includes('Firebase index required') && (
+                            <div className="bg-red-800 border border-red-600 rounded-lg p-4 mb-6 text-left">
+                                <h4 className="font-semibold text-red-200 mb-2">🔧 Firebase Index Required</h4>
+                                <p className="text-red-300 text-sm mb-3">
+                                    This error occurs because the database needs a composite index to efficiently query requests.
+                                </p>
+                                <div className="text-red-400 text-xs space-y-1">
+                                    <div>• Check the browser console for the index creation URL</div>
+                                    <div>• Click the URL to go to Firebase Console</div>
+                                    <div>• Create the composite index for the requests collection</div>
+                                    <div>• Wait for the index to build (may take a few minutes)</div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="flex gap-3 justify-center">
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
+                            >
+                                Reload Page
+                            </button>
+                            {error.includes('Firebase index required') && (
+                                <button
+                                    onClick={() => {
+                                        setError(null);
+                                        setLoading(true);
+                                    }}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700"
+                                >
+                                    Retry
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -241,7 +331,7 @@ const MyRequests = () => {
                     </Link>
                     <Link
                         to="/requests/create-group"
-                        className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                     >
                         + Create Group Request
                     </Link>
@@ -440,7 +530,7 @@ const MyRequests = () => {
                                                 <button
                                                     onClick={() => handleRequestAction(request.id, 'complete', request.type)}
                                                     disabled={actionLoading[request.id] === 'complete'}
-                                                    className="bg-purple-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
+                                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                                                 >
                                                     {actionLoading[request.id] === 'complete' ? 'Completing...' : 'Complete'}
                                                 </button>

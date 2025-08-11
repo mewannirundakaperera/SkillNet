@@ -415,7 +415,7 @@ export default function IntelligentNavbar() {
   ];
 
   return (
-    <nav className="bg-[#1A202C] shadow-lg border-b border-[#4A5568] sticky top-0 z-50">
+          <nav className="bg-[#0A0D14] shadow-lg border-b border-[#2D3748] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left Section - Logo and Navigation */}
@@ -540,7 +540,7 @@ export default function IntelligentNavbar() {
                               result.type === 'group' ? `/groups/${result.id}` :
                               `/requests/details/${result.id}`
                             }
-                            className="flex items-center gap-3 p-3 hover:bg-[#2D3748] border-b border-[#4A5568] last:border-b-0"
+                            className="flex items-center gap-3 p-3 hover:bg-[#1A202C] border-b border-[#2D3748] last:border-b-0"
                             onClick={() => {
                               setShowSearchResults(false);
                               setSearchQuery("");
@@ -565,7 +565,7 @@ export default function IntelligentNavbar() {
                                  result.subject || 'Request'}
                               </div>
                             </div>
-                            <span className="ml-auto text-xs bg-[#2D3748] px-2 py-1 rounded text-[#A0AEC0] border border-[#4A5568]">
+                            <span className="ml-auto text-xs bg-[#1A202C] px-2 py-1 rounded text-[#A0AEC0] border border-[#2D3748]">
                               {result.type === 'user' ? 'Person' :
                                result.type === 'group' ? 'Group' : 'Request'}
                             </span>
@@ -606,7 +606,7 @@ export default function IntelligentNavbar() {
               <div className="relative" ref={profileMenuRef}>
                 <button
                   onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="flex items-center gap-2 hover:bg-[#2D3748] px-2 py-1 rounded transition-colors"
+                  className="flex items-center gap-2 hover:bg-[#1A202C] px-2 py-1 rounded transition-colors"
                 >
                   <img
                     src={userProfile.avatar}
@@ -636,7 +636,7 @@ export default function IntelligentNavbar() {
 
                     <Link
                       to="/profile"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#1A202C] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
                       <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -647,7 +647,7 @@ export default function IntelligentNavbar() {
 
                     <Link
                       to="/settings"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#1A202C] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
                       <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -658,8 +658,8 @@ export default function IntelligentNavbar() {
                     </Link>
 
                     <Link
-                      to="/help"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors"
+                      to="/help-and-support"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-[#1A202C] transition-colors"
                       onClick={() => setProfileMenuOpen(false)}
                     >
                       <svg className="h-4 w-4 text-[#A0AEC0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -668,10 +668,10 @@ export default function IntelligentNavbar() {
                       <span className="text-sm text-[#2D3748]">Help & Support</span>
                     </Link>
 
-                    <div className="border-t border-[#4A5568] mt-2">
+                    <div className="border-t border-[#2D3748] mt-2">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors w-full text-left text-red-400"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-[#1A202C] transition-colors w-full text-left text-red-400"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -699,7 +699,7 @@ export default function IntelligentNavbar() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-[#4A5568] py-4 mobile-nav">
+          <div className="md:hidden border-t border-[#2D3748] py-4 mobile-nav">
             {/* Mobile Search */}
             {navConfig.showSearch && (
               <div className="px-4 mb-4">
@@ -715,7 +715,7 @@ export default function IntelligentNavbar() {
 
             {/* Mobile Profile Info */}
             {navConfig.showProfile && userProfile && (
-              <div className="flex items-center gap-3 px-4 mb-4 pb-4 border-b border-[#4A5568]">
+              <div className="flex items-center gap-3 px-4 mb-4 pb-4 border-b border-[#2D3748]">
                 <img
                   src={userProfile.avatar}
                   alt={userProfile.displayName}
@@ -736,8 +736,8 @@ export default function IntelligentNavbar() {
                   to={item.to}
                   className={`block px-3 py-2 rounded-md text-sm font-medium ${
                     location.pathname === item.to
-                      ? 'text-[#4299E1] bg-[#2D3748]'
-                      : 'text-white hover:text-[#4299E1] hover:bg-[#2D3748]'
+                      ? 'text-[#4299E1] bg-[#1A202C]'
+                      : 'text-white hover:text-[#4299E1] hover:bg-[#1A202C]'
                   } transition-colors`}
                   onClick={() => setMenuOpen(false)}
                 >
@@ -751,7 +751,7 @@ export default function IntelligentNavbar() {
               {isAuthenticated ? (
                 <>
                   {navConfig.rightSection && (
-                    <div className="pb-4 border-b border-[#4A5568]">
+                    <div className="pb-4 border-b border-[#2D3748]">
                       {navConfig.rightSection}
                     </div>
                   )}

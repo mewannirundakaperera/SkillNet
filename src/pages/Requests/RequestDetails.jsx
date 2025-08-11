@@ -753,7 +753,7 @@ export default function RequestDetails() {
               </div>
               <div className="flex items-center gap-2 text-[#A0AEC0]">
                 <span>❓</span>
-                <Link to="/help" className="hover:text-[#4299E1] transition-colors">
+                <Link to="/help-and-support" className="hover:text-[#4299E1] transition-colors">
                   Help Center
                 </Link>
               </div>
