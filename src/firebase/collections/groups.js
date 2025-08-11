@@ -330,4 +330,122 @@ export class GroupsService {
         return false;
       }
     }
+
+    // Get random groups for suggestions (excluding user's joined groups)
+    static async getRandomGroups(userId, count = 3) {
+      try {
+        console.log('GroupsService.getRandomGroups called with userId:', userId, 'count:', count);
+        const groupsRef = collection(db, GROUPS_COLLECTION);
+        
+        // First get all public groups - try without orderBy first to see if there are any groups
+        let q;
+        try {
+          q = query(
+            groupsRef,
+            where('isPublic', '==', true),
+            orderBy('memberCount', 'desc'),
+            limit(20)
+          );
+        } catch (orderByError) {
+          console.log('OrderBy failed, trying without orderBy:', orderByError);
+          // If orderBy fails, try without it
+          q = query(
+            groupsRef,
+            where('isPublic', '==', true),
+            limit(20)
+          );
+        }
+
+        const querySnapshot = await getDocs(q);
+        console.log('Query returned', querySnapshot.size, 'groups');
+        
+        let allGroups = [];
+
+        querySnapshot.forEach((doc) => {
+          const groupData = doc.data();
+          console.log('Group data:', groupData);
+          
+          const group = {
+            id: doc.id,
+            ...groupData,
+            createdAt: groupData.createdAt?.toDate(),
+            lastActivity: groupData.lastActivity?.toDate()
+          };
+          
+          // Only include groups the user is not a member of
+          if (!group.members || !group.members.includes(userId)) {
+            allGroups.push(group);
+          }
+        });
+
+        // If no groups found with public filter, try to get all groups
+        if (allGroups.length === 0) {
+          console.log('No public groups found, trying to get all groups');
+          try {
+            const allGroupsQuery = query(groupsRef, limit(20));
+            const allGroupsSnapshot = await getDocs(allGroupsQuery);
+            console.log('All groups query returned', allGroupsSnapshot.size, 'groups');
+            
+            allGroupsSnapshot.forEach((doc) => {
+              const groupData = doc.data();
+              const group = {
+                id: doc.id,
+                ...groupData,
+                createdAt: groupData.createdAt?.toDate(),
+                lastActivity: groupData.lastActivity?.toDate()
+              };
+              
+              // Only include groups the user is not a member of
+              if (!group.members || !group.members.includes(userId)) {
+                allGroups.push(group);
+              }
+            });
+          } catch (fallbackError) {
+            console.error('Fallback query also failed:', fallbackError);
+          }
+        }
+
+        console.log('Filtered groups (excluding user membership):', allGroups.length);
+        
+        // Shuffle and return requested number of groups
+        const shuffled = allGroups.sort(() => 0.5 - Math.random());
+        const result = shuffled.slice(0, Math.min(count, shuffled.length));
+        console.log('Final result:', result);
+        return result;
+      } catch (error) {
+        console.error('Error getting random groups:', error);
+        return [];
+      }
+    }
+
+    // Get trending groups (most active/popular)
+    static async getTrendingGroups(limitCount = 6) {
+      try {
+        const groupsRef = collection(db, GROUPS_COLLECTION);
+        const q = query(
+          groupsRef,
+          where('isPublic', '==', true),
+          orderBy('memberCount', 'desc'),
+          orderBy('lastActivity', 'desc'),
+          limit(limitCount)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const groups = [];
+
+        querySnapshot.forEach((doc) => {
+          groups.push({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate(),
+            lastActivity: doc.data().lastActivity?.toDate()
+          });
+        });
+
+        return groups;
+      } catch (error) {
+        console.error('Error getting trending groups:', error);
+        return [];
+      }
+    }
 }

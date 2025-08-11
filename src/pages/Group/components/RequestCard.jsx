@@ -4,16 +4,82 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import groupRequestService from '@/services/groupRequestService';
 
+// Payment Countdown Timer Component
+const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUserId }) => {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [isExpired, setIsExpired] = useState(false);
+
+  useEffect(() => {
+    const calculateTimeLeft = async () => {
+      const now = new Date().getTime();
+      const deadlineTime = new Date(deadline).getTime();
+      const difference = deadlineTime - now;
+
+      if (difference > 0) {
+        const hours = Math.floor(difference / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        
+        setTimeLeft({ hours, minutes, seconds });
+        setIsExpired(false);
+      } else {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+        setIsExpired(true);
+        
+        // Auto-transition to 'paid' state when timer expires
+        if (onRequestUpdate && requestId) {
+          try {
+            const result = await groupRequestService.updateGroupRequest(requestId, {
+              status: 'paid',
+              updatedAt: new Date(),
+              paymentExpiredAt: new Date()
+            }, currentUserId);
+            
+            if (result.success) {
+              onRequestUpdate(requestId, {
+                status: 'paid',
+                paymentExpiredAt: new Date()
+              });
+            }
+          } catch (error) {
+            console.error('Error updating request status to paid:', error);
+          }
+        }
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, [deadline, requestId, onRequestUpdate, currentUserId]);
+
+  if (isExpired) {
+    return (
+      <div className="text-xs text-red-600 font-medium">
+        ⏰ Payment deadline expired!
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-sm font-mono text-red-700">
+      {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+    </div>
+  );
+};
+
 const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [timeUntilSession, setTimeUntilSession] = useState(null);
   const [conferenceLink, setConferenceLink] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+      const [isEditing, setIsEditing] = useState(false);
   const [editedRequest, setEditedRequest] = useState({ ...request });
   const [showActions, setShowActions] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [teacherNames, setTeacherNames] = useState({});
   const [isOwner, setIsOwner] = useState(false);
+  const [paymentDeadline, setPaymentDeadline] = useState('');
 
   // Calculate time until session starts
   useEffect(() => {
@@ -178,6 +244,22 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         const newVoteCount = (request.voteCount || 0) + 1;
         if (newVoteCount >= 5 && request.status === 'pending') {
           updateData.status = 'voting_open';
+          
+          // Automatically add all voters and request creator as participants
+          const allVoters = [...(request.votes || []), currentUserId];
+          const requestCreator = request.userId || request.createdBy;
+          
+          // Add all voters as participants (excluding if already there)
+          const existingParticipants = request.participants || [];
+          const newParticipants = [...new Set([...existingParticipants, ...allVoters])];
+          
+          // Add request creator if not already a participant
+          if (requestCreator && !newParticipants.includes(requestCreator)) {
+            newParticipants.push(requestCreator);
+          }
+          
+          updateData.participants = newParticipants;
+          updateData.participantCount = newParticipants.length;
         }
       }
 
@@ -373,6 +455,10 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         return 'bg-orange-100 text-orange-700 border-orange-200';
       case 'accepted':
         return 'bg-green-100 text-green-700 border-green-200';
+      case 'funding':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'paid':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'payment_complete':
         return 'bg-yellow-200 text-yellow-800 border-yellow-300';
       case 'in_progress':
@@ -422,6 +508,18 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           bgColor: 'bg-green-50',
           statusColor: 'bg-green-100 text-green-700'
         };
+      case 'funding':
+        return {
+          borderColor: 'border-purple-300',
+          bgColor: 'bg-purple-50',
+          statusColor: 'bg-purple-100 text-purple-700'
+        };
+      case 'paid':
+        return {
+          borderColor: 'border-blue-300',
+          bgColor: 'bg-blue-50',
+          statusColor: 'bg-blue-100 text-blue-700'
+        };
       case 'payment_complete':
         return {
           borderColor: 'border-yellow-400',
@@ -456,14 +554,33 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   };
 
   const styling = getCardStyling();
+  
+  // Ensure all data is properly fetched from database with fallbacks
   const voteCount = request.voteCount || request.votes?.length || 0;
   const teacherCount = request.teacherCount || request.teachers?.length || 0;
   const participantCount = request.participantCount || request.participants?.length || 0;
-  const paidCount = request.paidParticipants?.length || 0;
-  const hasVoted = request.votes?.includes(currentUserId);
-  const isTeaching = request.teachers?.includes(currentUserId);
-  const isParticipating = request.participants?.includes(currentUserId);
-  const hasPaid = request.paidParticipants?.includes(currentUserId);
+  
+  // Payment data from database
+  const paidParticipants = Array.isArray(request.paidParticipants) ? request.paidParticipants : [];
+  const paidCount = paidParticipants.length;
+  const hasPaid = paidParticipants.includes(currentUserId);
+  
+  // User status from database
+  const hasVoted = request.votes?.includes(currentUserId) || false;
+  const isTeaching = request.teachers?.includes(currentUserId) || false;
+  const isParticipating = request.participants?.includes(currentUserId) || false;
+  
+  // Debug logging for payment data
+  if (request.status === 'funding') {
+    console.log('💰 Funding State Data:', {
+      requestId: request.id,
+      participantCount,
+      paidCount,
+      paidParticipants,
+      rate: request.rate,
+      totalPaid: request.totalPaid
+    });
+  }
 
   // Get user display name from database
   const getUserDisplayName = async (userId) => {
@@ -497,15 +614,41 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     setIsOwner(currentUserId === request.userId || currentUserId === request.createdBy);
   }, [currentUserId, request.userId, request.createdBy]);
 
+  // Ensure payment data is properly synced from database
+  useEffect(() => {
+    if (request && request.id) {
+      // Update local state when request data changes
+      setEditedRequest({ ...request });
+      
+      // Ensure all payment-related fields are properly initialized
+      if (request.paidParticipants && !Array.isArray(request.paidParticipants)) {
+        console.warn('⚠️ paidParticipants is not an array:', request.paidParticipants);
+      }
+      if (request.participants && !Array.isArray(request.participants)) {
+        console.warn('⚠️ participants is not an array:', request.participants);
+      }
+      if (request.teachers && !Array.isArray(request.teachers)) {
+        console.warn('⚠️ teachers is not an array:', request.teachers);
+      }
+    }
+  }, [request]);
+
   // Handle teacher selection and confirmation
   const handleTeacherSelection = async () => {
-    if (!selectedTeacher || !isOwner) return;
+    if (!selectedTeacher || !paymentDeadline || !isOwner) return;
     
     try {
       setLoading(true);
+      
+      // Calculate payment deadline timestamp
+      const deadlineHours = parseInt(paymentDeadline);
+      const paymentDeadlineTime = new Date(Date.now() + (deadlineHours * 60 * 60 * 1000));
+      
       const updateData = {
         selectedTeacher: selectedTeacher,
         status: 'funding',
+        paymentDeadline: paymentDeadlineTime,
+        paymentDeadlineHours: deadlineHours,
         updatedAt: new Date()
       };
       
@@ -515,10 +658,13 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         onRequestUpdate?.(request.id, {
           ...request,
           selectedTeacher: selectedTeacher,
-          status: 'funding'
+          status: 'funding',
+          paymentDeadline: paymentDeadlineTime,
+          paymentDeadlineHours: deadlineHours
         });
         setSelectedTeacher('');
-        alert(`Teacher ${teacherNames[selectedTeacher] || selectedTeacher} has been selected!`);
+        setPaymentDeadline('');
+        alert(`Teacher ${teacherNames[selectedTeacher] || selectedTeacher} has been selected! Payment deadline set to ${deadlineHours} hour(s).`);
       } else {
         alert(result.message || 'Failed to select teacher');
       }
@@ -830,17 +976,27 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                   >
                     {hasVoted ? `❤️ ${voteCount}` : `👍 Like (${voteCount})`}
                   </button>
-                  <button
-                      onClick={handleParticipation}
-                      disabled={loading}
-                      className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-                          isParticipating
-                              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                              : 'bg-orange-500 text-white hover:bg-orange-600'
-                      } disabled:opacity-50`}
-                  >
-                    {loading ? '...' : isParticipating ? 'Cancel' : 'Accept Request'}
-                  </button>
+                  {/* Participation button - Owner excluded since they're automatic participant */}
+                  {!isOwner && (
+                    <button
+                        onClick={handleParticipation}
+                        disabled={loading}
+                        className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                            isParticipating
+                                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                : 'bg-orange-500 text-white hover:bg-orange-600'
+                        } disabled:opacity-50`}
+                    >
+                      {loading ? '...' : isParticipating ? 'Cancel' : 'Accept Request'}
+                    </button>
+                  )}
+                  
+                  {/* Owner status message */}
+                  {isOwner && (
+                    <div className="flex-1 bg-blue-100 text-blue-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
+                      👑 Owner (Automatic Participant)
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -932,12 +1088,35 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                             </option>
                           ))}
                         </select>
+                        
+                        {/* Payment Countdown Timer Selection */}
+                        <div className="mt-3">
+                          <label htmlFor="paymentTimer" className="block text-sm font-medium text-green-700 mb-1">
+                            Payment Deadline:
+                          </label>
+                          <select
+                            id="paymentTimer"
+                            value={paymentDeadline}
+                            onChange={(e) => setPaymentDeadline(e.target.value)}
+                            className="w-full border border-green-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                          >
+                            <option value="">Select payment deadline</option>
+                            <option value="1">1 hour</option>
+                            <option value="3">3 hours</option>
+                            <option value="6">6 hours</option>
+                            <option value="12">12 hours</option>
+                            <option value="24">24 hours</option>
+                            <option value="48">48 hours</option>
+                            <option value="72">3 days</option>
+                          </select>
+                        </div>
+                        
                         <button
                           onClick={handleTeacherSelection}
-                          disabled={loading || !selectedTeacher}
+                          disabled={loading || !selectedTeacher || !paymentDeadline}
                           className="mt-2 w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
                         >
-                          {loading ? 'Processing...' : `Confirm Teacher: ${teacherNames[selectedTeacher] || selectedTeacher}`}
+                          {loading ? 'Processing...' : `Confirm Teacher & Set Deadline`}
                         </button>
                       </div>
                     </div>
@@ -984,7 +1163,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                 )}
               </div>
 
-              {/* Role Selection for non-owners in accepted state */}
+              {/* Role Selection for non-owners in accepted state - ONLY for users who haven't chosen any role */}
               {!isOwner && currentUserId !== request.userId && currentUserId !== request.createdBy && !isTeaching && !isParticipating && (
                 <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <div className="text-center mb-3">
@@ -1018,46 +1197,213 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                 </div>
               )}
 
-              {/* Individual buttons for users who have already chosen a role */}
-              {!isOwner && currentUserId !== request.userId && currentUserId !== request.createdBy && (
-                <>
-                  {/* Show Join as Participant button if user is not participating */}
-                  {!isParticipating && (
-                    <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <div className="text-center">
-                        <button
-                          onClick={handleParticipation}
-                          disabled={loading}
-                          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
-                        >
-                          {loading ? 'Processing...' : '👥 Join as Participant'}
-                        </button>
-                        <p className="text-xs text-blue-600 text-center mt-1">
-                          Join as a participant for this session
-                        </p>
-                      </div>
-                    </div>
-                  )}
+              {/* Only show role selection for users who haven't chosen any role */}
+              {/* Individual role buttons are removed - users can only choose one role */}
+            </div>
+        )}
 
-                  {/* Show Want to Teach button if user is not teaching */}
-                  {!isTeaching && (
-                    <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
-                      <div className="text-center">
-                        <button
-                          onClick={handleTeachingParticipation}
-                          disabled={loading}
-                          className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
-                        >
-                          {loading ? 'Processing...' : '🎯 Want to Teach'}
-                        </button>
-                        <p className="text-xs text-green-600 text-center mt-1">
-                          Join as a teacher/mentor for this session
-                        </p>
-                      </div>
+        {request.status === 'funding' && (
+            <div className="mb-4">
+              <div className="bg-purple-100 border border-purple-300 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-purple-600">💰</span>
+                  <span className="text-sm font-medium text-purple-800">Funding Phase</span>
+                </div>
+                
+                {/* Show selected teacher */}
+                {request.selectedTeacher && (
+                  <div className="mb-3 p-2 bg-purple-50 border border-purple-200 rounded">
+                    <div className="text-xs text-purple-700 mb-1">
+                      Selected Teacher: {teacherNames[request.selectedTeacher] || request.selectedTeacher}
                     </div>
-                  )}
-                </>
-              )}
+                    <div className="text-xs text-purple-600">
+                      Status: Awaiting payment from participants
+                    </div>
+                  </div>
+                )}
+
+                {/* Show participants who need to pay */}
+                {participantCount > 0 && (
+                  <div className="mb-3">
+                    <div className="text-xs text-purple-700 mb-2">
+                      {participantCount} participant(s) need to complete payment
+                    </div>
+                    <div className="space-y-1">
+                      {request.participants?.map((participantId, index) => (
+                        <div key={index} className="flex items-center justify-between bg-purple-50 rounded px-2 py-1">
+                          <span className="text-xs text-purple-600">
+                            Participant {index + 1}: {teacherNames[participantId] || participantId}
+                          </span>
+                          <span className="text-xs text-purple-500">
+                            {request.paidParticipants?.includes(participantId) ? '✓ Paid' : '⏳ Pending'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment progress bar - Always filled with auto-payment */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-purple-700">Payment Progress</span>
+                    <span className="text-xs text-purple-600">
+                      {paidCount || 0}/{participantCount} pays from participants
+                    </span>
+                  </div>
+                  <div className="w-full bg-purple-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div className="text-xs text-purple-600 mt-1">
+                    Average cost per participant: ${request.rate || 'TBD'}
+                  </div>
+                </div>
+
+                {/* Payment Countdown Timer */}
+                {request.paymentDeadline && (
+                  <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-red-600">⏰</span>
+                      <span className="text-xs font-medium text-red-700">Payment Deadline</span>
+                    </div>
+                    <PaymentCountdownTimer 
+                      deadline={request.paymentDeadline} 
+                      requestId={request.id}
+                      onRequestUpdate={onRequestUpdate}
+                      currentUserId={currentUserId}
+                    />
+                    <div className="text-xs text-red-600 mt-1">
+                      Complete payment before time runs out!
+                    </div>
+                  </div>
+                )}
+
+                {/* Role-based UI for different user types */}
+                
+                {/* 1. Confirmed Teacher - See role getting message */}
+                {request.selectedTeacher === currentUserId && (
+                  <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded">
+                    <div className="text-xs text-green-700 text-center">
+                      🎯 You are the confirmed teacher for this session!
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Other Teachers - Become non-role, see participant button */}
+                {isTeaching && request.selectedTeacher !== currentUserId && (
+                  <div className="mb-3">
+                    <div className="text-xs text-purple-600 text-center mb-2">
+                      Another teacher was selected for this session
+                    </div>
+                    <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Processing...' : '👥 Join as Participant'}
+                    </button>
+                  </div>
+                )}
+
+                {/* 3. Owner - Already automatic participant, show status */}
+                {(currentUserId === request.userId || currentUserId === request.createdBy) && (
+                  <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded">
+                    <div className="text-xs text-blue-700 text-center">
+                      👑 You are the session owner and automatic participant
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Participants - Show pay button if not paid */}
+                {isParticipating && !hasPaid && (
+                  <button
+                    onClick={handlePayment}
+                    disabled={loading}
+                    className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
+                  </button>
+                )}
+
+                {/* 5. Participants who have paid - Show confirmation */}
+                {isParticipating && hasPaid && (
+                  <div className="text-xs bg-purple-100 text-purple-700 py-2 px-4 rounded-lg text-center font-medium">
+                    ✓ Payment Complete - Waiting for others
+                  </div>
+                )}
+
+                {/* 6. Others - Show pay and participant buttons */}
+                {!isTeaching && !isParticipating && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Processing...' : '👥 Join as Participant'}
+                    </button>
+                    <div className="text-xs text-purple-600 text-center">
+                      Join as participant to contribute to this session
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+        )}
+
+        {request.status === 'paid' && (
+            <div className="mb-4">
+              <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600">✅</span>
+                  <span className="text-sm font-medium text-blue-800">Payment Complete</span>
+                </div>
+                
+                {/* Show selected teacher */}
+                {request.selectedTeacher && (
+                  <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded">
+                    <div className="text-xs text-blue-700 mb-1">
+                      Selected Teacher: {teacherNames[request.selectedTeacher] || request.selectedTeacher}
+                    </div>
+                    <div className="text-xs text-blue-600">
+                      Status: All payments completed successfully
+                    </div>
+                  </div>
+                )}
+
+                {/* Show payment summary */}
+                <div className="mb-3">
+                  <div className="text-xs text-blue-700 mb-2">
+                    Payment Summary
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-blue-600">Total Participants:</span>
+                      <span className="text-blue-700">{participantCount}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-blue-600">Total Paid:</span>
+                      <span className="text-blue-700">{paidCount}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-blue-600">Rate per Person:</span>
+                      <span className="text-blue-700">${request.rate || 'TBD'}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-blue-600">Total Collected:</span>
+                      <span className="text-blue-700">${request.totalPaid || 'TBD'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Show next steps message */}
+                <div className="text-xs text-blue-600 text-center">
+                  🎉 All payments completed! Session can now proceed to scheduling.
+                </div>
+              </div>
             </div>
         )}
 
@@ -1164,6 +1510,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           <div className="flex items-center gap-2">
           <span className={`text-xs px-2 py-1 rounded-full border ${getStatusStyle(request.status)}`}>
             {request.status === 'voting_open' ? 'Voting Open' :
+                request.status === 'funding' ? 'Funding Phase' :
+                request.status === 'paid' ? 'Payment Complete' :
                 request.status === 'payment_complete' ? 'Ready to Start' :
                     request.status === 'in_progress' ? 'In Progress' :
                         request.status.charAt(0).toUpperCase() + request.status.slice(1)}
