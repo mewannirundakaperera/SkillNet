@@ -20,9 +20,11 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
   // Calculate derived states
   const isOwner = request.createdBy === currentUserId || request.userId === currentUserId;
   const hasVoted = request.votes?.includes(currentUserId);
+  const isTeaching = request.teachers?.includes(currentUserId);
   const isParticipating = request.participants?.includes(currentUserId);
   const hasPaid = request.paidParticipants?.includes(currentUserId);
   const voteCount = request.voteCount || request.votes?.length || 0;
+  const teacherCount = request.teacherCount || request.teachers?.length || 0;
   const participantCount = request.participantCount || request.participants?.length || 0;
   const paidCount = request.paidParticipants?.length || 0;
 
@@ -210,7 +212,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
     }
   };
 
-  // ✅ FIXED: Handle participation with proper validation
+  // ✅ FIXED: Handle participation (voting) with proper validation
   const handleParticipation = async () => {
     if (!currentUserId || loading) return;
 
@@ -228,32 +230,16 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
       setLoading(true);
 
       let newParticipants;
-      let newStatus = request.status;
       
       if (isParticipating) {
         newParticipants = request.participants?.filter(id => id !== currentUserId) || [];
-        
-        // If no more participants, change status back to voting_open
-        if (newParticipants.length === 0) {
-          newStatus = 'voting_open';
-        }
       } else {
         newParticipants = [...(request.participants || []), currentUserId];
-        
-        // Change status to accepted when first participant joins (if coming from voting_open)
-        if (!request.participants || request.participants.length === 0) {
-          if (request.status === 'voting_open') {
-            newStatus = 'accepted';
-          } else {
-            newStatus = 'active';
-          }
-        }
       }
 
       const updateData = {
         participants: newParticipants,
-        participantCount: newParticipants.length,
-        status: newStatus
+        participantCount: newParticipants.length
       };
 
       const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
@@ -261,8 +247,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         onRequestUpdate?.(request.id, {
           ...request,
           participants: newParticipants,
-          participantCount: newParticipants.length,
-          status: newStatus
+          participantCount: newParticipants.length
         });
       } else {
         console.error('❌ Participation failed:', result.message);
@@ -271,6 +256,68 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
     } catch (error) {
       console.error('Error handling participation:', error);
       alert('Failed to update participation. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ FIXED: Handle teaching participation with proper validation
+  const handleTeachingParticipation = async () => {
+    if (!currentUserId || loading) return;
+
+    // ✅ FIXED: Check permissions
+    if (!permissions.canParticipate && !isTeaching) {
+      if (permissions.isLoading) {
+        alert('Please wait while we verify your permissions...');
+        return;
+      }
+      alert('You cannot join this request. You may not be a member of this group.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      let newTeachers;
+      let newStatus = request.status;
+      
+      if (isTeaching) {
+        newTeachers = request.teachers?.filter(id => id !== currentUserId) || [];
+        
+        // If no more teachers, change status back to voting_open
+        if (newTeachers.length === 0) {
+          newStatus = 'voting_open';
+        }
+      } else {
+        newTeachers = [...(request.teachers || []), currentUserId];
+        
+        // Change status to accepted when first teacher joins (if coming from voting_open)
+        if (request.status === 'voting_open') {
+          newStatus = 'accepted';
+        }
+      }
+
+      const updateData = {
+        teachers: newTeachers,
+        teacherCount: newTeachers.length,
+        status: newStatus
+      };
+
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      if (result.success) {
+        onRequestUpdate?.(request.id, {
+          ...request,
+          teachers: newTeachers,
+          teacherCount: newTeachers.length,
+          status: newStatus
+        });
+      } else {
+        console.error('❌ Teaching participation failed:', result.message);
+        alert(result.message || 'Failed to update teaching participation');
+      }
+    } catch (error) {
+      console.error('Error handling teaching participation:', error);
+      alert('Failed to update teaching participation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -510,62 +557,91 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'voting_open' && (
             <div className="mb-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-gray-700">
-                  Join this session
-                </span>
-                <span className="text-xs text-gray-600">{participantCount} joined</span>
+              {/* Participants Section */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-700">
+                    Join this session
+                  </span>
+                  <span className="text-xs text-gray-600">{participantCount} joined</span>
+                </div>
+
+                {/* ✅ FIXED: Participation button with proper permissions */}
+                {permissions.canParticipate && !permissions.isLoading && (
+                    <button
+                        onClick={handleParticipation}
+                        disabled={loading}
+                        className="w-full bg-orange-500 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-orange-600 transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Joining...' : 'Join Session'}
+                    </button>
+                )}
+
+                {/* Already participating */}
+                {isParticipating && (
+                    <div className="flex gap-1">
+                      <div className="flex-1 bg-orange-200 text-orange-800 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
+                        ✓ You're participating
+                      </div>
+                      <button
+                          onClick={handleParticipation}
+                          disabled={loading}
+                          className="bg-gray-200 text-gray-700 py-1.5 px-2 rounded-lg text-xs hover:bg-gray-300 transition-colors disabled:opacity-50"
+                      >
+                        Leave
+                      </button>
+                    </div>
+                )}
+
+                {/* Can't participate */}
+                {!permissions.canParticipate && !permissions.isLoading && !isParticipating && (
+                    <div className="w-full bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
+                      {participantCount > 0 ? `👥 ${participantCount} participants joined` : '❌ Cannot join (not a group member)'}
+                    </div>
+                )}
               </div>
 
-              {/* ✅ FIXED: Participation button with proper permissions */}
-              {permissions.canParticipate && !permissions.isLoading && (
-                  <button
-                      onClick={handleParticipation}
-                      disabled={loading}
-                      className="w-full bg-orange-500 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-orange-600 transition-colors disabled:opacity-50"
-                  >
-                    {loading ? 'Joining...' : 'Join Session'}
-                  </button>
-              )}
+              {/* Teachers Section */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-700">
+                    Teachers
+                  </span>
+                  <span className="text-xs text-gray-600">{teacherCount} joined</span>
+                </div>
 
-              {/* Already participating */}
-              {isParticipating && (
-                  <div className="flex gap-1">
-                    <div className="flex-1 bg-orange-200 text-orange-800 py-1.5 px-2 rounded-lg text-center text-xs font-medium">
-                      ✓ You're participating
+                {/* Want to Teach Button - Only show if not teaching, has permissions, and is not the owner */}
+                {!isTeaching && !isOwner && permissions.canParticipate && !permissions.isLoading && (
+                    <div className="mt-2">
+                      <button
+                          onClick={handleTeachingParticipation}
+                          disabled={loading}
+                          className="w-full bg-green-600 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
+                      >
+                          {loading ? 'Processing...' : '🎯 Want to Teach'}
+                      </button>
+                      <p className="text-xs text-gray-500 text-center mt-1">
+                          Join as a teacher/mentor for this session
+                      </p>
                     </div>
-                    <button
-                        onClick={handleParticipation}
-                        disabled={loading}
-                        className="bg-gray-200 text-gray-700 py-1.5 px-2 rounded-lg text-xs hover:bg-gray-300 transition-colors disabled:opacity-50"
-                    >
-                      Leave
-                    </button>
-                  </div>
-              )}
+                )}
 
-              {/* Can't participate */}
-              {!permissions.canParticipate && !permissions.isLoading && !isParticipating && (
-                  <div className="w-full bg-gray-100 text-gray-600 py-1.5 px-3 rounded-lg text-center text-xs font-medium">
-                    {participantCount > 0 ? `👥 ${participantCount} participants joined` : '❌ Cannot join (not a group member)'}
+                {/* Show current teachers if any */}
+                {teacherCount > 0 && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="text-xs text-green-700 mb-1">
+                      {teacherCount} teacher(s) want to teach this session
+                    </div>
+                    <div className="space-y-1">
+                      {request.teachers?.map((teacherId, index) => (
+                        <div key={index} className="text-xs text-green-600">
+                          Teacher {index + 1} (ID: {teacherId})
+                        </div>
+                      ))}
+                    </div>
                   </div>
-              )}
-
-              {/* Want to Teach Button - Only show if not participating, has permissions, and is not the owner */}
-              {!isParticipating && !isOwner && permissions.canParticipate && !permissions.isLoading && (
-                  <div className="mt-2">
-                    <button
-                        onClick={handleParticipation}
-                        disabled={loading}
-                        className="w-full bg-green-600 text-white py-1.5 px-3 rounded-lg font-medium text-xs hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
-                    >
-                        {loading ? 'Processing...' : '🎯 Want to Teach'}
-                    </button>
-                    <p className="text-xs text-gray-500 text-center mt-1">
-                        Join as a teacher/mentor for this session
-                    </p>
-                  </div>
-              )}
+                )}
+              </div>
             </div>
         )}
 
@@ -573,39 +649,147 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
         {request.status === 'accepted' && (
             <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Payment Progress</span>
-                <span className="text-sm text-gray-600">{paidCount}/{participantCount} paid</span>
-              </div>
-              <div className="w-full bg-green-200 rounded-full h-2 mb-3">
-                <div
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
-                />
-              </div>
+              {/* Teachers Section */}
+              <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-green-600">👨‍🏫</span>
+                  <span className="text-sm font-medium text-green-800">Teachers</span>
+                </div>
+                
+                {/* Show current teachers */}
+                {teacherCount > 0 ? (
+                  <div className="mb-3">
+                    <div className="text-xs text-green-700 mb-2">
+                      {teacherCount} teacher(s) joined
+                    </div>
+                    <div className="space-y-2">
+                      {request.teachers?.map((teacherId, index) => (
+                        <div key={index} className="flex items-center justify-between bg-green-50 rounded px-2 py-1">
+                          <span className="text-xs text-green-800">
+                            Teacher {index + 1} (ID: {teacherId})
+                          </span>
+                          {/* Show cancel button for teachers */}
+                          {teacherId === currentUserId && (
+                            <button
+                              onClick={handleTeachingParticipation}
+                              disabled={loading}
+                              className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors disabled:opacity-50"
+                            >
+                              {loading ? '...' : 'Cancel'}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-green-700 mb-2">
+                    No teachers joined yet
+                  </div>
+                )}
 
-              {/* ✅ FIXED: Payment button with proper permissions */}
-              {permissions.canPay && (
-                  <button
-                      onClick={handlePayment}
+                {/* Show Want to Teach button for non-teachers */}
+                {!isTeaching && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                  <div className="mt-2">
+                    <button
+                      onClick={handleTeachingParticipation}
                       disabled={loading}
-                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
-                  >
-                    {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
-                  </button>
-              )}
-
-              {isParticipating && hasPaid && (
-                  <div className="w-full bg-green-100 text-green-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
-                    ✓ Payment Complete - Waiting for others
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
+                    >
+                      {loading ? 'Processing...' : '🎯 Want to Teach'}
+                    </button>
+                    <p className="text-xs text-green-600 text-center mt-1">
+                      Join as a teacher/mentor for this session
+                    </p>
                   </div>
-              )}
+                )}
+              </div>
 
-              {!isParticipating && (
-                  <div className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
-                    💰 Payment phase ({paidCount}/{participantCount})
+              {/* Participants Section */}
+              <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600">👥</span>
+                  <span className="text-sm font-medium text-blue-800">Participants</span>
+                </div>
+                
+                {/* Show current participants */}
+                {participantCount > 0 ? (
+                  <div className="mb-3">
+                    <div className="text-xs text-blue-700 mb-2">
+                      {participantCount} participant(s) joined
+                    </div>
+                    <div className="space-y-2">
+                      {request.participants?.map((participantId, index) => (
+                        <div key={index} className="flex items-center justify-between bg-blue-50 rounded px-2 py-1">
+                          <span className="text-xs text-blue-800">
+                            Participant {index + 1} (ID: {participantId})
+                          </span>
+                          {/* Show cancel button for participants */}
+                          {participantId === currentUserId && (
+                            <button
+                              onClick={handleParticipation}
+                              disabled={loading}
+                              className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors disabled:opacity-50"
+                            >
+                              {loading ? '...' : 'Cancel'}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-              )}
+                ) : (
+                  <div className="text-xs text-blue-700 mb-2">
+                    No participants joined yet
+                  </div>
+                )}
+
+                {/* Show Join button for non-participants */}
+                {!isParticipating && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                  <div className="mt-2">
+                    <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 border-2 border-blue-500"
+                    >
+                      {loading ? 'Processing...' : '👥 Join as Participant'}
+                    </button>
+                    <p className="text-xs text-blue-600 text-center mt-1">
+                      Join as a participant for this session
+                    </p>
+                  </div>
+                )}
+
+                {/* Show payment section if user is participating */}
+                {isParticipating && (
+                  <div className="mt-3 pt-2 border-t border-blue-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700">Payment Progress</span>
+                      <span className="text-sm text-blue-600">{paidCount}/{participantCount} paid</span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
+                      <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
+                      />
+                    </div>
+                    {!hasPaid && (
+                        <button
+                            onClick={handlePayment}
+                            disabled={loading}
+                            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
+                        </button>
+                    )}
+                    {hasPaid && (
+                        <div className="text-xs bg-blue-100 text-blue-700 py-2 px-4 rounded-lg text-center font-medium">
+                          ✓ Payment Complete - Waiting for others
+                        </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
         )}
 

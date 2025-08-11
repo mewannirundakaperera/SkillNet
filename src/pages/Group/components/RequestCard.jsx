@@ -194,7 +194,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     }
   };
 
-  // Handle accept/cancel participation
+  // Handle accept/cancel participation (voting)
   const handleParticipation = async () => {
     if (!currentUserId || loading) return;
 
@@ -210,12 +210,6 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           participantCount: increment(-1),
           updatedAt: serverTimestamp()
         };
-
-        // If no more participants, change status back to voting_open
-        const newParticipantCount = (request.participantCount || 1) - 1;
-        if (newParticipantCount === 0) {
-          updateData.status = 'voting_open';
-        }
       } else {
         // Accept participation
         updateData = {
@@ -223,15 +217,6 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           participantCount: increment(1),
           updatedAt: serverTimestamp()
         };
-
-        // Change status to accepted when first participant joins (if coming from voting_open)
-        if (!request.participants || request.participants.length === 0) {
-          if (request.status === 'voting_open') {
-            updateData.status = 'accepted';
-          } else {
-            updateData.status = 'active';
-          }
-        }
       }
 
       if (db && request.id) {
@@ -243,13 +228,10 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
           ? request.participants?.filter(id => id !== currentUserId) || []
           : [...(request.participants || []), currentUserId];
 
-      const newStatus = updateData.status || request.status;
-
       onRequestUpdate?.(request.id, {
         ...request,
         participants: newParticipants,
-        participantCount: newParticipants.length,
-        status: newStatus
+        participantCount: newParticipants.length
       });
     } catch (error) {
       console.error('Error handling participation:', error);
@@ -257,7 +239,69 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Handle accept/cancel teaching participation
+  const handleTeachingParticipation = async () => {
+    if (!currentUserId || loading) return;
+
+    try {
+      setLoading(true);
+      const isTeaching = request.teachers?.includes(currentUserId);
+
+      let updateData;
+      if (isTeaching) {
+        // Cancel teaching
+        updateData = {
+          teachers: arrayRemove(currentUserId),
+          teacherCount: increment(-1),
+          updatedAt: serverTimestamp()
+        };
+
+        // If no more teachers, change status back to voting_open
+        const newTeacherCount = (request.teacherCount || 1) - 1;
+        if (newTeacherCount === 0) {
+          updateData.status = 'voting_open';
+        }
+      } else {
+        // Accept teaching
+        updateData = {
+          teachers: arrayUnion(currentUserId),
+          teacherCount: increment(1),
+          updatedAt: serverTimestamp()
+        };
+
+        // Change status to accepted when first teacher joins (if coming from voting_open)
+        if (request.status === 'voting_open') {
+          updateData.status = 'accepted';
+        }
+      }
+
+      if (db && request.id) {
+        await updateDoc(doc(db, 'requests', request.id), updateData);
+      }
+
+      // Update local state
+      const newTeachers = isTeaching
+          ? request.teachers?.filter(id => id !== currentUserId) || []
+          : [...(request.teachers || []), currentUserId];
+
+      const newStatus = updateData.status || request.status;
+      const newTeacherCount = newTeachers.length;
+
+      onRequestUpdate?.(request.id, {
+        ...request,
+        teachers: newTeachers,
+        teacherCount: newTeacherCount,
+        status: newStatus
+      });
+    } catch (error) {
+      console.error('Error handling teaching participation:', error);
+      alert('Failed to update teaching participation. Please try again.');
+    } finally {
+      setLoading(false);
     }
+  }
 
   // Handle payment (mock implementation)
   const handlePayment = async () => {
@@ -399,9 +443,11 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   const styling = getCardStyling();
   const voteCount = request.voteCount || request.votes?.length || 0;
+  const teacherCount = request.teacherCount || request.teachers?.length || 0;
   const participantCount = request.participantCount || request.participants?.length || 0;
   const paidCount = request.paidParticipants?.length || 0;
   const hasVoted = request.votes?.includes(currentUserId);
+  const isTeaching = request.teachers?.includes(currentUserId);
   const isParticipating = request.participants?.includes(currentUserId);
   const hasPaid = request.paidParticipants?.includes(currentUserId);
 
@@ -687,50 +733,77 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
         {request.status === 'voting_open' && (
             <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Participants</span>
-                <span className="text-sm text-gray-600">{participantCount} joined</span>
+              {/* Participants/Voters Section */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Participants</span>
+                  <span className="text-sm text-gray-600">{participantCount} joined</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                      onClick={handleVote}
+                      disabled={loading}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                          hasVoted
+                              ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
+                              : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                      } disabled:opacity-50`}
+                  >
+                    {hasVoted ? `❤️ ${voteCount}` : `👍 Like (${voteCount})`}
+                  </button>
+                  <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                          isParticipating
+                              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              : 'bg-orange-500 text-white hover:bg-orange-600'
+                      } disabled:opacity-50`}
+                  >
+                    {loading ? '...' : isParticipating ? 'Cancel' : 'Accept Request'}
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                    onClick={handleVote}
-                    disabled={loading}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-                        hasVoted
-                            ? 'bg-orange-200 text-orange-800 hover:bg-orange-300'
-                            : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                    } disabled:opacity-50`}
-                >
-                  {hasVoted ? `❤️ ${voteCount}` : `👍 Like (${voteCount})`}
-                </button>
-                <button
-                    onClick={handleParticipation}
-                    disabled={loading}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-                        isParticipating
-                            ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            : 'bg-orange-500 text-white hover:bg-orange-600'
-                    } disabled:opacity-50`}
-                >
-                  {loading ? '...' : isParticipating ? 'Cancel' : 'Accept Request'}
-                </button>
-              </div>
-              
-              {/* Want to Teach Button - Only show if not participating and is not the owner */}
-              {!isParticipating && currentUserId !== request.userId && currentUserId !== request.createdBy && (
-                  <div className="mt-3">
-                    <button
-                        onClick={handleParticipation}
-                        disabled={loading}
-                        className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
-                    >
-                        {loading ? 'Processing...' : '🎯 Want to Teach'}
-                    </button>
-                    <p className="text-xs text-gray-500 text-center mt-1">
-                        Join as a teacher/mentor for this session
-                    </p>
+
+              {/* Teachers Section */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Teachers</span>
+                  <span className="text-sm text-gray-600">{teacherCount} joined</span>
+                </div>
+                
+                {/* Want to Teach Button - Only show if not teaching and is not the owner */}
+                {!isTeaching && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                    <div className="mt-3">
+                      <button
+                          onClick={handleTeachingParticipation}
+                          disabled={loading}
+                          className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
+                      >
+                          {loading ? 'Processing...' : '🎯 Want to Teach'}
+                      </button>
+                      <p className="text-xs text-gray-500 text-center mt-1">
+                          Join as a teacher/mentor for this session
+                      </p>
+                    </div>
+                )}
+
+                {/* Show current teachers if any */}
+                {teacherCount > 0 && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="text-sm text-green-700 mb-2">
+                      {teacherCount} teacher(s) want to teach this session
+                    </div>
+                    <div className="space-y-1">
+                      {request.teachers?.map((teacherId, index) => (
+                        <div key={index} className="text-xs text-green-600">
+                          Teacher {index + 1} (ID: {teacherId})
+                        </div>
+                      ))}
+                    </div>
                   </div>
-              )}
+                )}
+              </div>
             </div>
         )}
 
@@ -738,30 +811,147 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
         {request.status === 'accepted' && (
             <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Payment Progress</span>
-                <span className="text-sm text-gray-600">{paidCount}/{participantCount} paid</span>
-              </div>
-              <div className="w-full bg-green-200 rounded-full h-2 mb-3">
-                <div
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
-                />
-              </div>
-              {isParticipating && !hasPaid && (
-                  <button
-                      onClick={handlePayment}
-                      disabled={loading}
-                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
-                  >
-                    {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
-                  </button>
-              )}
-              {hasPaid && (
-                  <div className="w-full bg-green-100 text-green-700 py-2 px-4 rounded-lg text-center text-sm font-medium">
-                    ✓ Payment Complete - Waiting for others
+              {/* Teachers Section */}
+              <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-green-600">👨‍🏫</span>
+                  <span className="text-sm font-medium text-green-800">Teachers</span>
+                </div>
+                
+                {/* Show current teachers */}
+                {teacherCount > 0 ? (
+                  <div className="mb-3">
+                    <div className="text-xs text-green-700 mb-2">
+                      {teacherCount} teacher(s) joined
+                    </div>
+                    <div className="space-y-2">
+                      {request.teachers?.map((teacherId, index) => (
+                        <div key={index} className="flex items-center justify-between bg-green-50 rounded px-2 py-1">
+                          <span className="text-xs text-green-800">
+                            Teacher {index + 1} (ID: {teacherId})
+                          </span>
+                          {/* Show cancel button for teachers */}
+                          {teacherId === currentUserId && (
+                            <button
+                              onClick={handleTeachingParticipation}
+                              disabled={loading}
+                              className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors disabled:opacity-50"
+                            >
+                              {loading ? '...' : 'Cancel'}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-              )}
+                ) : (
+                  <div className="text-xs text-green-700 mb-2">
+                    No teachers joined yet
+                  </div>
+                )}
+
+                {/* Show Want to Teach button for non-teachers */}
+                {!isTeaching && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                  <div className="mt-2">
+                    <button
+                      onClick={handleTeachingParticipation}
+                      disabled={loading}
+                      className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50 border-2 border-green-500"
+                    >
+                      {loading ? 'Processing...' : '🎯 Want to Teach'}
+                    </button>
+                    <p className="text-xs text-green-600 text-center mt-1">
+                      Join as a teacher/mentor for this session
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Participants Section */}
+              <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600">👥</span>
+                  <span className="text-sm font-medium text-blue-800">Participants</span>
+                </div>
+                
+                {/* Show current participants */}
+                {participantCount > 0 ? (
+                  <div className="mb-3">
+                    <div className="text-xs text-blue-700 mb-2">
+                      {participantCount} participant(s) joined
+                    </div>
+                    <div className="space-y-2">
+                      {request.participants?.map((participantId, index) => (
+                        <div key={index} className="flex items-center justify-between bg-blue-50 rounded px-2 py-1">
+                          <span className="text-xs text-blue-800">
+                            Participant {index + 1} (ID: {participantId})
+                          </span>
+                          {/* Show cancel button for participants */}
+                          {participantId === currentUserId && (
+                            <button
+                              onClick={handleParticipation}
+                              disabled={loading}
+                              className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors disabled:opacity-50"
+                            >
+                              {loading ? '...' : 'Cancel'}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-blue-700 mb-2">
+                    No participants joined yet
+                  </div>
+                )}
+
+                {/* Show Join button for non-participants */}
+                {!isParticipating && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                  <div className="mt-2">
+                    <button
+                      onClick={handleParticipation}
+                      disabled={loading}
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 border-2 border-blue-500"
+                    >
+                      {loading ? 'Processing...' : '👥 Join as Participant'}
+                    </button>
+                    <p className="text-xs text-blue-600 text-center mt-1">
+                      Join as a participant for this session
+                    </p>
+                  </div>
+                )}
+
+                {/* Show payment section if user is participating */}
+                {isParticipating && (
+                  <div className="mt-3 pt-2 border-t border-blue-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700">Payment Progress</span>
+                      <span className="text-sm text-blue-600">{paidCount}/{participantCount} paid</span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
+                      <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${participantCount > 0 ? (paidCount / participantCount) * 100 : 0}%` }}
+                      />
+                    </div>
+                    {!hasPaid && (
+                        <button
+                            onClick={handlePayment}
+                            disabled={loading}
+                            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          {loading ? 'Processing Payment...' : `Pay ${request.rate || 'Now'}`}
+                        </button>
+                    )}
+                    {hasPaid && (
+                        <div className="text-xs bg-blue-100 text-blue-700 py-2 px-4 rounded-lg text-center font-medium">
+                          ✓ Payment Complete - Waiting for others
+                        </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
         )}
 
