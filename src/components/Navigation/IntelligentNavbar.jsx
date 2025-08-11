@@ -374,7 +374,7 @@ export default function IntelligentNavbar() {
   const navConfig = getNavConfig();
 
   return (
-          <nav className="bg-[#0A0D14] shadow-sm border-b border-[#2D3748] sticky top-0 z-50">
+          <nav className="bg-[#0A0D14] shadow-sm sticky top-0 z-50 transition-all duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}

@@ -163,7 +163,7 @@ const CompletedRequests = () => {
                     <div className="text-slate-300 text-sm">Total Participants</div>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
-                    <div className="text-lg font-bold text-orange-400">Rs.{completedStats.totalPayments.toFixed(2)}</div>
+                                            <div className="text-lg font-bold text-orange-400">Rs.{completedStats.totalPayments.toFixed(2)}</div>
                     <div className="text-slate-300 text-sm">Total Value</div>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-teal-500">
@@ -212,7 +212,7 @@ const CompletedRequests = () => {
                                                     <span>📚 {request.subject}</span>
                                                     <span>📅 {formatDate(request.preferredDate)}</span>
                                                     <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                                    <span>💰 Rs.{request.paymentAmount}</span>
+                                                                                                         <span>💰 {request.currency || 'Rs.'}{request.paymentAmount}</span>
                                                     <span>⏱️ {request.duration || '60'} min</span>
                                                     <span>👥 {request.participants?.length || 0} participants</span>
                                                 </>

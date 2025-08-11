@@ -131,7 +131,7 @@ const ArchivedRequests = () => {
                                     avatar: profile.avatar,
                                     title: requestData.topic || requestData.title,
                                     message: requestData.description,
-                                    rate: requestData.paymentAmount ? `Rs.${requestData.paymentAmount}/session` : null,
+                                                                         rate: requestData.paymentAmount ? `${requestData.currency || 'Rs.'}${requestData.paymentAmount}/session` : null,
                                     time: formatTimeAgo(responseData.createdAt),
                                     status: responseData.status,
                                     category: responseData.status,

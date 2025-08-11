@@ -11,6 +11,7 @@ import {
     doc,
     getDocs,
     getDoc,
+    setDoc,
     serverTimestamp,
     arrayUnion,
     arrayRemove
@@ -267,6 +268,34 @@ export const integratedRequestService = {
                 });
 
                 return { success: true, message: 'Response submitted successfully!' };
+            } else if (responseData.status === 'not_interested') {
+                // Record the not_interested response and hide the request
+                await updateDoc(requestRef, {
+                    responses: arrayUnion(responseRef.id),
+                    responseCount: (requestData.responseCount || 0) + 1,
+                    updatedAt: serverTimestamp()
+                });
+
+                // Add to hidden requests collection
+                try {
+                    const hiddenRequestRef = doc(db, 'hiddenRequests', `${userId}_${requestId}`);
+                    await setDoc(hiddenRequestRef, {
+                        userId,
+                        requestId,
+                        hiddenAt: serverTimestamp(),
+                        requestData: {
+                            topic: requestData.topic,
+                            subject: requestData.subject,
+                            paymentAmount: requestData.paymentAmount
+                        }
+                    });
+                    console.log('✅ Request hidden for user:', userId);
+                } catch (hideError) {
+                    console.error('❌ Error hiding request:', hideError);
+                    // Continue even if hiding fails
+                }
+
+                return { success: true, message: 'Request hidden from your view!' };
             }
 
             // For other statuses (pending, etc.)
@@ -536,6 +565,30 @@ export const integratedRequestService = {
         } catch (error) {
             console.error('❌ Error setting up responses listener:', error);
             callback([]);
+        }
+    },
+
+    /**
+     * Get hidden requests for a user
+     */
+    async getHiddenRequests(userId) {
+        if (!userId) return [];
+
+        try {
+            const hiddenRequestsRef = collection(db, 'hiddenRequests');
+            const q = query(
+                hiddenRequestsRef,
+                where('userId', '==', userId)
+            );
+            
+            const snapshot = await getDocs(q);
+            const hiddenRequestIds = snapshot.docs.map(doc => doc.data().requestId);
+            
+            console.log('🔍 Hidden request IDs for user:', userId, hiddenRequestIds);
+            return hiddenRequestIds;
+        } catch (error) {
+            console.error('❌ Error fetching hidden requests:', error);
+            return [];
         }
     },
 

@@ -592,26 +592,26 @@ export default function HomePage() {
       <div className="min-h-screen bg-[#1A202C]">
         {/* Main Content */}
         <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8">
-          <div className="flex-1 flex flex-col gap-8">
+          <div className="flex-1 flex flex-col gap-8 min-w-0">
             {/* Welcome Banner with Dynamic User Data */}
             <section className="card-dark p-8 flex flex-col items-center text-center mb-2">
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-4 mb-4 w-full max-w-full">
                 <img
                     src={userProfile?.avatar}
                     alt={userProfile?.displayName}
-                    className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1]"
+                    className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1] flex-shrink-0"
                 />
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white truncate">
+                <div className="min-w-0 flex-1 max-w-full">
+                  <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white break-words" title={userProfile?.displayName || 'User'}>
                     Welcome Back, {userProfile?.displayName || 'User'}!
                   </h1>
-                  <p className="text-[#A0AEC0] text-sm truncate" title={userProfile?.email}>
+                  <p className="text-[#A0AEC0] text-sm break-all" title={userProfile?.email}>
                     {userProfile?.email}
                   </p>
                 </div>
               </div>
-              <p className="text-[#E0E0E0] mb-6">Connect. Collaborate. Grow. Your professional journey continues here.</p>
-              <div className="flex gap-4">
+              <p className="text-[#E0E0E0] mb-6 break-words">Connect. Collaborate. Grow. Your professional journey continues here.</p>
+              <div className="flex gap-4 flex-wrap">
                 <Link
                     to="/profile"
                     className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold transition-all duration-300"
@@ -629,9 +629,9 @@ export default function HomePage() {
 
             {/* Recent Activities with Real Data */}
             <section className="card-dark p-6 mb-2">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Recent Activities</h2>
-                <Link to="/activities" className="text-[#4299E1] text-sm font-medium hover:underline">
+              <div className="flex justify-between items-center mb-4 min-w-0">
+                <h2 className="text-xl font-bold text-white break-words flex-1 min-w-0">Recent Activities</h2>
+                <Link to="/activities" className="text-[#4299E1] text-sm font-medium hover:underline flex-shrink-0 ml-2">
                   View All
                 </Link>
               </div>
@@ -643,21 +643,21 @@ export default function HomePage() {
               ) : activities.length > 0 ? (
                   <ul className="flex flex-col gap-4">
                     {activities.map((activity) => (
-                        <li key={activity.id} className="flex items-center justify-between hover:bg-[#2D3748] p-3 rounded-lg transition-colors duration-200">
-                          <div className="flex items-center gap-3">
+                        <li key={activity.id} className="flex items-start justify-between hover:bg-[#2D3748] p-3 rounded-lg transition-colors duration-200">
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
                             <img
                                 src={activity.actorAvatar}
                                 alt={activity.actorName}
-                                className="w-8 h-8 rounded-full object-cover border border-[#4A5568]"
+                                className="w-8 h-8 rounded-full object-cover border border-[#4A5568] flex-shrink-0"
                             />
-                            <div className="min-w-0 flex-1">
-                        <span className="text-white block truncate">
-                          <b className="text-[#4299E1]">{activity.actorName}</b> <span className="text-[#E0E0E0]">{activity.action}</span>
+                            <div className="min-w-0 flex-1 max-w-full">
+                        <span className="text-white block break-words">
+                          <b className="text-[#4299E1] break-words">{activity.actorName}</b> <span className="text-[#E0E0E0] break-words">{activity.action}</span>
                         </span>
                               {activity.description && (
-                                  <div className="text-[#A0AEC0] text-xs mt-1 line-clamp-2" title={activity.description}>{activity.description}</div>
+                                  <div className="text-[#A0AEC0] text-xs mt-1 line-clamp-2 break-words" title={activity.description}>{activity.description}</div>
                               )}
-                              <span className="text-[#A0AEC0] text-xs block mt-1">
+                              <span className="text-[#A0AEC0] text-xs block mt-1 break-words">
                           {formatTimeAgo(activity.timestamp)}
                         </span>
                             </div>
@@ -665,7 +665,7 @@ export default function HomePage() {
                           {activity.actionable && (
                               <Link
                                   to={`/profile/${activity.actorId || '#'}`}
-                                  className="text-[#4299E1] text-sm font-medium hover:text-[#00BFFF] transition-colors flex-shrink-0"
+                                  className="text-[#4299E1] text-sm font-medium hover:text-[#00BFFF] transition-colors flex-shrink-0 ml-2"
                               >
                                 View Profile
                               </Link>
@@ -687,10 +687,10 @@ export default function HomePage() {
           </div>
 
           {/* Right Sidebar */}
-          <aside className="w-full xl:w-96 flex flex-col gap-8">
+          <aside className="w-full xl:w-96 flex flex-col gap-8 min-w-0">
             {/* Enhanced Dashboard with Real Stats */}
             <section className="card-dark p-6 flex flex-col items-center mb-2">
-              <h3 className="text-base font-bold mb-4 text-white">My Dashboard</h3>
+              <h3 className="text-base font-bold mb-4 text-white break-words">My Dashboard</h3>
               <div className="grid grid-cols-2 gap-4 w-full text-center">
                 <div className="p-4 bg-gradient-to-br from-[#4299E1] to-[#00BFFF] rounded-lg text-white hover:scale-105 transition-transform duration-200">
                   <div className="text-2xl font-bold">{stats.connections.toLocaleString()}</div>
@@ -713,12 +713,12 @@ export default function HomePage() {
 
             {/* Interactive Suggested Groups */}
             <section className="card-dark p-6 mb-2">
-              <h3 className="text-base font-bold mb-4 text-white">Suggested Groups</h3>
+              <h3 className="text-base font-bold mb-4 text-white break-words">Suggested Groups</h3>
               {suggestedGroups.length > 0 ? (
                   <div className="space-y-4">
                     {suggestedGroups.slice(0, 4).map((group) => (
                         <div key={group.id} className="group bg-[#1A202C] rounded-lg p-4 hover:bg-[#2D3748] transition-all duration-200 border border-[#2D3748] hover:border-[#4A5568]">
-                          <div className="flex items-start gap-4">
+                          <div className="flex items-start gap-4 w-full">
                             {/* Group Image */}
                             <div className="flex-shrink-0">
                               <img
@@ -733,18 +733,18 @@ export default function HomePage() {
                             </div>
                             
                             {/* Group Content */}
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-sm text-white mb-1 line-clamp-1 group-hover:text-[#4299E1] transition-colors duration-200">
+                            <div className="flex-1 min-w-0 max-w-full">
+                              <h4 className="font-semibold text-sm text-white mb-1 line-clamp-1 group-hover:text-[#4299E1] transition-colors duration-200 break-words" title={group.name}>
                                 {group.name}
                               </h4>
-                              <div className="text-xs text-[#A0AEC0] mb-2">
+                              <div className="text-xs text-[#A0AEC0] mb-2 break-words">
                                 {group.members?.toLocaleString() || 0} Members
                               </div>
-                              <p className="text-xs text-[#E0E0E0] mb-3 line-clamp-2 leading-relaxed">
+                              <p className="text-xs text-[#E0E0E0] mb-3 line-clamp-2 leading-relaxed break-words" title={group.description}>
                                 {group.description}
                               </p>
                               {group.category && (
-                                  <span className="inline-block px-2 py-1 bg-[#4A5568] text-[#E0E0E0] text-xs rounded-full border border-[#2D3748]">
+                                  <span className="inline-block px-2 py-1 bg-[#4A5568] text-[#E0E0E0] text-xs rounded-full border border-[#2D3748] break-words">
                                     {group.category}
                                   </span>
                               )}

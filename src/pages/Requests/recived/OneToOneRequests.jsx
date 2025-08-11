@@ -13,21 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
-// Add CSS for line-clamp utility
-const lineClampStyles = `
-  .line-clamp-1 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
-  }
-  .line-clamp-2 {
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-`;
+
 
 const OneToOneRequests = () => {
   const { user } = useAuth();
@@ -51,65 +37,75 @@ const OneToOneRequests = () => {
 
   // Load user profiles for request creators
   const loadUserProfile = async (userId) => {
+    if (!userId) {
+      console.warn('No userId provided to loadUserProfile');
+      return null;
+    }
+    
     if (userProfiles[userId]) return userProfiles[userId];
 
     try {
+      console.log('🔍 Loading profile for userId:', userId);
+      
       // Try users collection first
       const userDoc = await getDoc(doc(db, 'users', userId));
       let profile = null;
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        console.log('✅ Found user in users collection:', userData.displayName || userData.name);
         profile = {
           id: userDoc.id,
           displayName: userData.displayName || userData.name || 'User',
-          avatar: userData.avatar || userData.photoURL || `https://ui-avatars.com/api/?name=${userData.email}&background=3b82f6&color=fff`,
-          bio: userData.bio || 'No bio available',
+          avatar: userData.avatar || userData.photoURL || null,
+          bio: userData.bio || '',
           role: userData.role || 'Student',
-          rating: userData.stats?.averageRating || 4.5,
+          rating: userData.stats?.averageRating || 0,
           completedSessions: userData.stats?.completedSessions || 0
         };
       } else {
+        console.log('🔍 User not found in users collection, trying userProfiles...');
         // Fallback to userProfiles collection
-        const publicProfileQuery = query(
-            collection(db, 'userProfiles'),
-            where('uid', '==', userId)
-        );
-        const publicSnapshot = await getDocs(publicProfileQuery);
+        try {
+          const publicProfileQuery = query(
+              collection(db, 'userProfiles'),
+              where('uid', '==', userId)
+          );
+          const publicSnapshot = await getDocs(publicProfileQuery);
 
-        if (!publicSnapshot.empty) {
-          const publicData = publicSnapshot.docs[0].data();
-          profile = {
-            id: publicSnapshot.docs[0].id,
-            displayName: publicData.displayName || 'User',
-            avatar: publicData.avatar || `https://ui-avatars.com/api/?name=${publicData.displayName}&background=3b82f6&color=fff`,
-            bio: publicData.bio || 'No bio available',
-            role: 'Student',
-            rating: publicData.stats?.averageRating || 4.5,
-            completedSessions: 0
-          };
+          if (!publicSnapshot.empty) {
+            const publicData = publicSnapshot.docs[0].data();
+            console.log('✅ Found user in userProfiles collection:', publicData.displayName);
+            profile = {
+              id: publicSnapshot.docs[0].id,
+              displayName: publicData.displayName || 'User',
+              avatar: publicData.avatar || null,
+              bio: publicData.bio || '',
+              role: 'Student',
+              rating: publicData.stats?.averageRating || 0,
+              completedSessions: 0
+            };
+          } else {
+            console.log('❌ User not found in any collection');
+          }
+        } catch (publicProfileError) {
+          console.error('Error loading public profile:', publicProfileError);
         }
       }
 
       if (profile) {
+        console.log('✅ Profile created successfully for:', profile.displayName);
         setUserProfiles(prev => ({ ...prev, [userId]: profile }));
         return profile;
+      } else {
+        console.log('❌ No profile could be created for userId:', userId);
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
     }
 
-    // Return default profile if loading fails
-    const defaultProfile = {
-      displayName: 'User',
-      avatar: `https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff`,
-      bio: 'No bio available',
-      role: 'Student',
-      rating: 4.5,
-      completedSessions: 0
-    };
-    setUserProfiles(prev => ({ ...prev, [userId]: defaultProfile }));
-    return defaultProfile;
+    // Return null if loading fails
+    return null;
   };
 
   // Load available requests from other users
@@ -133,60 +129,116 @@ const OneToOneRequests = () => {
         setLoading(true);
         setError(null);
 
-        // Get all open requests from other users
+        // Get all available requests from other users
         const requestsRef = collection(db, 'requests');
-        const requestsQuery = query(
+        
+        // First, let's check if there are any requests at all
+        console.log('🔍 Checking if there are any requests in the database...');
+        const allRequestsSnapshot = await getDocs(requestsRef);
+        console.log('📊 Total requests in database:', allRequestsSnapshot.size);
+        
+        if (allRequestsSnapshot.size === 0) {
+          console.log('❌ No requests found in database');
+          setRequests([]);
+          setLoading(false);
+          clearTimeout(timeoutId);
+          return;
+        }
+        
+        // Log all request statuses to see what's available
+        const allStatuses = allRequestsSnapshot.docs.map(doc => doc.data().status);
+        console.log('📋 Available request statuses:', [...new Set(allStatuses)]);
+        
+        // Get hidden requests for this user
+        const hiddenRequestIds = await databaseService.getHiddenRequests(user.id);
+        console.log('🚫 Hidden request IDs:', hiddenRequestIds);
+        
+        // Get all requests (excluding drafts and hidden requests)
+        let requestsQuery = query(
             requestsRef,
-            where('status', 'in', ['open', 'active']),
+            where('status', 'in', ['open', 'active']), // Exclude draft requests
             orderBy('createdAt', 'desc')
         );
+        
+        console.log('🔍 Using filtered query to fetch open/active requests (excluding drafts and hidden)');
 
         // Set up real-time listener
         const unsubscribe = onSnapshot(requestsQuery, async (snapshot) => {
           try {
+            console.log('📥 Snapshot received:', snapshot.docs.length, 'documents');
             const fetchedRequests = [];
 
             for (const docSnap of snapshot.docs) {
-              const requestData = {
-                id: docSnap.id,
-                ...docSnap.data(),
-                createdAt: docSnap.data().createdAt?.toDate() || new Date()
-              };
+              try {
+                const requestData = {
+                  id: docSnap.id,
+                  ...docSnap.data(),
+                  createdAt: docSnap.data().createdAt?.toDate() || 
+                             docSnap.data().createdAt || 
+                             docSnap.data().timestamp?.toDate() || 
+                             new Date()
+                };
 
-              // Skip own requests
-              const requestUserId = requestData.userId || requestData.createdBy;
-              if (requestUserId === user.id) {
+                console.log('🔍 Processing request:', requestData.id, 'Status:', requestData.status, 'User ID:', requestData.userId || requestData.createdBy);
+                console.log('📅 Created at:', requestData.createdAt, 'Type:', typeof requestData.createdAt);
+                console.log('💰 Payment:', requestData.paymentAmount, 'Currency:', requestData.currency);
+
+                // Skip own requests
+                const requestUserId = requestData.userId || requestData.createdBy;
+                if (requestUserId === user.id) {
+                  console.log('⏭️ Skipping own request:', requestData.id);
+                  continue;
+                }
+
+                // Skip hidden requests
+                if (hiddenRequestIds.includes(requestData.id)) {
+                  console.log('🚫 Skipping hidden request:', requestData.id);
+                  continue;
+                }
+
+                // Load user profile for the request creator
+                console.log('👤 Loading profile for user:', requestUserId);
+                const profile = await loadUserProfile(requestUserId);
+
+                // Only add request if profile was loaded successfully
+                if (profile) {
+                  console.log('✅ Profile loaded for user:', requestUserId);
+                  // Transform data to match component expectations
+                  const transformedRequest = {
+                    id: requestData.id,
+                    title: requestData.topic || requestData.title || 'Untitled Request',
+                    description: requestData.description || '',
+                    subject: requestData.subject || 'General',
+                    userName: profile.displayName || 'Unknown User',
+                    userAvatar: profile.avatar,
+                    userId: requestUserId,
+                    status: requestData.status,
+                    paymentAmount: requestData.paymentAmount,
+                    currency: requestData.currency || 'Rs.', // Add currency field
+                    duration: requestData.duration || '60',
+                    preferredDate: requestData.preferredDate,
+                    preferredTime: requestData.preferredTime,
+                    tags: requestData.tags || [],
+                    views: requestData.views || 0,
+                    participants: requestData.participants || [],
+                    createdAt: requestData.createdAt,
+                    type: 'one-to-one',
+                    hasResponded: false // Will be updated below
+                  };
+
+                  fetchedRequests.push(transformedRequest);
+                  console.log('✅ Request added to list:', requestData.id);
+                } else {
+                  console.log('❌ Profile loading failed for user:', requestUserId);
+                }
+              } catch (requestError) {
+                console.error('Error processing individual request:', requestError);
+                // Continue with other requests instead of failing completely
                 continue;
               }
-
-              // Load user profile for the request creator
-              const profile = await loadUserProfile(requestUserId);
-
-              // Transform data to match component expectations
-              const transformedRequest = {
-                id: requestData.id,
-                title: requestData.topic || requestData.title || 'Untitled Request',
-                description: requestData.description || '',
-                subject: requestData.subject || 'General',
-                userName: profile.displayName,
-                userAvatar: profile.avatar,
-                userId: requestUserId,
-                status: requestData.status,
-                paymentAmount: requestData.paymentAmount,
-                duration: requestData.duration || '60',
-                preferredDate: requestData.preferredDate,
-                preferredTime: requestData.preferredTime,
-                tags: requestData.tags || [],
-                views: requestData.views || 0,
-                participants: requestData.participants || [],
-                createdAt: requestData.createdAt,
-                type: 'one-to-one',
-                hasResponded: false // Will be updated below
-              };
-
-              fetchedRequests.push(transformedRequest);
             }
 
+            console.log('📊 Final processed requests:', fetchedRequests.length);
             setRequests(fetchedRequests);
             if (fetchedRequests.length > 0 && !selected) {
               setSelected(fetchedRequests[0]);
@@ -199,6 +251,17 @@ const OneToOneRequests = () => {
             setLoading(false);
             clearTimeout(timeoutId);
           }
+        }, (error) => {
+          // Handle onSnapshot errors (like missing indexes)
+          console.error('❌ onSnapshot error:', error);
+          if (error.code === 'failed-precondition') {
+            setError('Database index required. Please check console for details.');
+            console.error('🔗 Create this index:', error.message);
+          } else {
+            setError('Failed to load requests. Please try again.');
+          }
+          setLoading(false);
+          clearTimeout(timeoutId);
         });
 
         return () => {
@@ -206,7 +269,7 @@ const OneToOneRequests = () => {
           clearTimeout(timeoutId);
         };
       } catch (error) {
-        console.error('❌ Error loading requests:', error);
+        console.error('❌ Error setting up query:', error);
         setError('Failed to load requests. Please try again.');
         setLoading(false);
         clearTimeout(timeoutId);
@@ -227,12 +290,22 @@ const OneToOneRequests = () => {
       console.log('⏰ User responses loading timeout reached');
     }, 8000); // 8 second timeout
 
-    const unsubscribe = databaseService.getUserResponses(user.id, null, (responses) => {
+    const unsubscribe = databaseService.getUserResponses(user.id, null, (responses, errorInfo) => {
       try {
+        if (errorInfo) {
+          console.error('❌ Error from getUserResponses:', errorInfo);
+          clearTimeout(timeoutId);
+          return;
+        }
+        
         const responseMap = {};
-        responses.forEach(response => {
-          responseMap[response.requestId] = response.status;
-        });
+        if (responses && Array.isArray(responses)) {
+          responses.forEach(response => {
+            if (response && response.requestId) {
+              responseMap[response.requestId] = response.status;
+            }
+          });
+        }
         setUserResponses(responseMap);
 
         // Update requests with response status
@@ -275,6 +348,8 @@ const OneToOneRequests = () => {
       return;
     }
 
+    console.log('🔍 handleResponse called:', { requestId, status, message, userId: user.id });
+
     setResponseLoading(prev => ({ ...prev, [requestId]: status }));
 
     try {
@@ -285,7 +360,11 @@ const OneToOneRequests = () => {
         responderEmail: user.email || ''
       };
 
-              const result = await databaseService.respondToRequest(requestId, responseData, user.id);
+      console.log('📤 Sending response data:', responseData);
+
+      const result = await databaseService.respondToRequest(requestId, responseData, user.id);
+
+      console.log('📥 Response result:', result);
 
       if (result.success) {
         alert(result.message);
@@ -300,19 +379,30 @@ const OneToOneRequests = () => {
           }
         }
 
-        // Update the request in the list to show it's been responded to
-        setRequests(prevRequests =>
-            prevRequests.map(req =>
-                req.id === requestId
-                    ? { ...req, hasResponded: true, responseStatus: status }
-                    : req
-            )
-        );
+        // If not interested, remove the request from the list
+        if (status === 'not_interested') {
+          setRequests(prevRequests =>
+              prevRequests.filter(req => req.id !== requestId)
+          );
+          // Also remove from selected if it was selected
+          if (selected && selected.id === requestId) {
+            setSelected(null);
+          }
+        } else {
+          // Update the request in the list to show it's been responded to
+          setRequests(prevRequests =>
+              prevRequests.map(req =>
+                  req.id === requestId
+                      ? { ...req, hasResponded: true, responseStatus: status }
+                      : req
+              )
+          );
+        }
       } else {
         alert(result.message);
       }
     } catch (error) {
-      console.error('Error responding to request:', error);
+      console.error('❌ Error responding to request:', error);
       alert('Failed to respond to request. Please try again.');
     } finally {
       setResponseLoading(prev => ({ ...prev, [requestId]: null }));
@@ -322,15 +412,44 @@ const OneToOneRequests = () => {
   // Utility functions
   const formatTimeAgo = (date) => {
     if (!date) return 'Unknown';
-    const now = new Date();
-    const diffMs = now - date;
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
+    
+    try {
+      // Handle different date formats
+      let dateObj;
+      if (date instanceof Date) {
+        dateObj = date;
+      } else if (typeof date === 'string') {
+        dateObj = new Date(date);
+      } else if (date && typeof date.toDate === 'function') {
+        // Firestore timestamp
+        dateObj = date.toDate();
+      } else {
+        dateObj = new Date(date);
+      }
+      
+      // Check if date is valid
+      if (isNaN(dateObj.getTime())) {
+        console.warn('Invalid date:', date);
+        return 'Unknown';
+      }
+      
+      const now = new Date();
+      const diffMs = now - dateObj;
+      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHours / 24);
 
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return `${Math.floor(diffDays / 7)}w ago`;
+      if (diffMinutes < 1) return 'Just now';
+      if (diffMinutes < 60) return `${diffMinutes}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+      if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+      return `${Math.floor(diffDays / 365)}y ago`;
+    } catch (error) {
+      console.error('Error formatting date:', error, date);
+      return 'Unknown';
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -462,7 +581,7 @@ const OneToOneRequests = () => {
 
   if (loading) {
     return (
-        <div className="p-8 bg-[#1A202C]">
+        <div className="p-8 bg-[#0A0D14] min-h-screen">
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4299E1] mx-auto"></div>
@@ -475,7 +594,7 @@ const OneToOneRequests = () => {
 
   if (error) {
     return (
-        <div className="p-8 bg-[#1A202C]">
+        <div className="p-8 bg-[#0A0D14] min-h-screen">
           <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-center">
             <div className="text-red-400 text-4xl mb-4">⚠️</div>
             <h3 className="text-lg font-semibold text-red-300 mb-2">Error Loading Requests</h3>
@@ -492,10 +611,7 @@ const OneToOneRequests = () => {
   }
 
   return (
-      <div className="p-8 bg-[#1A202C]">
-        {/* Add CSS for line-clamp utility */}
-        <style>{lineClampStyles}</style>
-        
+      <div className="p-8 bg-[#0A0D14] min-h-screen">
         {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white mb-2">One-to-One Learning Requests</h1>
@@ -616,10 +732,10 @@ const OneToOneRequests = () => {
               </h2>
               <div className="flex gap-2">
                 <select className="input-dark border border-[#4A5568] rounded-lg px-3 py-1 text-sm">
-                  <option>Sort by: Recent</option>
-                  <option>Sort by: Payment</option>
-                  <option>Sort by: Subject</option>
-                  <option>Sort by: Urgency</option>
+                  <option value="recent">Sort by: Recent</option>
+                  <option value="payment">Sort by: Payment</option>
+                  <option value="subject">Sort by: Subject</option>
+                  <option value="urgency">Sort by: Urgency</option>
                 </select>
               </div>
             </div>
@@ -646,7 +762,7 @@ const OneToOneRequests = () => {
                                       {getStatusBadge(req.status)}
                                       {req.paymentAmount && (
                                           <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded border border-green-700">
-                                              ₹{req.paymentAmount}
+                                              {req.currency || 'Rs.'}{req.paymentAmount}
                                           </span>
                                       )}
                                   </div>
@@ -722,11 +838,17 @@ const OneToOneRequests = () => {
           {selected && (
               <aside className="w-[400px] card-dark rounded-lg shadow-sm p-6 border border-[#4A5568] flex flex-col gap-4">
                 <div className="flex items-center gap-3">
-                  <img
-                      src={selected.userAvatar}
-                      alt={selected.userName}
-                      className="w-14 h-14 rounded-full object-cover"
-                  />
+                  {selected.userAvatar ? (
+                    <img
+                        src={selected.userAvatar}
+                        alt={selected.userName}
+                        className="w-14 h-14 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-[#4A5568] flex items-center justify-center text-white font-bold text-lg">
+                      {selected.userName?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
                   <div className="flex-1">
                     <div className="font-bold text-lg text-white">{selected.userName}</div>
                     <div className="text-[#A0AEC0] text-sm">Student</div>
@@ -762,7 +884,7 @@ const OneToOneRequests = () => {
                     {selected.paymentAmount && (
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-[#A0AEC0]">💰 Payment:</span>
-                          <span className="text-green-400 font-semibold">Rs.{selected.paymentAmount}</span>
+                          <span className="text-green-400 font-semibold">{selected.currency || 'Rs.'}{selected.paymentAmount}</span>
                         </div>
                     )}
                   </div>
@@ -793,11 +915,11 @@ const OneToOneRequests = () => {
                   {!selected.hasResponded ? (
                       <div className="flex gap-2 mt-4">
                         <button
-                            onClick={() => handleResponse(selected.id, 'declined', 'Not interested at this time')}
-                            disabled={responseLoading[selected.id] === 'declined'}
+                            onClick={() => handleResponse(selected.id, 'not_interested', 'Not interested at this time')}
+                            disabled={responseLoading[selected.id] === 'not_interested'}
                             className="bg-red-900 text-red-300 rounded px-4 py-2 font-medium text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
                         >
-                          {responseLoading[selected.id] === 'declined' ? 'Declining...' : 'Not Interested'}
+                          {responseLoading[selected.id] === 'not_interested' ? 'Hiding...' : 'Not Interested'}
                         </button>
                         <button
                             onClick={() => handleResponse(selected.id, 'accepted', 'I would like to help with this request')}
@@ -811,16 +933,20 @@ const OneToOneRequests = () => {
                       <div className={`rounded px-4 py-2 text-sm text-center mt-4 flex items-center justify-center gap-2 border ${
                           selected.responseStatus === 'accepted'
                               ? 'bg-green-900 text-green-300 border-green-700'
-                              : selected.responseStatus === 'declined'
-                                  ? 'bg-red-900 text-red-300 border-red-700'
-                                  : 'bg-[#2D3748] text-[#4299E1] border-[#4A5568]'
+                              : selected.responseStatus === 'not_interested'
+                                  ? 'bg-gray-700 text-gray-300 border-gray-600'
+                                  : selected.responseStatus === 'declined'
+                                      ? 'bg-red-900 text-red-300 border-red-700'
+                                      : 'bg-[#2D3748] text-[#4299E1] border-[#4A5568]'
                       }`}>
                                     <span>
                                         {selected.responseStatus === 'accepted' ? '✅' :
+                                            selected.responseStatus === 'not_interested' ? '🚫' :
                                             selected.responseStatus === 'declined' ? '❌' : '⏳'}
                                     </span>
                         <span>
                                         {selected.responseStatus === 'accepted' ? 'Request Accepted' :
+                                            selected.responseStatus === 'not_interested' ? 'Request Hidden' :
                                             selected.responseStatus === 'declined' ? 'Request Declined' : 'Response Pending'}
                                     </span>
                       </div>
@@ -830,13 +956,13 @@ const OneToOneRequests = () => {
                   <div className="grid grid-cols-2 gap-2 mt-3">
                     <button
                         className="bg-[#2D3748] text-[#4299E1] rounded px-3 py-2 text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568]"
-                        onClick={() => alert('Messaging feature coming soon!')}
+                        onClick={() => console.log('Messaging feature clicked')}
                     >
                       💬 Message
                     </button>
                     <button
                         className="bg-[#2D3748] text-purple-400 rounded px-3 py-2 text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568]"
-                        onClick={() => alert('Profile view feature coming soon!')}
+                        onClick={() => console.log('Profile view feature clicked')}
                     >
                       👤 View Profile
                     </button>
@@ -845,7 +971,7 @@ const OneToOneRequests = () => {
                   {/* Report Option */}
                   <div
                       className="text-[#A0AEC0] text-xs mt-4 cursor-pointer hover:text-red-400 transition-colors text-center border-t border-[#4A5568] pt-4"
-                      onClick={() => alert('Report feature coming soon!')}
+                      onClick={() => console.log('Report feature clicked')}
                   >
                     🚩 Report Request
                   </div>
@@ -888,7 +1014,7 @@ const OneToOneRequests = () => {
                               onClick={() => setSelected(req)}
                           >
                             <div className="font-medium text-green-200">{req.title}</div>
-                            <div className="text-green-400 text-xs">{req.subject} • Rs.{req.paymentAmount}</div>
+                            <div className="text-green-400 text-xs">{req.subject} • {req.currency || 'Rs.'}{req.paymentAmount}</div>
                           </div>
                       ))}
                     </div>

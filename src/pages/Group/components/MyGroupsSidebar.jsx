@@ -106,7 +106,7 @@ const MyGroupsSidebar = ({
                       </p>
                       {request.rate && (
                         <p className="text-xs text-green-400 font-medium mt-1">
-                          Rs.{request.rate}
+                                                      {request.currency || 'Rs.'}{request.rate}
                         </p>
                       )}
                     </div>

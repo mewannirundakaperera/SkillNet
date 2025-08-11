@@ -1,39 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useDraftRequests } from '@/hooks/useRequests';
 import integratedRequestService from '@/services/integratedRequestService';
 import { groupRequestService } from '@/services/groupRequestService';
+import { databaseService } from '@/services/databaseService';
 
 const DraftRequests = () => {
     const { user } = useAuth();
-    const { requests: oneToOneRequests, loading: oneToOneLoading } = useDraftRequests();
+    const [oneToOneRequests, setOneToOneRequests] = useState([]);
     const [groupRequests, setGroupRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState({});
 
-    // Load group draft requests separately
+
+
+    // Load all draft requests directly from database
     useEffect(() => {
-        const loadGroupDrafts = async () => {
-            if (!user?.id) return;
+        const loadAllDrafts = async () => {
+            if (!user?.id) {
+                console.log('❌ No user ID available, skipping draft load');
+                return;
+            }
 
             try {
-                const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id, 'draft');
-                console.log('👥 Loaded group drafts:', userGroupRequests.length);
-                setGroupRequests(userGroupRequests);
+                setLoading(true);
+
+                // Load one-to-one draft requests
+                try {
+                    const allRequests = await databaseService.getUserRequestsDirect(user.id);
+                    const draftRequests = allRequests.filter(req => req.status === 'draft');
+                    setOneToOneRequests(draftRequests);
+                } catch (oneToOneError) {
+                    console.error('Error fetching one-to-one requests:', oneToOneError);
+                    setOneToOneRequests([]);
+                }
+
+                // Load group draft requests
+                try {
+                    const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id, 'draft');
+                    setGroupRequests(userGroupRequests);
+                } catch (groupError) {
+                    console.error('Error fetching group drafts:', groupError);
+                    setGroupRequests([]);
+                }
+
             } catch (error) {
-                console.error('❌ Error loading group drafts:', error);
+                console.error('Error loading draft requests:', error);
+                setOneToOneRequests([]);
                 setGroupRequests([]);
+            } finally {
+                setLoading(false);
             }
         };
 
-        loadGroupDrafts();
+        loadAllDrafts();
     }, [user]);
-
-    // Update loading state
-    useEffect(() => {
-        setLoading(oneToOneLoading);
-    }, [oneToOneLoading]);
 
     // Handle request actions
     const handleRequestAction = async (requestId, action, requestType = 'one-to-one') => {
@@ -45,6 +66,14 @@ const DraftRequests = () => {
             if (requestType === 'group') {
                 switch (action) {
                     case 'publish':
+                        // Check if group request is complete before publishing
+                        const groupRequest = groupRequests.find(req => req.id === requestId);
+                        if (groupRequest && !isGroupRequestComplete(groupRequest)) {
+                            alert('Please complete all required fields before publishing. Redirecting to edit page...');
+                            // Redirect to edit page
+                            window.location.href = `/requests/edit/${requestId}?type=${requestType}`;
+                            return;
+                        }
                         result = await groupRequestService.changeRequestStatus(requestId, 'pending', user.id);
                         break;
                     case 'delete':
@@ -56,6 +85,14 @@ const DraftRequests = () => {
             } else {
                 switch (action) {
                     case 'publish':
+                        // Check if one-to-one request is complete before publishing
+                        const oneToOneRequest = oneToOneRequests.find(req => req.id === requestId);
+                        if (oneToOneRequest && !isOneToOneRequestComplete(oneToOneRequest)) {
+                            alert('Please complete all required fields before publishing. Redirecting to edit page...');
+                            // Redirect to edit page
+                            window.location.href = `/requests/edit/${requestId}?type=${requestType}`;
+                            return;
+                        }
                         // Use the integrated service to publish draft (draft -> open)
                         result = await integratedRequestService.publishDraft(requestId, user.id);
                         break;
@@ -75,11 +112,32 @@ const DraftRequests = () => {
                 alert(result.message);
             }
         } catch (error) {
-            console.error(`❌ Error ${action}ing request:`, error);
+            console.error(`Error ${action}ing request:`, error);
             alert(`Failed to ${action} request. Please try again.`);
         } finally {
             setActionLoading(prev => ({ ...prev, [requestId]: null }));
         }
+    };
+
+    // Check if one-to-one request is complete
+    const isOneToOneRequestComplete = (request) => {
+        return request.title && 
+               request.description && 
+               request.subject && 
+               request.preferredDate && 
+               request.preferredTime && 
+               request.paymentAmount && 
+               request.duration;
+    };
+
+    // Check if group request is complete
+    const isGroupRequestComplete = (request) => {
+        return request.title && 
+               request.description && 
+               request.category && 
+               request.maxParticipants && 
+               request.rate && 
+               request.deadline;
     };
 
     // Combine and format requests
@@ -153,8 +211,16 @@ const DraftRequests = () => {
         total: oneToOneRequests.length + groupRequests.length,
         oneToOne: oneToOneRequests.length,
         group: groupRequests.length,
-        readyToPublish: allDrafts.filter(r => r.title && r.description && (r.subject || r.category)).length
+        readyToPublish: allDrafts.filter(r => {
+            if (r.type === 'group') {
+                return isGroupRequestComplete(r);
+            } else {
+                return isOneToOneRequestComplete(r);
+            }
+        }).length
     };
+
+
 
     if (loading) {
         return (
@@ -190,8 +256,11 @@ const DraftRequests = () => {
                     >
                         + New Group Request
                     </Link>
+
                 </div>
             </div>
+
+
 
             {/* Flow Info */}
             <div className="bg-blue-900 rounded-lg p-4 mb-8 border border-blue-700">
@@ -235,7 +304,9 @@ const DraftRequests = () => {
 
                     <div className="divide-y divide-slate-700">
                         {allDrafts.map((request) => {
-                            const isComplete = request.title && request.description && (request.subject || request.category);
+                            const isComplete = request.type === 'group' 
+                                ? isGroupRequestComplete(request)
+                                : isOneToOneRequestComplete(request);
 
                             return (
                                 <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-slate-700 transition-colors">
@@ -272,7 +343,7 @@ const DraftRequests = () => {
                                                         <span>📚 {request.subject || 'No subject'}</span>
                                                         <span>📅 {formatDate(request.preferredDate)}</span>
                                                         <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                                        <span>💰 Rs.{request.paymentAmount || '0'}</span>
+                                                                                                                 <span>💰 {request.currency || 'Rs.'}{request.paymentAmount || '0'}</span>
                                                         <span>⏱️ {request.duration || '60'} min</span>
                                                     </>
                                                 )}
@@ -318,9 +389,26 @@ const DraftRequests = () => {
                                                 <div className="mt-3 p-3 bg-yellow-900 rounded-lg border border-yellow-700">
                                                     <div className="text-sm text-yellow-200">
                                                         <strong>Missing fields:</strong>
-                                                        {!request.title && <span className="ml-2">• Title</span>}
-                                                        {!request.description && <span className="ml-2">• Description</span>}
-                                                        {!request.subject && !request.category && <span className="ml-2">• Subject/Category</span>}
+                                                        {request.type === 'group' ? (
+                                                            <>
+                                                                {!request.title && <span className="ml-2">• Title</span>}
+                                                                {!request.description && <span className="ml-2">• Description</span>}
+                                                                {!request.category && <span className="ml-2">• Category</span>}
+                                                                {!request.maxParticipants && <span className="ml-2">• Max Participants</span>}
+                                                                {!request.rate && <span className="ml-2">• Rate</span>}
+                                                                {!request.deadline && <span className="ml-2">• Deadline</span>}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                {!request.title && <span className="ml-2">• Title</span>}
+                                                                {!request.description && <span className="ml-2">• Description</span>}
+                                                                {!request.subject && <span className="ml-2">• Subject</span>}
+                                                                {!request.preferredDate && <span className="ml-2">• Preferred Date</span>}
+                                                                {!request.preferredTime && <span className="ml-2">• Preferred Time</span>}
+                                                                {!request.paymentAmount && <span className="ml-2">• Payment Amount</span>}
+                                                                {!request.duration && <span className="ml-2">• Duration</span>}
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}

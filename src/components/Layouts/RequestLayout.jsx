@@ -321,17 +321,6 @@ export default function RequestLayout({ children, title, subtitle }) {
                 <span>❓</span>
                 <span>Help & Support</span>
               </Link>
-              <Link
-                  to="/settings"
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-white hover:bg-[#2D3748] transition-colors text-sm"
-                  onClick={() => {
-                    setCreateRequestsExpanded(false);
-                    setReceivedRequestsExpanded(false);
-                  }}
-              >
-                <span>⚙️</span>
-                <span>Settings</span>
-              </Link>
             </div>
           </aside>
 

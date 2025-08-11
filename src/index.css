@@ -241,3 +241,29 @@ body {
 .break-all {
   word-break: break-all;
 }
+
+/* Additional Text Overflow Protection */
+.text-overflow-protection {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.text-wrap-safe {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.container-overflow-safe {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.flex-overflow-safe {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}

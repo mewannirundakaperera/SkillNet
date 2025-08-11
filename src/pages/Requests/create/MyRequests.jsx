@@ -81,7 +81,7 @@ const MyRequests = () => {
             if (requestType === 'group') {
                 switch (action) {
                     case 'publish':
-                        result = await groupRequestService.changeRequestStatus(requestId, 'active', user.id);
+                        result = await groupRequestService.changeRequestStatus(requestId, 'pending', user.id);
                         break;
                     case 'complete':
                         result = await groupRequestService.completeSession(requestId, user.id);
@@ -117,14 +117,26 @@ const MyRequests = () => {
 
             if (result.success) {
                 alert(result.message);
-                // Reload requests to reflect changes
+                
+                // Update local state immediately for better UX
                 if (requestType === 'one-to-one') {
-                    // The onSnapshot listener will automatically update the requests
-                    // No need to manually reload since we're using real-time updates
-                    console.log('✅ Request updated, real-time listener will handle refresh');
+                    // For one-to-one requests, remove from local state immediately
+                    // The onSnapshot listener will also update, but immediate removal provides instant feedback
+                    if (action === 'delete') {
+                        setRequests(prev => prev.filter(req => req.id !== requestId));
+                    }
                 } else {
-                    const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id);
-                    setGroupRequests(userGroupRequests);
+                    // For group requests, reload the list to get updated data
+                    try {
+                        const userGroupRequests = await groupRequestService.getUserGroupRequests(user.id);
+                        setGroupRequests(userGroupRequests);
+                    } catch (error) {
+                        console.error('Error reloading group requests after action:', error);
+                        // Fallback: remove from local state if reload fails
+                        if (action === 'delete') {
+                            setGroupRequests(prev => prev.filter(req => req.id !== requestId));
+                        }
+                    }
                 }
             } else {
                 alert(result.message);
@@ -179,6 +191,39 @@ const MyRequests = () => {
 
     const combinedRequests = getCombinedRequests();
 
+    // Helper function to update local state immediately
+    const updateLocalState = (requestId, action, requestType) => {
+        if (action === 'delete') {
+            if (requestType === 'group') {
+                setGroupRequests(prev => prev.filter(req => req.id !== requestId));
+            } else {
+                setRequests(prev => prev.filter(req => req.id !== requestId));
+            }
+        } else if (action === 'publish') {
+            // Update status to 'open' for published drafts
+            if (requestType === 'group') {
+                setGroupRequests(prev => prev.map(req => 
+                    req.id === requestId ? { ...req, status: 'pending' } : req
+                ));
+            } else {
+                setRequests(prev => prev.map(req => 
+                    req.id === requestId ? { ...req, status: 'open' } : req
+                ));
+            }
+        } else if (action === 'complete') {
+            // Update status to 'completed'
+            if (requestType === 'group') {
+                setGroupRequests(prev => prev.map(req => 
+                    req.id === requestId ? { ...req, status: 'completed' } : req
+                ));
+            } else {
+                setRequests(prev => prev.map(req => 
+                    req.id === requestId ? { ...req, status: 'completed' } : req
+                ));
+            }
+        }
+    };
+
     // Utility functions
     const formatDate = (date) => {
         if (!date) return 'Not set';
@@ -219,6 +264,21 @@ const MyRequests = () => {
         return colors[status] || colors.draft;
     };
 
+    const getStatusDescription = (status) => {
+        const descriptions = {
+            draft: 'Draft - Not published yet',
+            open: 'Open - Waiting for responses',
+            active: 'Active - In progress',
+            pending: 'Pending - Under review',
+            accepted: 'Accepted - Session confirmed',
+            completed: 'Completed - Session finished',
+            cancelled: 'Cancelled - Request cancelled',
+            archived: 'Archived - Request archived',
+            voting_open: 'Voting - Group voting in progress'
+        };
+        return descriptions[status] || 'Unknown status';
+    };
+
     const getStatusIcon = (status) => {
         const icons = {
             draft: '📝',
@@ -240,7 +300,9 @@ const MyRequests = () => {
         oneToOne: requests.length,
         group: groupRequests.length,
         draft: combinedRequests.filter(r => r.status === 'draft').length,
-        active: combinedRequests.filter(r => ['open', 'active', 'pending', 'voting_open'].includes(r.status)).length,
+        open: combinedRequests.filter(r => r.status === 'open').length,
+        active: combinedRequests.filter(r => ['active', 'pending', 'voting_open'].includes(r.status)).length,
+        accepted: combinedRequests.filter(r => r.status === 'accepted').length,
         completed: combinedRequests.filter(r => r.status === 'completed').length,
         archived: combinedRequests.filter(r => ['archived', 'cancelled'].includes(r.status)).length
     };
@@ -339,7 +401,7 @@ const MyRequests = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-6 gap-4 mb-8">
+            <div className="grid grid-cols-7 gap-4 mb-8">
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-400">
                     <div className="text-lg font-bold text-white">{statsData.total}</div>
                     <div className="text-slate-300 text-sm">Total</div>
@@ -357,8 +419,12 @@ const MyRequests = () => {
                     <div className="text-slate-300 text-sm">Draft</div>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-400">{statsData.active}</div>
-                    <div className="text-slate-300 text-sm">Active</div>
+                    <div className="text-lg font-bold text-green-400">{statsData.open}</div>
+                    <div className="text-slate-300 text-sm">Open</div>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+                    <div className="text-lg font-bold text-blue-400">{statsData.accepted}</div>
+                    <div className="text-slate-300 text-sm">Accepted</div>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
                     <div className="text-lg font-bold text-orange-400">{statsData.completed}</div>
@@ -423,7 +489,10 @@ const MyRequests = () => {
                                         <div className="flex items-center gap-3 mb-2">
                                             <span className="text-xl">{getStatusIcon(request.status)}</span>
                                             <h3 className="text-lg font-semibold text-white">{request.title}</h3>
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(request.status)}`}>
+                                            <span 
+                                                className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(request.status)} cursor-help`}
+                                                title={getStatusDescription(request.status)}
+                                            >
                                                 {request.status}
                                             </span>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -446,7 +515,7 @@ const MyRequests = () => {
                                                     <span>📚 {request.subject}</span>
                                                     <span>📅 {formatDate(request.preferredDate)}</span>
                                                     <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                                    <span>💰 Rs.{request.paymentAmount || '0'}</span>
+                                                                                                         <span>💰 {request.currency || 'Rs.'}{request.paymentAmount || '0'}</span>
                                                     <span>⏱️ {request.duration || '60'} min</span>
                                                     <span>👥 {request.participants?.length || 0} participants</span>
                                                 </>
@@ -519,7 +588,25 @@ const MyRequests = () => {
                                             </>
                                         )}
 
-                                        {['open', 'active', 'pending', 'voting_open', 'accepted'].includes(request.status) && (
+                                        {['open', 'active', 'pending', 'voting_open'].includes(request.status) && (
+                                            <>
+                                                <Link
+                                                    to={`/requests/edit/${request.id}?type=${request.type}`}
+                                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
+                                                >
+                                                    Edit
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleRequestAction(request.id, 'delete', request.type)}
+                                                    disabled={actionLoading[request.id] === 'delete'}
+                                                    className="bg-red-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                                                >
+                                                    {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete'}
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {request.status === 'accepted' && (
                                             <>
                                                 <Link
                                                     to={`/requests/edit/${request.id}?type=${request.type}`}
@@ -530,7 +617,7 @@ const MyRequests = () => {
                                                 <button
                                                     onClick={() => handleRequestAction(request.id, 'complete', request.type)}
                                                     disabled={actionLoading[request.id] === 'complete'}
-                                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                                    className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
                                                 >
                                                     {actionLoading[request.id] === 'complete' ? 'Completing...' : 'Complete'}
                                                 </button>

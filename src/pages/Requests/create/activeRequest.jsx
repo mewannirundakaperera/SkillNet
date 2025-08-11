@@ -226,7 +226,7 @@ const ActiveRequests = () => {
                                             <span>📚 {request.subject}</span>
                                             <span>📅 {formatDate(request.preferredDate)}</span>
                                             <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                            <span>💰 Rs.{request.paymentAmount || '0'}</span>
+                                            <span>💰 {request.currency || 'Rs.'}{request.paymentAmount || '0'}</span>
                                             <span>⏱️ {request.duration || '60'} min</span>
                                             {request.acceptedBy && (
                                                 <span className="text-green-400">✅ Accepted by {request.acceptedByName}</span>
@@ -367,7 +367,7 @@ const ActiveRequests = () => {
                             <div className="text-2xl font-bold text-purple-400">
                                 {requests.reduce((sum, r) => sum + (parseFloat(r.paymentAmount) || 0), 0).toFixed(0)}
                             </div>
-                            <div className="text-sm text-slate-300">Total Value (Rs.)</div>
+                                                         <div className="text-sm text-slate-300">Total Value (Rs.)</div>
                         </div>
                         <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
                             <div className="text-2xl font-bold text-orange-400">

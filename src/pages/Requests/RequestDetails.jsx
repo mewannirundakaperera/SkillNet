@@ -439,7 +439,7 @@ export default function RequestDetails() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-[#4299E1]">💵 Payment:</span>
-                <span>Rs.{request.paymentAmount || '0.00'}</span>
+                                 <span>{request.currency || 'Rs.'}{request.paymentAmount || '0.00'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-[#4299E1]">👥 Participants:</span>

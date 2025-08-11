@@ -445,7 +445,7 @@ const StudentConnect = () => {
   }
 
   return (
-    <div className="p-8 bg-[#1A202C] min-h-screen">
+    <div className="p-8 bg-[#0A0D14] min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-4">
@@ -642,7 +642,7 @@ const StudentConnect = () => {
                       {request.paymentAmount && (
                         <>
                           <span className="mx-2">•</span>
-                          <span className="text-green-400 font-medium">Rs.{request.paymentAmount}</span>
+                                                     <span className="text-green-400 font-medium">{request.currency || 'Rs.'}{request.paymentAmount}</span>
                         </>
                       )}
                     </div>

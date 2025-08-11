@@ -367,7 +367,7 @@ const RequestDetailsPopup = ({ requestId, isOpen, onClose }) => {
                     </div>
                     <div>
                       <span className="font-semibold text-gray-700">💵 Payment:</span>
-                      <p className="text-gray-600 mt-1">Rs.{request.paymentAmount || '0.00'}</p>
+                                                  <p className="text-gray-600 mt-1">{request.currency || 'Rs.'}{request.paymentAmount || '0.00'}</p>
                     </div>
                   </div>
 

@@ -11,6 +11,7 @@ import {
     doc,
     getDocs,
     getDoc,
+    setDoc,
     serverTimestamp,
     arrayUnion,
     arrayRemove,
@@ -201,17 +202,45 @@ export const databaseService = {
 
             const requestData = requestSnap.data();
             
+            console.log('🔍 Request data:', {
+                id: requestSnap.id,
+                status: requestData.status,
+                userId: requestData.userId,
+                createdBy: requestData.createdBy,
+                hasResponses: !!requestData.responses,
+                responseCount: requestData.responses?.length || 0
+            });
+            
             // Check if request is open for responses
+            console.log('🔍 Request status check:', { 
+                requestId, 
+                status: requestData.status, 
+                expectedStatus: 'open',
+                isOpen: requestData.status === 'open'
+            });
+            
             if (requestData.status !== 'open') {
-                return { success: false, message: 'This request is not accepting responses' };
+                return { success: false, message: `This request is not accepting responses. Current status: ${requestData.status}` };
             }
 
             // Check if user is not the creator
+            console.log('🔍 User check:', { 
+                requestUserId: requestData.userId, 
+                currentUserId: userId,
+                isOwnRequest: requestData.userId === userId
+            });
+            
             if (requestData.userId === userId) {
                 return { success: false, message: 'You cannot respond to your own request' };
             }
 
             // Check if user already responded
+            console.log('🔍 Existing response check:', { 
+                hasResponses: !!requestData.responses,
+                responseCount: requestData.responses?.length || 0,
+                existingResponse: requestData.responses?.find(r => r.responderId === userId)
+            });
+            
             const existingResponse = requestData.responses?.find(r => r.responderId === userId);
             if (existingResponse) {
                 return { success: false, message: 'You have already responded to this request' };
@@ -222,7 +251,7 @@ export const databaseService = {
                 responderId: userId,
                 responderName: responseData.responderName || 'Unknown',
                 responderEmail: responseData.responderEmail || '',
-                status: responseData.status, // 'accepted' or 'declined'
+                status: responseData.status, // 'accepted', 'declined', or 'not_interested'
                 message: responseData.message || '',
                 respondedAt: serverTimestamp()
             };
@@ -236,15 +265,18 @@ export const databaseService = {
             // If accepted, create meeting and update status
             if (responseData.status === 'accepted') {
                 try {
+                    console.log('🎥 Creating meeting for accepted request:', requestId);
+                    console.log('👤 Accepter:', { userId, name: responseData.responderName });
+                    
                     // Create Jitsi meeting
                     const meetingInfo = await UnifiedJitsiMeetingService.createOneToOneMeeting(
                         requestId,
-                        {
-                            ...requestData,
-                            acceptedBy: userId,
-                            acceptedByName: responseData.responderName
-                        }
+                        requestData,
+                        userId,
+                        responseData.responderName
                     );
+
+                    console.log('🎥 Meeting creation result:', meetingInfo);
 
                     if (meetingInfo.success) {
                         updateData.status = 'active';
@@ -257,9 +289,13 @@ export const databaseService = {
                         updateData.acceptedAt = serverTimestamp();
                         updateData.participants = [userId, requestData.userId];
                         updateData.participantCount = 2;
+                        
+                        console.log('✅ Meeting data added to update:', updateData);
+                    } else {
+                        console.error('❌ Meeting creation failed:', meetingInfo);
                     }
                 } catch (meetingError) {
-                    console.error('Meeting creation failed:', meetingError);
+                    console.error('❌ Meeting creation error:', meetingError);
                     // Continue with response even if meeting creation fails
                 }
             }
@@ -267,10 +303,33 @@ export const databaseService = {
             await updateDoc(requestRef, updateData);
             console.log('✅ Response submitted successfully');
 
+            // If user is not interested, add to hidden requests collection
+            if (responseData.status === 'not_interested') {
+                try {
+                    const hiddenRequestRef = doc(db, 'hiddenRequests', `${userId}_${requestId}`);
+                    await setDoc(hiddenRequestRef, {
+                        userId,
+                        requestId,
+                        hiddenAt: serverTimestamp(),
+                        requestData: {
+                            topic: requestData.topic,
+                            subject: requestData.subject,
+                            paymentAmount: requestData.paymentAmount
+                        }
+                    });
+                    console.log('✅ Request hidden for user:', userId);
+                } catch (hideError) {
+                    console.error('❌ Error hiding request:', hideError);
+                    // Continue even if hiding fails
+                }
+            }
+
             return {
                 success: true,
                 message: responseData.status === 'accepted' ? 
                     'Request accepted! Meeting has been scheduled.' : 
+                    responseData.status === 'not_interested' ?
+                    'Request hidden from your view.' :
                     'Response submitted successfully.',
                 meetingUrl: updateData.meetingUrl || null
             };
@@ -373,7 +432,7 @@ export const databaseService = {
     // ===== REQUEST RETRIEVAL =====
 
     /**
-     * Get user's requests by status
+     * Get user's requests by status (real-time with onSnapshot)
      */
     getUserRequests(userId, status = null, callback) {
         if (!userId) {
@@ -425,6 +484,55 @@ export const databaseService = {
     },
 
     /**
+     * Get user's requests by status (direct fetch, no real-time updates)
+     */
+    async getUserRequestsDirect(userId, status = null) {
+        if (!userId) {
+            return [];
+        }
+
+        try {
+            console.log('🔄 Fetching user requests directly for user:', userId, 'status:', status);
+
+            let q = query(
+                collection(db, 'requests'),
+                where('userId', '==', userId),
+                orderBy('updatedAt', 'desc')
+            );
+
+            if (status) {
+                q = query(q, where('status', '==', status));
+            }
+
+            const snapshot = await getDocs(q);
+            console.log('📥 User requests direct fetch received:', snapshot.docs.length, 'documents');
+            
+            const requests = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            return requests;
+        } catch (error) {
+            console.error('❌ Error fetching user requests directly:', error);
+            
+            // Check if it's a missing index error
+            if (error.code === 'failed-precondition') {
+                console.error('🚨 Missing Firebase composite index!');
+                console.error('🔗 Create this index:', error.message);
+                
+                // Extract the index creation URL if available
+                const indexMatch = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]+/);
+                if (indexMatch) {
+                    console.error('📋 Index creation URL:', indexMatch[0]);
+                }
+            }
+            
+            throw error;
+        }
+    },
+
+    /**
      * Get available requests for other users to respond to
      */
     getAvailableRequests(userId, callback) {
@@ -442,13 +550,32 @@ export const databaseService = {
             orderBy('createdAt', 'desc')
         );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            console.log('📥 Available requests snapshot received:', snapshot.docs.length, 'documents');
-            const requests = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            callback(requests);
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            try {
+                console.log('📥 Available requests snapshot received:', snapshot.docs.length, 'documents');
+                
+                // Get hidden requests for this user
+                const hiddenRequestIds = await this.getHiddenRequests(userId);
+                console.log('🚫 Hidden request IDs for user:', userId, hiddenRequestIds);
+                
+                const requests = snapshot.docs
+                    .map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }))
+                    .filter(request => !hiddenRequestIds.includes(request.id)); // Exclude hidden requests
+                
+                console.log('✅ Filtered requests (excluding hidden):', requests.length);
+                callback(requests);
+            } catch (error) {
+                console.error('❌ Error filtering available requests:', error);
+                // Fallback to unfiltered requests if filtering fails
+                const requests = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                callback(requests);
+            }
         }, (error) => {
             console.error('❌ Error fetching available requests:', error);
             
@@ -523,6 +650,30 @@ export const databaseService = {
         });
 
         return unsubscribe;
+    },
+
+    /**
+     * Get hidden requests for a user
+     */
+    async getHiddenRequests(userId) {
+        if (!userId) return [];
+
+        try {
+            const hiddenRequestsRef = collection(db, 'hiddenRequests');
+            const q = query(
+                hiddenRequestsRef,
+                where('userId', '==', userId)
+            );
+            
+            const snapshot = await getDocs(q);
+            const hiddenRequestIds = snapshot.docs.map(doc => doc.data().requestId);
+            
+            console.log('🔍 Hidden request IDs for user:', userId, hiddenRequestIds);
+            return hiddenRequestIds;
+        } catch (error) {
+            console.error('❌ Error fetching hidden requests:', error);
+            return [];
+        }
     },
 
     // ===== MEETING MANAGEMENT =====
