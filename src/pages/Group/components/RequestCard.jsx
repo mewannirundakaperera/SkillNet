@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  doc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-  serverTimestamp,
-  increment
-} from "firebase/firestore";
-import { db } from "@/config/firebase";
+import { groupRequestService } from "@/services/groupRequestService";
 
 const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const [loading, setLoading] = useState(false);
@@ -55,11 +47,13 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       setConferenceLink(mockLink);
 
       // Update request with conference link
-      if (db && request.id) {
-        await updateDoc(doc(db, 'requests', request.id), {
-          conferenceLink: mockLink,
-          linkGeneratedAt: serverTimestamp()
-        });
+      const result = await groupRequestService.updateGroupRequest(request.id, {
+        conferenceLink: mockLink,
+        linkGeneratedAt: new Date()
+      }, currentUserId);
+      
+      if (!result.success) {
+        console.error('❌ Conference link update failed:', result.message);
       }
     } catch (error) {
       console.error('Error generating conference link:', error);
@@ -87,17 +81,22 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      if (db && request.id) {
-        await updateDoc(doc(db, 'requests', request.id), {
-          ...editedRequest,
-          updatedAt: serverTimestamp()
-        });
+      const result = await groupRequestService.updateGroupRequest(request.id, {
+        ...editedRequest,
+        updatedAt: new Date()
+      }, currentUserId);
+      
+      if (result.success) {
+        onRequestUpdate?.(editedRequest.id, editedRequest);
+        setIsEditing(false);
+        setShowActions(false);
+      } else {
+        console.error('❌ Save failed:', result.message);
+        alert(result.message || 'Failed to save changes');
       }
-      onRequestUpdate?.(editedRequest.id, editedRequest);
-      setIsEditing(false);
-      setShowActions(false);
     } catch (error) {
       console.error('Error saving request:', error);
+      alert('Failed to save changes. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -116,20 +115,25 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       setLoading(true);
       const updateData = {
         status: newStatus,
-        updatedAt: serverTimestamp()
+        updatedAt: new Date()
       };
 
       if (reason) {
         updateData.cancellationReason = reason;
-        updateData.cancelledAt = serverTimestamp();
+        updateData.cancelledAt = new Date();
       }
 
-      if (db && request.id) {
-        await updateDoc(doc(db, 'requests', request.id), updateData);
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      
+      if (result.success) {
+        onRequestUpdate?.(request.id, { ...request, status: newStatus });
+      } else {
+        console.error('❌ Status update failed:', result.message);
+        alert(result.message || 'Failed to update status');
       }
-      onRequestUpdate?.(request.id, { ...request, status: newStatus });
     } catch (error) {
       console.error('Error updating request status:', error);
+      alert('Failed to update status. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -153,16 +157,16 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       if (hasVoted) {
         // Remove vote
         updateData = {
-          votes: arrayRemove(currentUserId),
-          voteCount: increment(-1),
-          updatedAt: serverTimestamp()
+          votes: request.votes?.filter(id => id !== currentUserId) || [],
+          voteCount: (request.voteCount || 1) - 1,
+          updatedAt: new Date()
         };
       } else {
         // Add vote
         updateData = {
-          votes: arrayUnion(currentUserId),
-          voteCount: increment(1),
-          updatedAt: serverTimestamp()
+          votes: [...(request.votes || []), currentUserId],
+          voteCount: (request.voteCount || 0) + 1,
+          updatedAt: new Date()
         };
 
         // Check if we reached 5 votes to change status
@@ -172,23 +176,27 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         }
       }
 
-      if (db && request.id) {
-        await updateDoc(doc(db, 'requests', request.id), updateData);
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      
+      if (result.success) {
+        // Update local state
+        const newVotes = updateData.votes;
+        const newVoteCount = updateData.voteCount;
+        const newStatus = updateData.status || request.status;
+
+        onRequestUpdate?.(request.id, {
+          ...request,
+          votes: newVotes,
+          voteCount: newVoteCount,
+          status: newStatus
+        });
+      } else {
+        console.error('❌ Vote failed:', result.message);
+        alert(result.message || 'Failed to process vote');
       }
-
-      // Update local state
-      const newVotes = hasVoted
-          ? request.votes?.filter(id => id !== currentUserId) || []
-          : [...(request.votes || []), currentUserId];
-
-      onRequestUpdate?.(request.id, {
-        ...request,
-        votes: newVotes,
-        voteCount: newVotes.length,
-        status: newVotes.length >= 5 && request.status === 'pending' ? 'voting_open' : request.status
-      });
     } catch (error) {
       console.error('Error handling vote:', error);
+      alert('Failed to process vote. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -206,33 +214,35 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       if (isParticipating) {
         // Cancel participation
         updateData = {
-          participants: arrayRemove(currentUserId),
-          participantCount: increment(-1),
-          updatedAt: serverTimestamp()
+          participants: request.participants?.filter(id => id !== currentUserId) || [],
+          participantCount: (request.participantCount || 1) - 1,
+          updatedAt: new Date()
         };
       } else {
         // Accept participation
         updateData = {
-          participants: arrayUnion(currentUserId),
-          participantCount: increment(1),
-          updatedAt: serverTimestamp()
+          participants: [...(request.participants || []), currentUserId],
+          participantCount: (request.participantCount || 0) + 1,
+          updatedAt: new Date()
         };
       }
 
-      if (db && request.id) {
-        await updateDoc(doc(db, 'requests', request.id), updateData);
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      
+      if (result.success) {
+        // Update local state
+        const newParticipants = updateData.participants;
+        const newParticipantCount = updateData.participantCount;
+
+        onRequestUpdate?.(request.id, {
+          ...request,
+          participants: newParticipants,
+          participantCount: newParticipantCount
+        });
+      } else {
+        console.error('❌ Participation failed:', result.message);
+        alert(result.message || 'Failed to update participation');
       }
-
-      // Update local state
-      const newParticipants = isParticipating
-          ? request.participants?.filter(id => id !== currentUserId) || []
-          : [...(request.participants || []), currentUserId];
-
-      onRequestUpdate?.(request.id, {
-        ...request,
-        participants: newParticipants,
-        participantCount: newParticipants.length
-      });
     } catch (error) {
       console.error('Error handling participation:', error);
       alert('Failed to update participation. Please try again.');
@@ -253,22 +263,21 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       if (isTeaching) {
         // Cancel teaching
         updateData = {
-          teachers: arrayRemove(currentUserId),
-          teacherCount: increment(-1),
-          updatedAt: serverTimestamp()
+          teachers: request.teachers?.filter(id => id !== currentUserId) || [],
+          teacherCount: (request.teacherCount || 1) - 1,
+          updatedAt: new Date()
         };
 
         // If no more teachers, change status back to voting_open
-        const newTeacherCount = (request.teacherCount || 1) - 1;
-        if (newTeacherCount === 0) {
+        if (updateData.teacherCount === 0) {
           updateData.status = 'voting_open';
         }
       } else {
         // Accept teaching
         updateData = {
-          teachers: arrayUnion(currentUserId),
-          teacherCount: increment(1),
-          updatedAt: serverTimestamp()
+          teachers: [...(request.teachers || []), currentUserId],
+          teacherCount: (request.teacherCount || 0) + 1,
+          updatedAt: new Date()
         };
 
         // Change status to accepted when first teacher joins (if coming from voting_open)
@@ -277,24 +286,24 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         }
       }
 
-      if (db && request.id) {
-        await updateDoc(doc(db, 'requests', request.id), updateData);
+      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      
+      if (result.success) {
+        // Update local state
+        const newTeachers = updateData.teachers;
+        const newStatus = updateData.status || request.status;
+        const newTeacherCount = updateData.teacherCount;
+
+        onRequestUpdate?.(request.id, {
+          ...request,
+          teachers: newTeachers,
+          teacherCount: newTeacherCount,
+          status: newStatus
+        });
+      } else {
+        console.error('❌ Teaching participation failed:', result.message);
+        alert(result.message || 'Failed to update teaching participation');
       }
-
-      // Update local state
-      const newTeachers = isTeaching
-          ? request.teachers?.filter(id => id !== currentUserId) || []
-          : [...(request.teachers || []), currentUserId];
-
-      const newStatus = updateData.status || request.status;
-      const newTeacherCount = newTeachers.length;
-
-      onRequestUpdate?.(request.id, {
-        ...request,
-        teachers: newTeachers,
-        teacherCount: newTeacherCount,
-        status: newStatus
-      });
     } catch (error) {
       console.error('Error handling teaching participation:', error);
       alert('Failed to update teaching participation. Please try again.');

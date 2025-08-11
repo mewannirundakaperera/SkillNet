@@ -35,6 +35,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         setPermissions({
           canVote: false,
           canParticipate: false,
+          canTeach: false,
           canPay: false,
           isLoading: false
         });
@@ -58,6 +59,13 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
           canParticipate = participateResult.canParticipate;
         }
 
+        // Check teaching permission - any group member can teach
+        let canTeach = false;
+        if (!isTeaching && ['voting_open', 'accepted'].includes(request.status)) {
+          const participateResult = await groupRequestService.canUserParticipateAsync(request, currentUserId);
+          canTeach = participateResult.canParticipate; // Use same logic as participation
+        }
+
         // Check payment permission
         let canPay = false;
         if (request.status === 'accepted' && isParticipating && !hasPaid) {
@@ -67,6 +75,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         setPermissions({
           canVote,
           canParticipate,
+          canTeach,
           canPay,
           isLoading: false
         });
@@ -76,6 +85,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         setPermissions({
           canVote: false,
           canParticipate: false,
+          canTeach: false,
           canPay: false,
           isLoading: false
         });
@@ -83,7 +93,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
     };
 
     checkPermissions();
-  }, [request, currentUserId, isOwner, hasVoted, isParticipating, hasPaid]);
+  }, [request, currentUserId, isOwner, hasVoted, isParticipating, isTeaching, hasPaid]);
 
   // Calculate time until session starts
   useEffect(() => {
@@ -266,12 +276,12 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
     if (!currentUserId || loading) return;
 
     // ✅ FIXED: Check permissions
-    if (!permissions.canParticipate && !isTeaching) {
+    if (!permissions.canTeach && !isTeaching) {
       if (permissions.isLoading) {
         alert('Please wait while we verify your permissions...');
         return;
       }
-      alert('You cannot join this request. You may not be a member of this group.');
+      alert('You cannot become a teacher. You may not be a member of this group.');
       return;
     }
 
@@ -611,7 +621,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                 </div>
 
                 {/* Want to Teach Button - Only show if not teaching, has permissions, and is not the owner */}
-                {!isTeaching && !isOwner && permissions.canParticipate && !permissions.isLoading && (
+                {!isTeaching && !isOwner && permissions.canTeach && !permissions.isLoading && (
                     <div className="mt-2">
                       <button
                           onClick={handleTeachingParticipation}
@@ -689,7 +699,7 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
                 )}
 
                 {/* Show Want to Teach button for non-teachers */}
-                {!isTeaching && currentUserId !== request.userId && currentUserId !== request.createdBy && (
+                {!isTeaching && currentUserId !== request.userId && currentUserId !== request.createdBy && permissions.canTeach && (
                   <div className="mt-2">
                     <button
                       onClick={handleTeachingParticipation}
