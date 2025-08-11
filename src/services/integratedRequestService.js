@@ -225,7 +225,11 @@ export const integratedRequestService = {
 
                             // Update metadata
                             responses: arrayUnion(responseRef.id),
-                            responseCount: (requestData.responseCount || 0) + 1,
+                            responseCount: (requestData.responseCount || 0) + 1
+                        });
+                        
+                        // Update timestamp separately to avoid arrayUnion + serverTimestamp conflict
+                        await updateDoc(requestRef, {
                             updatedAt: serverTimestamp()
                         });
 
@@ -263,7 +267,11 @@ export const integratedRequestService = {
                 // Just record the declined response, don't change request status
                 await updateDoc(requestRef, {
                     responses: arrayUnion(responseRef.id),
-                    responseCount: (requestData.responseCount || 0) + 1,
+                    responseCount: (requestData.responseCount || 0) + 1
+                });
+                
+                // Update timestamp separately to avoid arrayUnion + serverTimestamp conflict
+                await updateDoc(requestRef, {
                     updatedAt: serverTimestamp()
                 });
 
@@ -272,7 +280,11 @@ export const integratedRequestService = {
                 // Record the not_interested response and hide the request
                 await updateDoc(requestRef, {
                     responses: arrayUnion(responseRef.id),
-                    responseCount: (requestData.responseCount || 0) + 1,
+                    responseCount: (requestData.responseCount || 0) + 1
+                });
+                
+                // Update timestamp separately to avoid arrayUnion + serverTimestamp conflict
+                await updateDoc(requestRef, {
                     updatedAt: serverTimestamp()
                 });
 
@@ -301,7 +313,11 @@ export const integratedRequestService = {
             // For other statuses (pending, etc.)
             await updateDoc(requestRef, {
                 responses: arrayUnion(responseRef.id),
-                responseCount: (requestData.responseCount || 0) + 1,
+                responseCount: (requestData.responseCount || 0) + 1
+            });
+            
+            // Update timestamp separately to avoid arrayUnion + serverTimestamp conflict
+            await updateDoc(requestRef, {
                 updatedAt: serverTimestamp()
             });
 
@@ -469,24 +485,47 @@ export const integratedRequestService = {
                 orderBy('createdAt', 'desc')
             );
 
-            return onSnapshot(requestsQuery, (snapshot) => {
-                const requests = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
+            return onSnapshot(requestsQuery, async (snapshot) => {
+                try {
+                    const requests = [];
 
-                    // Additional filter to exclude already accepted requests
-                    if (!data.acceptedBy) {
-                        requests.push({
-                            id: doc.id,
-                            ...data,
-                            createdAt: data.createdAt?.toDate() || new Date(),
-                            updatedAt: data.updatedAt?.toDate() || new Date()
-                        });
-                    }
-                });
+                    // Get hidden requests for this user
+                    const hiddenRequestIds = await this.getHiddenRequests(userId);
+                    console.log('🚫 Hidden request IDs for user:', userId, hiddenRequestIds);
 
-                console.log(`✅ Found ${requests.length} available requests`);
-                callback(requests);
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+
+                        // Additional filter to exclude already accepted requests and hidden requests
+                        if (!data.acceptedBy && !hiddenRequestIds.includes(doc.id)) {
+                            requests.push({
+                                id: doc.id,
+                                ...data,
+                                createdAt: data.createdAt?.toDate() || new Date(),
+                                updatedAt: data.updatedAt?.toDate() || new Date()
+                            });
+                        }
+                    });
+
+                    console.log(`✅ Found ${requests.length} available requests (excluding hidden)`);
+                    callback(requests);
+                } catch (error) {
+                    console.error('❌ Error filtering available requests:', error);
+                    // Fallback to unfiltered requests if filtering fails
+                    const requests = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (!data.acceptedBy) {
+                            requests.push({
+                                id: doc.id,
+                                ...data,
+                                createdAt: data.createdAt?.toDate() || new Date(),
+                                updatedAt: data.updatedAt?.toDate() || new Date()
+                            });
+                        }
+                    });
+                    callback(requests);
+                }
             }, (error) => {
                 console.error('❌ Error fetching available requests:', error);
                 callback([]);

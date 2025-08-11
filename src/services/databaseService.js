@@ -234,32 +234,47 @@ export const databaseService = {
                 return { success: false, message: 'You cannot respond to your own request' };
             }
 
-            // Check if user already responded
-            console.log('🔍 Existing response check:', { 
-                hasResponses: !!requestData.responses,
-                responseCount: requestData.responses?.length || 0,
-                existingResponse: requestData.responses?.find(r => r.responderId === userId)
-            });
-            
-            const existingResponse = requestData.responses?.find(r => r.responderId === userId);
-            if (existingResponse) {
-                return { success: false, message: 'You have already responded to this request' };
+            // Check if user already responded by checking the requestResponses collection
+            try {
+                const responsesRef = collection(db, 'requestResponses');
+                const existingResponseQuery = query(
+                    responsesRef,
+                    where('requestId', '==', requestId),
+                    where('responderId', '==', userId)
+                );
+                const existingResponseSnapshot = await getDocs(existingResponseQuery);
+                
+                console.log('🔍 Existing response check:', { 
+                    hasResponses: !existingResponseSnapshot.empty,
+                    responseCount: existingResponseSnapshot.size
+                });
+                
+                if (!existingResponseSnapshot.empty) {
+                    return { success: false, message: 'You have already responded to this request' };
+                }
+            } catch (checkError) {
+                console.warn('⚠️ Could not check existing responses, continuing:', checkError);
             }
 
+            // Create response record in separate collection
             const response = {
-                id: `${userId}-${Date.now()}`,
+                requestId,
                 responderId: userId,
                 responderName: responseData.responderName || 'Unknown',
                 responderEmail: responseData.responderEmail || '',
                 status: responseData.status, // 'accepted', 'declined', or 'not_interested'
                 message: responseData.message || '',
-                respondedAt: serverTimestamp()
+                requestOwnerId: requestData.userId || requestData.createdBy, // Add request owner ID for permissions
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
             };
 
+            const responseRef = await addDoc(collection(db, 'requestResponses'), response);
+            console.log('✅ Response record created:', responseRef.id);
+
             const updateData = {
-                responses: arrayUnion(response),
-                responseCount: increment(1),
-                updatedAt: serverTimestamp()
+                responses: arrayUnion(responseRef.id), // Store only the response ID
+                responseCount: increment(1)
             };
 
             // If accepted, create meeting and update status
@@ -301,6 +316,12 @@ export const databaseService = {
             }
 
             await updateDoc(requestRef, updateData);
+            
+            // Update timestamp separately to avoid arrayUnion + serverTimestamp conflict
+            await updateDoc(requestRef, {
+                updatedAt: serverTimestamp()
+            });
+            
             console.log('✅ Response submitted successfully');
 
             // If user is not interested, add to hidden requests collection
@@ -611,45 +632,69 @@ export const databaseService = {
 
         console.log('🔄 Setting up user responses listener for user:', userId);
 
-        let q = query(
-            collection(db, 'requests'),
-            where('responses', 'array-contains', { responderId: userId }),
-            orderBy('updatedAt', 'desc')
-        );
+        try {
+            const responsesRef = collection(db, 'requestResponses');
+            let responsesQuery;
 
-        if (status) {
-            q = query(q, where('status', '==', status));
-        }
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            console.log('📥 User responses snapshot received:', snapshot.docs.length, 'documents');
-            const requests = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            callback(requests);
-        }, (error) => {
-            console.error('❌ Error fetching user responses:', error);
-            
-            // Check if it's a missing index error
-            if (error.code === 'failed-precondition') {
-                console.error('🚨 Missing Firebase composite index!');
-                console.error('🔗 Create this index:', error.message);
-                
-                // Extract the index creation URL if available
-                const indexMatch = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]+/);
-                if (indexMatch) {
-                    console.error('📋 Index creation URL:', indexMatch[0]);
-                }
-                
-                // Call callback with error info so component can handle it
-                callback([], { error: 'missing_index', details: error.message });
+            if (status) {
+                responsesQuery = query(
+                    responsesRef,
+                    where('responderId', '==', userId),
+                    where('status', '==', status),
+                    orderBy('createdAt', 'desc')
+                );
             } else {
-                callback([], { error: 'general', details: error.message });
+                responsesQuery = query(
+                    responsesRef,
+                    where('responderId', '==', userId),
+                    orderBy('createdAt', 'desc')
+                );
             }
-        });
 
-        return unsubscribe;
+            return onSnapshot(responsesQuery, async (snapshot) => {
+                const responses = [];
+
+                for (const doc of snapshot.docs) {
+                    const responseData = doc.data();
+
+                    // Get the original request data
+                    try {
+                        const requestRef = doc(db, 'requests', responseData.requestId);
+                        const requestSnap = await getDoc(requestRef);
+
+                        if (requestSnap.exists()) {
+                            const requestData = requestSnap.data();
+
+                            responses.push({
+                                id: doc.id,
+                                ...responseData,
+                                requestData: {
+                                    id: requestSnap.id,
+                                    ...requestData
+                                },
+                                createdAt: responseData.createdAt?.toDate() || new Date()
+                            });
+                        }
+                    } catch (requestError) {
+                        console.warn('Could not load request data for response:', doc.id);
+                        responses.push({
+                            id: doc.id,
+                            ...responseData,
+                            createdAt: responseData.createdAt?.toDate() || new Date()
+                        });
+                    }
+                }
+
+                console.log(`✅ Found ${responses.length} responses`);
+                callback(responses);
+            }, (error) => {
+                console.error('❌ Error fetching responses:', error);
+                callback([]);
+            });
+        } catch (error) {
+            console.error('❌ Error setting up responses listener:', error);
+            callback([]);
+        }
     },
 
     /**
@@ -672,6 +717,35 @@ export const databaseService = {
             return hiddenRequestIds;
         } catch (error) {
             console.error('❌ Error fetching hidden requests:', error);
+            return [];
+        }
+    },
+
+    /**
+     * Get responses for a specific request
+     */
+    async getRequestResponses(requestId) {
+        if (!requestId) return [];
+
+        try {
+            const responsesRef = collection(db, 'requestResponses');
+            const q = query(
+                responsesRef,
+                where('requestId', '==', requestId),
+                orderBy('createdAt', 'desc')
+            );
+            
+            const snapshot = await getDocs(q);
+            const responses = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate() || new Date()
+            }));
+            
+            console.log('🔍 Responses for request:', requestId, responses.length);
+            return responses;
+        } catch (error) {
+            console.error('❌ Error fetching request responses:', error);
             return [];
         }
     },

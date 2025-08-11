@@ -37,6 +37,7 @@ import AllGroupRequests from "./pages/Group/AllGroupRequests";
 import JitsiMeeting from '@/components/Meeting/JitsiMeeting';
 import TestJitsiPage from './pages/TestJitsiPage';
 import HelpAndSupport from './pages/HelpAndSupport';
+import DatabaseTestToolComponent from './components/DatabaseTestTool';
 
 // Import the updated layout system
 import RequestLayout, { SimpleLayout, FullWidthLayout, ProfileLayout } from "@/components/Layouts/RequestLayout";
@@ -629,6 +630,16 @@ const AppRoutes = () => {
             <Route path="/help" element={<Navigate to="/help-and-support" replace />} />
             <Route path="/groups/list" element={<Navigate to="/groups" replace />} />
             <Route path="/groups/browse" element={<Navigate to="/groups/discover" replace />} />
+
+            {/* ===== DATABASE TEST TOOL (for debugging) ===== */}
+            <Route
+                path="/database-test"
+                element={
+                    <ProtectedRoute>
+                        <DatabaseTestToolComponent />
+                    </ProtectedRoute>
+                }
+            />
 
             {/* 404 Route - must be last */}
             <Route path="*" element={<NotFound />} />

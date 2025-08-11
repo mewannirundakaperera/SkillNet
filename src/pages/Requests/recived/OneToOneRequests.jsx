@@ -348,6 +348,13 @@ const OneToOneRequests = () => {
       return;
     }
 
+    // Check if request is already accepted by someone else
+    const currentRequest = requests.find(req => req.id === requestId);
+    if (currentRequest && currentRequest.status === 'active') {
+      alert('This request has already been accepted by another user.');
+      return;
+    }
+
     console.log('🔍 handleResponse called:', { requestId, status, message, userId: user.id });
 
     setResponseLoading(prev => ({ ...prev, [requestId]: status }));
@@ -379,24 +386,29 @@ const OneToOneRequests = () => {
           }
         }
 
-        // If not interested, remove the request from the list
-        if (status === 'not_interested') {
-          setRequests(prevRequests =>
-              prevRequests.filter(req => req.id !== requestId)
-          );
-          // Also remove from selected if it was selected
-          if (selected && selected.id === requestId) {
-            setSelected(null);
-          }
-        } else {
-          // Update the request in the list to show it's been responded to
-          setRequests(prevRequests =>
-              prevRequests.map(req =>
-                  req.id === requestId
-                      ? { ...req, hasResponded: true, responseStatus: status }
-                      : req
-              )
-          );
+        // Update the request in the list to show it's been responded to
+        setRequests(prevRequests =>
+            prevRequests.map(req =>
+                req.id === requestId
+                    ? { 
+                        ...req, 
+                        hasResponded: true, 
+                        responseStatus: status,
+                        // If accepted, also update status to 'active' to disable button
+                        status: status === 'accepted' ? 'active' : req.status
+                      }
+                    : req
+            )
+        );
+
+        // Also update the selected request if it's the same one
+        if (selected && selected.id === requestId) {
+            setSelected(prev => ({
+                ...prev,
+                hasResponded: true,
+                responseStatus: status,
+                status: status === 'accepted' ? 'active' : prev.status
+            }));
         }
       } else {
         alert(result.message);
@@ -760,6 +772,11 @@ const OneToOneRequests = () => {
                                   </h3>
                                   <div className="flex items-center gap-2">
                                       {getStatusBadge(req.status)}
+                                      {req.status === 'active' && (
+                                          <span className="bg-blue-900 text-blue-300 text-xs px-2 py-1 rounded border border-blue-700">
+                                              🎯 Accepted
+                                          </span>
+                                      )}
                                       {req.paymentAmount && (
                                           <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded border border-green-700">
                                               {req.currency || 'Rs.'}{req.paymentAmount}
@@ -790,6 +807,12 @@ const OneToOneRequests = () => {
                                       <span>👤 {req.userName}</span>
                                       <span>•</span>
                                       <span>{formatTimeAgo(req.createdAt)}</span>
+                                      {req.hasResponded && (
+                                          <span className="bg-[#2D3748] text-[#4299E1] px-2 py-1 rounded text-xs border border-[#4A5568]">
+                                              {req.responseStatus === 'accepted' ? '✅ Accepted' : 
+                                               req.responseStatus === 'declined' ? '❌ Declined' : '⏳ Pending'}
+                                          </span>
+                                      )}
                                   </div>
                                   {req.tags && req.tags.length > 0 && (
                                       <div className="flex gap-1">
@@ -912,15 +935,8 @@ const OneToOneRequests = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  {!selected.hasResponded ? (
+                  {!selected.hasResponded && selected.status !== 'active' ? (
                       <div className="flex gap-2 mt-4">
-                        <button
-                            onClick={() => handleResponse(selected.id, 'not_interested', 'Not interested at this time')}
-                            disabled={responseLoading[selected.id] === 'not_interested'}
-                            className="bg-red-900 text-red-300 rounded px-4 py-2 font-medium text-sm hover:bg-red-800 transition-colors disabled:opacity-50"
-                        >
-                          {responseLoading[selected.id] === 'not_interested' ? 'Hiding...' : 'Not Interested'}
-                        </button>
                         <button
                             onClick={() => handleResponse(selected.id, 'accepted', 'I would like to help with this request')}
                             disabled={responseLoading[selected.id] === 'accepted'}
@@ -931,22 +947,22 @@ const OneToOneRequests = () => {
                       </div>
                   ) : (
                       <div className={`rounded px-4 py-2 text-sm text-center mt-4 flex items-center justify-center gap-2 border ${
-                          selected.responseStatus === 'accepted'
-                              ? 'bg-green-900 text-green-300 border-green-700'
-                              : selected.responseStatus === 'not_interested'
-                                  ? 'bg-gray-700 text-gray-300 border-gray-600'
+                          selected.status === 'active' 
+                              ? 'bg-blue-900 text-blue-300 border-blue-700'
+                              : selected.responseStatus === 'accepted'
+                                  ? 'bg-green-900 text-green-300 border-green-700'
                                   : selected.responseStatus === 'declined'
                                       ? 'bg-red-900 text-red-300 border-red-700'
                                       : 'bg-[#2D3748] text-[#4299E1] border-[#4A5568]'
                       }`}>
                                     <span>
-                                        {selected.responseStatus === 'accepted' ? '✅' :
-                                            selected.responseStatus === 'not_interested' ? '🚫' :
+                                        {selected.status === 'active' ? '🎯' :
+                                            selected.responseStatus === 'accepted' ? '✅' :
                                             selected.responseStatus === 'declined' ? '❌' : '⏳'}
                                     </span>
                         <span>
-                                        {selected.responseStatus === 'accepted' ? 'Request Accepted' :
-                                            selected.responseStatus === 'not_interested' ? 'Request Hidden' :
+                                        {selected.status === 'active' ? 'Request Already Accepted' :
+                                            selected.responseStatus === 'accepted' ? 'Request Accepted' :
                                             selected.responseStatus === 'declined' ? 'Request Declined' : 'Response Pending'}
                                     </span>
                       </div>

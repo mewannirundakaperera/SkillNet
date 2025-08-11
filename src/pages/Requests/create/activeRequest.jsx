@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useActiveRequests } from '@/hooks/useRequests';
 import integratedRequestService from '@/services/integratedRequestService';
+import databaseService from '@/services/databaseService';
 
 const ActiveRequests = () => {
     const { requests, stats, loading, error } = useActiveRequests();
     const [actionLoading, setActionLoading] = useState({});
+    const [requestResponses, setRequestResponses] = useState({});
+    const [loadingResponses, setLoadingResponses] = useState({});
 
     // Handle request actions for active requests
     const handleCompleteRequest = async (requestId, requestType) => {
@@ -63,6 +66,22 @@ const ActiveRequests = () => {
         }
     };
 
+    // Fetch response details for a specific request
+    const fetchRequestResponses = async (requestId) => {
+        if (requestResponses[requestId] || loadingResponses[requestId]) return;
+
+        setLoadingResponses(prev => ({ ...prev, [requestId]: true }));
+        
+        try {
+            const responses = await databaseService.getRequestResponses(requestId);
+            setRequestResponses(prev => ({ ...prev, [requestId]: responses }));
+        } catch (error) {
+            console.error('Error fetching request responses:', error);
+        } finally {
+            setLoadingResponses(prev => ({ ...prev, [requestId]: false }));
+        }
+    };
+
     // Utility functions
     const formatDate = (date) => {
         if (!date) return 'Not set';
@@ -95,6 +114,17 @@ const ActiveRequests = () => {
     const getStatusIcon = () => {
         return '🔵';
     };
+
+    // Fetch response details for active requests
+    useEffect(() => {
+        if (requests.length > 0) {
+            requests.forEach(request => {
+                if (request.acceptedBy) {
+                    fetchRequestResponses(request.id);
+                }
+            });
+        }
+    }, [requests]);
 
     if (loading) {
         return (
@@ -157,31 +187,37 @@ const ActiveRequests = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-6 gap-4 mb-8">
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
                     <div className="text-lg font-bold text-blue-400">{requests.length}</div>
                     <div className="text-slate-300 text-sm">Active Requests</div>
                 </div>
                 <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
                     <div className="text-lg font-bold text-green-400">
+                        {requests.filter(r => r.acceptedBy).length}
+                    </div>
+                    <div className="text-slate-300 text-sm">Accepted Requests</div>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+                    <div className="text-lg font-bold text-purple-400">
                         {requests.filter(r => r.meetingUrl).length}
                     </div>
                     <div className="text-slate-300 text-sm">With Meetings</div>
                 </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-400">
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
+                    <div className="text-lg font-bold text-orange-400">
                         {requests.filter(r => r.participantCount > 0).length}
                     </div>
                     <div className="text-slate-300 text-sm">With Participants</div>
                 </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
-                    <div className="text-lg font-bold text-orange-400">
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-teal-500">
+                    <div className="text-lg font-bold text-teal-400">
                         {requests.filter(r => r.paymentAmount && parseFloat(r.paymentAmount) > 0).length}
                     </div>
                     <div className="text-slate-300 text-sm">Paid Sessions</div>
                 </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-teal-500">
-                    <div className="text-lg font-bold text-teal-400">
+                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-indigo-500">
+                    <div className="text-lg font-bold text-indigo-400">
                         {requests.filter(r => r.acceptedAt && new Date() - r.acceptedAt < 24 * 60 * 60 * 1000).length}
                     </div>
                     <div className="text-slate-300 text-sm">Accepted Today</div>
@@ -232,6 +268,25 @@ const ActiveRequests = () => {
                                                 <span className="text-green-400">✅ Accepted by {request.acceptedByName}</span>
                                             )}
                                         </div>
+                                        
+                                        {/* Acceptance Status */}
+                                        {request.acceptedBy && (
+                                            <div className="flex items-center gap-2 text-sm text-green-400 mb-3">
+                                                <span>🎯 Status: Active (Accepted)</span>
+                                                {request.acceptedAt && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span>Accepted {formatTimeAgo(request.acceptedAt)}</span>
+                                                    </>
+                                                )}
+                                                {request.meetingStatus && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span>Meeting: {request.meetingStatus}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {request.tags && request.tags.length > 0 && (
                                             <div className="flex gap-2 mb-3">
@@ -263,6 +318,95 @@ const ActiveRequests = () => {
                                                 </div>
                                             </div>
                                         </div>
+
+                                                                                {/* Accepter Details */}
+                                        {request.acceptedBy && (
+                                            <div className="bg-green-900 rounded-lg p-3 mb-3 border border-green-700">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-green-300 text-lg">✅</span>
+                                                    <div className="flex-1">
+                                                        <div className="font-medium text-green-200 mb-2">Accepter Information</div>
+                                                        <div className="text-green-100 text-sm space-y-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-medium">Name:</span>
+                                                                <span>{request.acceptedByName || 'Unknown'}</span>
+                                                            </div>
+                                                            {request.acceptedAt && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-medium">Accepted:</span>
+                                                                <span>{formatTimeAgo(request.acceptedAt)}</span>
+                                                            </div>
+                                                            )}
+                                                            {request.meetingId && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-medium">Meeting ID:</span>
+                                                                    <span className="font-mono text-xs">{request.meetingId}</span>
+                                                                </div>
+                                                            )}
+                                                            {request.roomId && (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-medium">Room ID:</span>
+                                                                    <span className="font-mono text-xs">{request.roomId}</span>
+                                                                </div>
+                                                            )}
+                                                            {/* Show accepter's response message if available */}
+                                                            {requestResponses[request.id] && requestResponses[request.id].length > 0 && (
+                                                                requestResponses[request.id].find(r => r.status === 'accepted')?.message && (
+                                                                    <div className="flex items-start gap-2 mt-2 pt-2 border-t border-green-600">
+                                                                        <span className="font-medium">Message:</span>
+                                                                        <span className="italic">"{requestResponses[request.id].find(r => r.status === 'accepted')?.message}"</span>
+                                                                    </div>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Response Details */}
+                                        {request.acceptedBy && (
+                                            <div className="bg-purple-900 rounded-lg p-3 mb-3 border border-purple-700">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-purple-300 text-lg">💬</span>
+                                                    <div className="flex-1">
+                                                        <div className="font-medium text-purple-200 mb-2">Response Details</div>
+                                                        {loadingResponses[request.id] ? (
+                                                            <div className="text-purple-100 text-sm">Loading response details...</div>
+                                                        ) : requestResponses[request.id] && requestResponses[request.id].length > 0 ? (
+                                                            <div className="text-purple-100 text-sm space-y-2">
+                                                                {requestResponses[request.id].map((response, index) => (
+                                                                    <div key={response.id} className="border-l-2 border-purple-500 pl-3">
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <span className="font-medium">Status:</span>
+                                                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                                                response.status === 'accepted' 
+                                                                                    ? 'bg-green-900 text-green-300' 
+                                                                                    : 'bg-red-900 text-red-300'
+                                                                            }`}>
+                                                                                {response.status}
+                                                                            </span>
+                                                                        </div>
+                                                                        {response.message && (
+                                                                            <div className="flex items-center gap-2 mb-1">
+                                                                                <span className="font-medium">Message:</span>
+                                                                                <span>{response.message}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="flex items-center gap-2 text-xs text-purple-300">
+                                                                            <span>Responded:</span>
+                                                                            <span>{formatTimeAgo(response.createdAt)}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-purple-100 text-sm">No response details available</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="text-xs text-slate-500">
                                             Created {formatTimeAgo(request.createdAt)}
@@ -354,23 +498,33 @@ const ActiveRequests = () => {
             {requests.length > 0 && (
                 <div className="mt-8 bg-gradient-to-r from-blue-900 to-green-900 rounded-lg p-6">
                     <h3 className="font-semibold text-white mb-4">🎯 Active Session Management</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                         <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-green-400">{requests.filter(r => r.meetingUrl).length}</div>
+                            <div className="text-2xl font-bold text-green-400">{requests.filter(r => r.acceptedBy).length}</div>
+                            <div className="text-sm text-slate-300">Accepted Requests</div>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-emerald-400">
+                                {requests.filter(r => r.acceptedBy).map(r => r.acceptedByName).filter((name, index, arr) => arr.indexOf(name) === index).length}
+                            </div>
+                            <div className="text-sm text-slate-300">Unique Acceptees</div>
+                        </div>
+                        <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
+                            <div className="text-2xl font-bold text-blue-400">{requests.filter(r => r.meetingUrl).length}</div>
                             <div className="text-sm text-slate-300">Ready for Meetings</div>
                         </div>
                         <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-blue-400">{requests.filter(r => r.participantCount > 0).length}</div>
+                            <div className="text-2xl font-bold text-purple-400">{requests.filter(r => r.participantCount > 0).length}</div>
                             <div className="text-sm text-slate-300">Active Participants</div>
                         </div>
                         <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-purple-400">
+                            <div className="text-2xl font-bold text-orange-400">
                                 {requests.reduce((sum, r) => sum + (parseFloat(r.paymentAmount) || 0), 0).toFixed(0)}
                             </div>
-                                                         <div className="text-sm text-slate-300">Total Value (Rs.)</div>
+                            <div className="text-sm text-slate-300">Total Value (Rs.)</div>
                         </div>
                         <div className="text-center p-4 bg-slate-800 rounded-lg shadow-sm">
-                            <div className="text-2xl font-bold text-orange-400">
+                            <div className="text-2xl font-bold text-teal-400">
                                 {requests.reduce((sum, r) => sum + (parseInt(r.duration) || 60), 0)}
                             </div>
                             <div className="text-sm text-slate-300">Total Minutes</div>
@@ -382,6 +536,7 @@ const ActiveRequests = () => {
                         <div className="text-sm text-slate-300">
                             <strong className="text-white">💡 Quick Tips:</strong>
                             <div className="mt-2 space-y-1">
+                                <div>• View accepter details and response messages in each request card</div>
                                 <div>• Click "Join Meeting" to start your session when ready</div>
                                 <div>• Use "Message" to communicate with participants before/during sessions</div>
                                 <div>• Complete sessions when finished to help track your progress</div>
