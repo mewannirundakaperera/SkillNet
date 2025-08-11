@@ -331,11 +331,13 @@ export const groupRequestService = {
                 responses: [],
                 votes: [],
                 participants: [],
+                teachers: [],
                 paidParticipants: [],
 
                 // Counters
                 voteCount: 0,
                 participantCount: 0,
+                teacherCount: 0,
                 totalPaid: 0,
                 viewCount: 0,
 
@@ -408,20 +410,22 @@ export const groupRequestService = {
                 userId: requestData.userId
             });
 
-            // ✅ NEW: Check if this is a voting/participation/payment update
+            // ✅ NEW: Check if this is a voting/participation/payment/teaching update
             const isVotingUpdate = updateData.votes !== undefined || updateData.voteCount !== undefined;
             const isParticipationUpdate = updateData.participants !== undefined || updateData.participantCount !== undefined;
             const isPaymentUpdate = updateData.paidParticipants !== undefined || updateData.totalPaid !== undefined;
+            const isTeachingUpdate = updateData.teachers !== undefined || updateData.teacherCount !== undefined;
 
             console.log('🔍 Update type detection:', {
                 isVotingUpdate,
                 isParticipationUpdate,
                 isPaymentUpdate,
+                isTeachingUpdate,
                 updateDataKeys: Object.keys(updateData)
             });
 
-            // ✅ NEW: Allow group members to vote, participate, and pay
-            if (isVotingUpdate || isParticipationUpdate || isPaymentUpdate) {
+            // ✅ NEW: Allow group members to vote, participate, pay, and teach
+            if (isVotingUpdate || isParticipationUpdate || isPaymentUpdate || isTeachingUpdate) {
                 console.log('📊 Processing group member action - verifying group membership...');
 
                 // Verify user is a group member for voting/participation operations
@@ -471,6 +475,16 @@ export const groupRequestService = {
                         console.log('✅ Participation validation passed for user:', userId);
                     }
 
+                    // Additional business logic checks for teaching
+                    if (isTeachingUpdate) {
+                        // Check if request is in correct status for teaching
+                        if (!['voting_open', 'accepted'].includes(requestData.status)) {
+                            return { success: false, message: 'Teaching is not allowed in current request status' };
+                        }
+
+                        console.log('✅ Teaching validation passed for user:', userId);
+                    }
+
                     // Additional business logic checks for payment
                     if (isPaymentUpdate) {
                         // Check if user is a participant
@@ -505,6 +519,18 @@ export const groupRequestService = {
                 ...updateData,
                 updatedAt: serverTimestamp(),
             };
+
+            // ✅ NEW: Ensure required fields exist for teaching updates
+            if (isTeachingUpdate) {
+                // Check if teachers array exists, if not initialize it
+                if (!requestData.teachers) {
+                    finalUpdateData.teachers = finalUpdateData.teachers || [];
+                }
+                // Check if teacherCount exists, if not initialize it
+                if (requestData.teacherCount === undefined) {
+                    finalUpdateData.teacherCount = finalUpdateData.teacherCount || 0;
+                }
+            }
 
             console.log('📝 Final update data:', Object.keys(finalUpdateData));
 
@@ -1200,6 +1226,44 @@ export const groupRequestService = {
         } catch (error) {
             console.error('Error checking participation permission:', error);
             return { canParticipate: false, reason: 'Error verifying group membership' };
+        }
+    },
+
+    /**
+     * Check if user can teach
+     */
+    canUserTeach(request, userId) {
+        if (!userId || !request) return false;
+
+        // Can only teach in voting_open or accepted states
+        return ['voting_open', 'accepted'].includes(request.status);
+    },
+
+    /**
+     * Check if user can teach (with async group membership verification)
+     */
+    async canUserTeachAsync(request, userId) {
+        if (!this.canUserTeach(request, userId)) {
+            return { canTeach: false, reason: 'Basic teaching criteria not met' };
+        }
+
+        try {
+            // Verify user is a member of the target group
+            const userGroups = await this.getUserGroups(userId);
+            const targetGroupId = request.targetGroupId || request.groupId;
+
+            if (!targetGroupId) {
+                return { canTeach: false, reason: 'Request has no associated group' };
+            }
+
+            if (!userGroups.includes(targetGroupId)) {
+                return { canTeach: false, reason: 'You must be a member of this group to teach' };
+            }
+
+            return { canTeach: true, reason: 'Teaching allowed' };
+        } catch (error) {
+            console.error('Error checking teaching permission:', error);
+            return { canTeach: false, reason: 'Error verifying group membership' };
         }
     },
 

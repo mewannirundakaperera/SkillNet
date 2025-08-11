@@ -84,6 +84,13 @@ service cloud.firestore {
              changedFields.hasOnly(['participants', 'participantCount', 'updatedAt', 'status']);
     }
 
+    // Check if this is a teaching update
+    function isTeachingUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['teachers', 'teacherCount']) && 
+             changedFields.hasOnly(['teachers', 'teacherCount', 'updatedAt', 'status']);
+    }
+
     // Check if this is a payment update
     function isPaymentUpdate() {
       let changedFields = request.resource.data.diff(resource.data).affectedKeys();
@@ -140,8 +147,26 @@ service cloud.firestore {
       
       // Removing participation: user in old participants, user not in new participants, size decreased by 1
       let leaving = (request.auth.uid in oldParticipants) && 
-                    !(request.auth.uid in newParticipants) && 
+                    !(request.auth.uid in oldParticipants) && 
                     newParticipants.size() == oldParticipants.size() - 1;
+      
+      return joining || leaving;
+    }
+
+    // Validate that teaching changes are legitimate (user adding/removing themselves)
+    function isValidTeachingChange() {
+      let oldTeachers = resource.data.teachers != null ? resource.data.teachers : [];
+      let newTeachers = request.resource.data.teachers != null ? request.resource.data.teachers : [];
+      
+      // Adding teaching: user not in old teachers, user in new teachers, size increased by 1
+      let joining = !(request.auth.uid in oldTeachers) && 
+                    (request.auth.uid in newTeachers) && 
+                    newTeachers.size() == oldTeachers.size() + 1;
+      
+      // Removing teaching: user in old teachers, user not in new teachers, size decreased by 1
+      let leaving = (request.auth.uid in oldTeachers) && 
+                    !(request.auth.uid in newTeachers) && 
+                    newTeachers.size() == oldTeachers.size() - 1;
       
       return joining || leaving;
     }
@@ -286,14 +311,20 @@ service cloud.firestore {
          isTargetGroupMember(getTargetGroupId()) && 
          isValidParticipationChange()) ||
         
-        // 4. PAYMENT UPDATES - Only participants can make payments
+        // 4. TEACHING UPDATES - Group members can become/leave teachers (including owners)
+        (isTeachingUpdate() && 
+         getTargetGroupId() != null && 
+         isTargetGroupMember(getTargetGroupId()) && 
+         isValidTeachingChange()) ||
+        
+        // 5. PAYMENT UPDATES - Only participants can make payments
         (isPaymentUpdate() && 
          request.auth.uid in resource.data.participants) ||
         
-        // 5. ADMIN OVERRIDE - Admins can update anything
+        // 6. ADMIN OVERRIDE - Admins can update anything
         isAdmin() ||
         
-        // 6. STATUS TRANSITIONS - Allow automatic status updates for relevant users
+        // 7. STATUS TRANSITIONS - Allow automatic status updates for relevant users
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'scheduledDateTime', 'conferenceLink']) &&
          (isRequestOwner() || request.auth.uid in resource.data.participants || isAdmin()))
       );

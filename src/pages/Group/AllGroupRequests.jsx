@@ -62,8 +62,8 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
         // Check teaching permission - any group member can teach
         let canTeach = false;
         if (!isTeaching && ['voting_open', 'accepted'].includes(request.status)) {
-          const participateResult = await groupRequestService.canUserParticipateAsync(request, currentUserId);
-          canTeach = participateResult.canParticipate; // Use same logic as participation
+          const teachResult = await groupRequestService.canUserTeachAsync(request, currentUserId);
+          canTeach = teachResult.canTeach;
         }
 
         // Check payment permission
