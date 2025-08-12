@@ -1,0 +1,90 @@
+// Add this to your grouprequests rules
+allow update: if isAuthenticated() && (
+  // ... existing rules ...
+  
+  // 7. STATUS TRANSITIONS - Allow workflow status changes
+  (request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'selectedTeacher', 'paymentDeadline', 'paymentDeadlineHours', 'meetingLink', 'meetingGeneratedAt', 'fundingExpiredAt']) &&
+   (isRequestOwner() || 
+    request.auth.uid in resource.data.participants || 
+    request.auth.uid in resource.data.teachers ||
+    request.auth.uid == resource.data.selectedTeacher ||
+    isAdmin())) ||
+  
+  // 8. TEACHER SELECTION - Allow teacher selection updates
+  (request.resource.data.diff(resource.data).affectedKeys().hasAny(['selectedTeacher', 'paymentDeadline', 'paymentDeadlineHours']) &&
+   isRequestOwner()) ||
+  
+  // 9. MEETING UPDATES - Allow meeting link generation
+  (request.resource.data.diff(resource.data).affectedKeys().hasAny(['meetingLink', 'meetingGeneratedAt']) &&
+   request.auth.uid == resource.data.selectedTeacher) ||
+  
+  // 10. AUTO-TRANSITIONS - Allow automatic status updates
+  (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'fundingExpiredAt']) &&
+   (isRequestOwner() || 
+    request.auth.uid in resource.data.participants || 
+    request.auth.uid in resource.data.teachers ||
+    isAdmin()))
+);
+
+// Add these helper functions
+function isTeacherSelectionUpdate() {
+  let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+  return changedFields.hasAny(['selectedTeacher', 'paymentDeadline', 'paymentDeadlineHours']) && 
+         changedFields.hasOnly(['selectedTeacher', 'paymentDeadline', 'paymentDeadlineHours', 'status', 'updatedAt', 'teachers', 'teacherCount']);
+}
+
+function isMeetingUpdate() {
+  let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+  return changedFields.hasAny(['meetingLink', 'meetingGeneratedAt']) && 
+         changedFields.hasOnly(['meetingLink', 'meetingGeneratedAt', 'status', 'updatedAt']);
+}
+
+function isAutoStatusTransition() {
+  let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+  return changedFields.hasOnly(['status', 'updatedAt', 'fundingExpiredAt']) &&
+         (request.resource.data.status in ['voting_open', 'accepted', 'funding', 'paid', 'live', 'complete']);
+}
+
+allow update: if isAuthenticated() && (
+  // 1. CONTENT UPDATES (title, description, status changes) - Only owners and admins
+  (isContentUpdate() && (isRequestOwner() || isAdmin())) ||
+  
+  // 2. VOTING UPDATES - Group members can vote (except on their own requests)
+  (isVotingUpdate() && 
+   !isRequestOwner() && 
+   getTargetGroupId() != null && 
+   isTargetGroupMember(getTargetGroupId()) && 
+   isValidVoteChange()) ||
+  
+  // 3. PARTICIPATION UPDATES - Group members can join/leave (including owners)
+  (isParticipationUpdate() && 
+   getTargetGroupId() != null && 
+   isTargetGroupMember(getTargetGroupId()) && 
+   isValidParticipationChange()) ||
+  
+  // 4. TEACHING UPDATES - Group members can become teachers
+  (isTeachingUpdate() && 
+   getTargetGroupId() != null && 
+   isTargetGroupMember(getTargetGroupId()) && 
+   isValidTeachingChange()) ||
+  
+  // 5. TEACHER SELECTION - Owners can select teachers
+  (isTeacherSelectionUpdate() && isRequestOwner()) ||
+  
+  // 6. MEETING UPDATES - Selected teachers can generate meeting links
+  (isMeetingUpdate() && request.auth.uid == resource.data.selectedTeacher) ||
+  
+  // 7. PAYMENT UPDATES - Only participants can make payments
+  (isPaymentUpdate() && 
+   request.auth.uid in resource.data.participants) ||
+  
+  // 8. AUTO-TRANSITIONS - Allow automatic status updates
+  (isAutoStatusTransition() && 
+   (isRequestOwner() || 
+    request.auth.uid in resource.data.participants || 
+    request.auth.uid in resource.data.teachers ||
+    isAdmin())) ||
+  
+  // 9. ADMIN OVERRIDE - Admins can update anything
+  isAdmin()
+);
