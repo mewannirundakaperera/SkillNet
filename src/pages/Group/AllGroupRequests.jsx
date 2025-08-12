@@ -4,71 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { groupRequestService } from "@/services/groupRequestService";
 import { collection, getDocs, limit, query, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/config/firebase";
+import RequestCard from "./components/RequestCard";
 
-// Payment Countdown Timer Component
-const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUserId }) => {
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
-  const [isExpired, setIsExpired] = useState(false);
-
-  useEffect(() => {
-    const calculateTimeLeft = async () => {
-      const now = new Date().getTime();
-      const deadlineTime = new Date(deadline).getTime();
-      const difference = deadlineTime - now;
-
-      if (difference > 0) {
-        const hours = Math.floor(difference / (1000 * 60 * 60));
-        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-        
-        setTimeLeft({ hours, minutes, seconds });
-        setIsExpired(false);
-      } else {
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
-        setIsExpired(true);
-        
-        // Auto-transition to 'paid' state when timer expires
-        if (onRequestUpdate && requestId) {
-          try {
-            const result = await groupRequestService.updateGroupRequest(requestId, {
-              status: 'paid',
-              updatedAt: new Date(),
-              paymentExpiredAt: new Date()
-            }, currentUserId);
-            
-            if (result.success) {
-              onRequestUpdate(requestId, {
-                status: 'paid',
-                paymentExpiredAt: new Date()
-              });
-            }
-          } catch (error) {
-            console.error('Error updating request status to paid:', error);
-          }
-        }
-      }
-    };
-
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
-
-    return () => clearInterval(timer);
-  }, [deadline, requestId, onRequestUpdate, currentUserId]);
-
-  if (isExpired) {
-    return (
-      <div className="text-xs text-red-600 font-medium">
-        ⏰ Payment deadline expired!
-      </div>
-    );
-  }
-
-  return (
-    <div className="text-sm font-mono text-red-700">
-      {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
-    </div>
-  );
-};
+// ✅ REMOVED: Duplicate PaymentCountdownTimer - using the one from RequestCard component
 
 // Enhanced Group Request Card Component
 const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) => {
@@ -1374,9 +1312,10 @@ const AllGroupRequests = () => {
             teacherCount: request.teacherCount || 0,
             selectedTeacher: request.selectedTeacher || null,
             skills: request.skills || [],
-            name: request.createdByName || request.userName || 'Unknown User',
-            avatar: request.createdByAvatar || request.userAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`,
-            message: request.description || request.message || '',
+            // ✅ FIXED: Use correct field names that RequestCard expects
+            createdByName: request.createdByName || request.userName || 'Unknown User',
+            createdByAvatar: request.createdByAvatar || request.userAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`,
+            description: request.description || request.message || '',
             status: request.status || 'pending',
             voteCount: request.voteCount || request.votes?.length || 0,
             participantCount: request.participantCount || request.participants?.length || 0,
@@ -1388,7 +1327,7 @@ const AllGroupRequests = () => {
 
         setGroupRequests(formattedRequests);
 
-        // Set up real-time listeners for payment updates
+        // ✅ IMPROVED: Set up real-time listeners with data validation
         if (formattedRequests.length > 0) {
           const unsubscribePromises = formattedRequests.map(request => {
             if (request.id) {
@@ -1396,10 +1335,31 @@ const AllGroupRequests = () => {
                 const unsubscribe = onSnapshot(doc(db, 'grouprequests', request.id), (doc) => {
                   if (doc.exists()) {
                     const updatedData = doc.data();
+                    
+                    // ✅ ADDED: Validate and format updated data
+                    const validatedData = {
+                      ...updatedData,
+                      votes: updatedData.votes || [],
+                      participants: updatedData.participants || [],
+                      paidParticipants: updatedData.paidParticipants || [],
+                      teachers: updatedData.teachers || [],
+                      teacherCount: updatedData.teacherCount || 0,
+                      selectedTeacher: updatedData.selectedTeacher || null,
+                      skills: updatedData.skills || [],
+                      createdByName: updatedData.createdByName || updatedData.userName || 'Unknown User',
+                      createdByAvatar: updatedData.createdByAvatar || updatedData.userAvatar || `https://ui-avatars.com/api/?name=${updatedData.createdByName}&background=3b82f6&color=fff`,
+                      description: updatedData.description || updatedData.message || '',
+                      status: updatedData.status || 'pending',
+                      voteCount: updatedData.voteCount || updatedData.votes?.length || 0,
+                      participantCount: updatedData.participantCount || updatedData.participants?.length || 0,
+                      rate: updatedData.rate || '0',
+                      totalPaid: updatedData.totalPaid || 0
+                    };
+                    
                     setGroupRequests(prevRequests =>
                       prevRequests.map(prevRequest =>
                         prevRequest.id === request.id 
-                          ? { ...prevRequest, ...updatedData }
+                          ? { ...prevRequest, ...validatedData }
                           : prevRequest
                       )
                     );
@@ -1411,15 +1371,22 @@ const AllGroupRequests = () => {
             return Promise.resolve(() => {});
           });
 
-          // Store unsubscribe functions for cleanup
+          // ✅ IMPROVED: Better cleanup management
           Promise.all(unsubscribePromises).then(unsubscribes => {
             // Clean up previous listeners
             if (window.requestListeners) {
-              window.requestListeners.forEach(unsub => unsub());
+              window.requestListeners.forEach(unsub => {
+                if (typeof unsub === 'function') {
+                  try {
+                    unsub();
+                  } catch (error) {
+                    console.warn('Error cleaning up listener:', error);
+                  }
+                }
+              });
             }
             window.requestListeners = unsubscribes.filter(unsub => typeof unsub === 'function');
           });
-
         }
 
       } catch (error) {
@@ -1442,10 +1409,18 @@ const AllGroupRequests = () => {
 
     loadGroupRequests();
 
-    // Cleanup function
+    // ✅ IMPROVED: Cleanup function with better error handling
     return () => {
       if (window.requestListeners) {
-        window.requestListeners.forEach(unsub => unsub());
+        window.requestListeners.forEach(unsub => {
+          if (typeof unsub === 'function') {
+            try {
+              unsub();
+            } catch (error) {
+              console.warn('Error cleaning up listener during unmount:', error);
+            }
+          }
+        });
         window.requestListeners = [];
       }
     };
@@ -1656,7 +1631,7 @@ const AllGroupRequests = () => {
           {/* Requests Grid - 3 cards per row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredRequests.map((request) => (
-                <EnhancedGroupRequestCard
+                <RequestCard
                     key={request.id}
                     request={request}
                     currentUserId={user?.id}

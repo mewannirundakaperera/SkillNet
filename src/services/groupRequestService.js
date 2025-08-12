@@ -373,6 +373,12 @@ export const groupRequestService = {
                 // Configuration
                 minParticipants: requestData.sessionType === 'group-session' ? 3 : 1,
 
+                // ✅ ADDED: Missing workflow fields for RequestCard
+                selectedTeacher: null, // Will be set when owner selects teacher
+                paymentDeadline: null, // Will be set when funding phase starts
+                meetingLink: null, // Will be set when teacher generates meeting
+                cancellationReason: null, // Will be set if request is cancelled
+
                 // Timestamps
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
@@ -1350,6 +1356,21 @@ export const groupRequestService = {
                 label: 'Accepted',
                 color: 'green',
                 description: 'Session confirmed, waiting for payments',
+            },
+            funding: {
+                label: 'Funding Phase',
+                color: 'purple',
+                description: 'Waiting for participants to complete payments',
+            },
+            paid: {
+                label: 'Payment Complete',
+                color: 'blue',
+                description: 'All payments completed, ready to start session',
+            },
+            live: {
+                label: 'Live Session',
+                color: 'red',
+                description: 'Session is currently in progress',
             },
             payment_complete: {
                 label: 'Ready to Start',

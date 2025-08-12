@@ -70,14 +70,82 @@ const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUs
 };
 
 const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
+  // Safety check for request object
+  if (!request) {
+    return (
+      <div className="rounded-lg shadow-sm border-2 p-6 bg-gray-50">
+        <div className="text-center text-gray-500">
+          <p>No request data available</p>
+        </div>
+      </div>
+    );
+  }
+
   const [loading, setLoading] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [paymentDeadline, setPaymentDeadline] = useState('');
   const [teacherNames, setTeacherNames] = useState({});
   const [meetingLink, setMeetingLink] = useState(request.meetingLink || null);
 
-  // ✅ FIXED: Complete user role and permission calculation
+  // ✅ FIXED: Complete user role and permission calculation with data validation
   const userRoles = useMemo(() => {
+    // Safety check for currentUserId
+    if (!currentUserId) {
+      return {
+        userRole: 'viewer',
+        roleLabel: '👁️ Viewer (Not Logged In)',
+        isOwner: false,
+        isVotee: false,
+        hasVoted: false,
+        isAutomaticParticipant: false,
+        isManualParticipant: false,
+        isTeacher: false,
+        isSelectedTeacher: false,
+        hasPaid: false,
+        canVote: false,
+        canChooseRole: false,
+        canBecomeTeacher: false,
+        canJoinSession: false,
+        canPay: false,
+        canViewMeeting: false,
+        totalParticipantCount: 0,
+        participantsWhoPay: [],
+        paidCount: 0,
+        pendingPaymentCount: 0,
+        automaticParticipants: [],
+        allParticipants: []
+      };
+    }
+
+    // ✅ ADDED: Validate request data structure
+    if (!request || typeof request !== 'object') {
+      console.warn('RequestCard: Invalid request object received:', request);
+      return {
+        userRole: 'viewer',
+        roleLabel: '⚠️ Invalid Data',
+        isOwner: false,
+        isVotee: false,
+        hasVoted: false,
+        isAutomaticParticipant: false,
+        isManualParticipant: false,
+        isTeacher: false,
+        isSelectedTeacher: false,
+        hasPaid: false,
+        canVote: false,
+        canChooseRole: false,
+        canBecomeTeacher: false,
+        canJoinSession: false,
+        canPay: false,
+        canViewMeeting: false,
+        totalParticipantCount: 0,
+        participantsWhoPay: [],
+        paidCount: 0,
+        pendingPaymentCount: 0,
+        automaticParticipants: [],
+        allParticipants: []
+      };
+    }
+
     const owner = request.userId || request.createdBy;
     const isOwner = currentUserId === owner;
     const votees = request.votes || [];
@@ -304,10 +372,20 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ HANDLE VOTING (Only in pending state, owner cannot vote)
   const handleVote = async () => {
-    if (!currentUserId || loading || !userRoles.canVote) return;
+    if (!currentUserId || loading || !userRoles.canVote) {
+      if (!currentUserId) {
+        alert('Please log in to vote on requests');
+      }
+      return;
+    }
 
     try {
       setLoading(true);
+
+      // ✅ ADDED: Validate request data before voting
+      if (!request.id || !request.votes) {
+        throw new Error('Invalid request data for voting');
+      }
 
       const newVotes = [...(request.votes || []), currentUserId];
       const updateData = {
@@ -332,7 +410,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       }
     } catch (error) {
       console.error('Error handling vote:', error);
-      alert('Failed to process vote. Please try again.');
+      alert(`Failed to process vote: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -340,7 +418,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ HANDLE ROLE SELECTION (Become teacher or join session)
   const handleRoleSelection = async (roleType) => {
-    if (!currentUserId || loading) return;
+    if (!currentUserId || loading) {
+      if (!currentUserId) {
+        alert('Please log in to participate in requests');
+      }
+      return;
+    }
 
     try {
       setLoading(true);
@@ -383,7 +466,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ HANDLE TEACHER SELECTION BY OWNER (In accepted state)
   const handleTeacherSelection = async () => {
-    if (!selectedTeacher || !paymentDeadline || !userRoles.isOwner) return;
+    if (!currentUserId || !selectedTeacher || !paymentDeadline || !userRoles.isOwner) {
+      if (!currentUserId) {
+        alert('Please log in to manage requests');
+      }
+      return;
+    }
 
     try {
       setLoading(true);
@@ -425,7 +513,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ HANDLE PAYMENT (In funding state)
   const handlePayment = async () => {
-    if (!currentUserId || loading || !userRoles.canPay) return;
+    if (!currentUserId || loading || !userRoles.canPay) {
+      if (!currentUserId) {
+        alert('Please log in to make payments');
+      }
+      return;
+    }
 
     try {
       setLoading(true);
@@ -461,7 +554,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ GENERATE MEETING LINK (In paid state, for teacher)
   const handleGenerateMeetingLink = async () => {
-    if (!userRoles.isSelectedTeacher) return;
+    if (!currentUserId || !userRoles.isSelectedTeacher) {
+      if (!currentUserId) {
+        alert('Please log in to manage meetings');
+      }
+      return;
+    }
 
     try {
       setLoading(true);
@@ -505,7 +603,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ END MEETING (Teacher only)
   const handleEndMeeting = async () => {
-    if (!userRoles.isSelectedTeacher) return;
+    if (!currentUserId || !userRoles.isSelectedTeacher) {
+      if (!currentUserId) {
+        alert('Please log in to manage meetings');
+      }
+      return;
+    }
 
     if (!confirm('Are you sure you want to end the meeting for all participants?')) return;
 
@@ -578,14 +681,14 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
             <img
-                src={request.avatar || `https://ui-avatars.com/api/?name=${request.name}&background=3b82f6&color=fff`}
-                alt={request.name}
+                src={request.createdByAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`}
+                alt={request.createdByName}
                 className="w-12 h-12 rounded-full object-cover"
             />
             <div>
               <h3 className="font-semibold text-lg text-gray-900">{request.title}</h3>
               <p className="text-sm text-gray-600">
-                {request.name} • {request.groupName}
+                {request.createdByName} • {request.groupName}
               </p>
             </div>
           </div>
