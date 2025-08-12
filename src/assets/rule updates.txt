@@ -1,12 +1,58 @@
-1. ❌ Missing Status Field in Voting Updates
-Problem: The isVotingUpdate() function allows status changes, but your RequestCard needs to change status from pending to voting_open when 5 votes are reached.
-Current rule:
-Issue: This allows status changes, but the validation might be too strict.
-2. ❌ Missing Status Field in Teaching Updates
-Problem: When the first teacher joins, the status should change from voting_open to accepted.
-Current rule:
-Issue: This allows status changes, which is good.
-3. ❌ Potential Issue with Auto Status Transitions
-Problem: The isAutoStatusTransition function might be too restrictive.
-Current rule:
-Issue: Missing some status transitions like pending → voting_open.
+// ✅ HANDLE TEACHER SELECTION BY OWNER (In accepted state) - FIXED
+const handleTeacherSelection = async () => {
+  if (!currentUserId || !selectedTeacher || !paymentDeadline || !userRoles.isOwner) {
+    if (!currentUserId) {
+      alert('Please log in to manage requests');
+    }
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const deadlineHours = parseInt(paymentDeadline);
+    console.log('Setting payment deadline for', deadlineHours, 'hours');
+    
+    // Create deadline timestamp - ensuring it's in the future
+    const paymentDeadlineTime = new Date(Date.now() + (deadlineHours * 60 * 60 * 1000));
+    console.log('Payment deadline will be:', paymentDeadlineTime);
+
+    const updateData = {
+      selectedTeacher: selectedTeacher,
+      status: 'funding',
+      paymentDeadline: paymentDeadlineTime,
+      paymentDeadlineHours: deadlineHours,
+      // Revert all other teachers to regular users
+      teachers: [selectedTeacher], // Only selected teacher remains
+      teacherCount: 1,
+      updatedAt: new Date()
+    };
+
+    console.log('Updating request with data:', updateData);
+
+    const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+
+    if (result.success) {
+      console.log('Teacher selection successful, updating local state');
+      
+      // Update local state immediately with the new data
+      const updatedRequest = {
+        ...request,
+        ...updateData
+      };
+      
+      onRequestUpdate?.(request.id, updatedRequest);
+      setSelectedTeacher('');
+      setPaymentDeadline('');
+      alert(`Teacher selected! Payment deadline set to ${deadlineHours} hour(s).`);
+    } else {
+      console.error('Teacher selection failed:', result.message);
+      alert(result.message || 'Failed to select teacher');
+    }
+  } catch (error) {
+    console.error('Error selecting teacher:', error);
+    alert('Failed to select teacher. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
