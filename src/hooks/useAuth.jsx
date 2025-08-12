@@ -188,6 +188,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Login function to set user data after successful authentication
+  const login = (userData) => {
+    try {
+      console.log('🔐 Login function called with user data:', userData);
+      
+      // Set user data in context
+      setUser(userData);
+      setUserData(userData);
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('userToken', userData.token || '');
+      localStorage.setItem('userData', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      console.log('✅ User data set in context and localStorage');
+      return { success: true, message: 'Login successful' };
+    } catch (error) {
+      console.error('❌ Error in login function:', error);
+      return { success: false, message: 'Login failed' };
+    }
+  };
+
   // Force logout function for emergency cases
   const forceLogout = () => {
     console.log('🆘 Force logout called');
@@ -207,6 +229,7 @@ export const AuthProvider = ({ children }) => {
     userData,
     loading,
     error,
+    login,
     refreshUserData,
     logout,
     forceLogout,

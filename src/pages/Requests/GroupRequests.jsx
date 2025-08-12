@@ -281,6 +281,7 @@ const GroupRequests = () => {
                   key={request.id}
                   request={request}
                   currentUserId={user?.id}
+                  currentUserDisplayName={user?.displayName || user?.name || 'User'}
                   onRequestUpdate={handleRequestUpdate}
               />
           ))}

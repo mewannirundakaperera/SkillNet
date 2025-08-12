@@ -36,45 +36,45 @@ const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUs
         differenceInMinutes: Math.floor(difference / (1000 * 60))
       });
 
-              if (difference > 0) {
-          const hours = Math.floor(difference / (1000 * 60 * 60));
-          const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-          const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+      if (difference > 0) {
+        const hours = Math.floor(difference / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
           console.log('⏰ Timer active:', { hours, minutes, seconds });
-          setTimeLeft({ hours, minutes, seconds });
-          setIsExpired(false);
-        } else {
+        setTimeLeft({ hours, minutes, seconds });
+        setIsExpired(false);
+      } else {
           console.log('⏰ Timer expired, transitioning to paid state');
-          setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
-          setIsExpired(true);
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+        setIsExpired(true);
 
-          // Auto-transition to 'paid' state when funding timer expires
-          if (onRequestUpdate && requestId) {
-            try {
+        // Auto-transition to 'paid' state when funding timer expires
+        if (onRequestUpdate && requestId) {
+          try {
               console.log('🔄 Auto-transitioning request to paid state...');
-              const result = await groupRequestService.updateGroupRequest(requestId, {
-                status: 'paid',
-                updatedAt: new Date(),
-                fundingExpiredAt: new Date()
-              }, currentUserId);
+            const result = await groupRequestService.updateGroupRequest(requestId, {
+              status: 'paid',
+              updatedAt: new Date(),
+              fundingExpiredAt: new Date()
+            }, currentUserId);
 
-              if (result.success) {
+            if (result.success) {
                 console.log('✅ Auto-transition successful');
-                onRequestUpdate(requestId, {
-                  status: 'paid',
-                  fundingExpiredAt: new Date()
-                });
+              onRequestUpdate(requestId, {
+                status: 'paid',
+                fundingExpiredAt: new Date()
+              });
               } else {
                 console.error('❌ Auto-transition failed:', result.message);
-              }
-            } catch (error) {
-              console.error('❌ Error updating request status to paid:', error);
             }
+          } catch (error) {
+              console.error('❌ Error updating request status to paid:', error);
+          }
           } else {
             console.warn('⚠️ Cannot auto-transition: missing onRequestUpdate or requestId');
-          }
         }
+      }
     };
 
     calculateTimeLeft();
@@ -98,7 +98,7 @@ const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUs
   );
 };
 
-const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
+const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDisplayName }) => {
   // ✅ DEBUG: Add comprehensive logging
   console.log('🔍 RequestCard Render:', {
     requestId: request?.id,
@@ -485,7 +485,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       const newVotes = [...(localRequest.votes || []), currentUserId];
       const updateData = {
         votes: newVotes,
-        voteCount: newVotes.length
+        voteCount: newVotes.length,
+        updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isVotingUpdate() requirements
       };
 
       // Auto-transition to voting_open when 5 votes reached
@@ -542,7 +543,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       if (roleType === 'teacher') {
         updateData = {
           teachers: [...(localRequest.teachers || []), currentUserId],
-          teacherCount: (localRequest.teacherCount || 0) + 1
+          teacherCount: (localRequest.teacherCount || 0) + 1,
+          updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isTeachingUpdate() requirements
         };
 
         // If first teacher, change to accepted
@@ -552,7 +554,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       } else if (roleType === 'participant') {
         updateData = {
           participants: [...(localRequest.participants || []), currentUserId],
-          participantCount: (localRequest.participantCount || 0) + 1
+          participantCount: (localRequest.participantCount || 0) + 1,
+          updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isParticipationUpdate() requirements
         };
       }
 
@@ -681,7 +684,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       const newPaidParticipants = [...(localRequest.paidParticipants || []), currentUserId];
       const updateData = {
         paidParticipants: newPaidParticipants,
-        totalPaid: (localRequest.totalPaid || 0) + paymentAmount
+        totalPaid: (localRequest.totalPaid || 0) + paymentAmount,
+        updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isPaymentUpdate() requirements
       };
 
       const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
@@ -724,7 +728,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       const updateData = {
         meetingLink: mockLink,
         meetingGeneratedAt: new Date(),
-        status: 'live' // Auto-transition to live when teacher joins
+        status: 'live', // Auto-transition to live when teacher joins
+        updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isMeetingUpdate() requirements
       };
 
       const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
@@ -741,8 +746,214 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                 // Notify parent component
         onRequestUpdate?.(localRequest.id, updatedRequest);
 
-        // Open meeting in new tab with teacher prefix
-        window.open(`${mockLink}?userInfo.displayName=Teacher-${teacherNames[currentUserId] || 'Teacher'}`, '_blank');
+                 // Open meeting in new tab with teacher prefix and auto-name entry
+         const teacherDisplayName = `Teacher-${teacherNames[currentUserId] || currentUserDisplayName || 'Teacher'}`;
+         
+         console.log('🔗 Teacher display name prepared:', {
+           teacherDisplayName,
+           currentUserId,
+           teacherNames: teacherNames[currentUserId],
+           currentUserDisplayName
+         });
+         
+         // Use the same improved approach as handleJoinMeeting
+         const configParams = [
+           `config.prejoinPageEnabled=false`,
+           `config.prejoinConfig.name=${encodeURIComponent(teacherDisplayName)}`,
+           `config.prejoinConfig.prejoinButtonText=Start Teaching`,
+           `userInfo.displayName=${encodeURIComponent(teacherDisplayName)}`,
+           `userInfo.preferredDisplayName=${encodeURIComponent(teacherDisplayName)}`
+         ];
+         
+         let enhancedLink = `${mockLink}?${configParams.join('&')}`;
+         
+         // Add additional parameters
+         const additionalParams = [
+           `displayName=${encodeURIComponent(teacherDisplayName)}`,
+           `preferredDisplayName=${encodeURIComponent(teacherDisplayName)}`,
+           `userInfo.name=${encodeURIComponent(teacherDisplayName)}`,
+           `name=${encodeURIComponent(teacherDisplayName)}`
+         ];
+         enhancedLink += `&${additionalParams.join('&')}`;
+         
+         // Add URL fragment
+         enhancedLink += `#userInfo.displayName=${encodeURIComponent(teacherDisplayName)}`;
+         
+         console.log('🔗 Generated meeting link with auto-name:', {
+           originalLink: mockLink,
+           enhancedLink,
+           teacherDisplayName,
+           currentUserId,
+           configParams,
+           additionalParams
+         });
+         
+         // Store in localStorage as backup
+         try {
+           localStorage.setItem('jitsi_display_name', teacherDisplayName);
+           localStorage.setItem('jitsi_teacher_mode', 'true');
+           console.log('💾 Stored teacher display name in localStorage:', teacherDisplayName);
+         } catch (error) {
+           console.warn('⚠️ Could not store in localStorage:', error);
+         }
+         
+         // Open the meeting and inject the enhanced script
+         const meetingWindow = window.open(enhancedLink, '_blank');
+         
+         // Inject the same enhanced script for automatic setup
+         if (meetingWindow) {
+           setTimeout(() => {
+             try {
+               const enhancedScript = `
+                 try {
+                   console.log('🔧 Starting automatic Jitsi setup for teacher: ${teacherDisplayName}');
+                   
+                   // Wait for Jitsi to load
+                   const checkJitsi = setInterval(() => {
+                     if (window.JitsiMeetExternalAPI || document.querySelector('[data-testid="prejoin.join-button"]')) {
+                       clearInterval(checkJitsi);
+                       console.log('✅ Jitsi loaded, starting automatic teacher setup...');
+                       
+                       // Step 1: Set display name in prejoin page
+                       const nameInput = document.querySelector('input[data-testid="prejoin.input.name"]');
+                       if (nameInput) {
+                         nameInput.value = '${teacherDisplayName}';
+                         nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                         nameInput.dispatchEvent(new Event('change', { bubbles: true }));
+                         console.log('✅ Teacher display name set:', '${teacherDisplayName}');
+                       }
+                       
+                       // Step 2: Also try alternative name input selectors
+                       const alternativeNameInputs = [
+                         'input[placeholder*="name" i]',
+                         'input[placeholder*="display" i]',
+                         'input[name*="name" i]',
+                         'input[id*="name" i]',
+                         '.prejoin-input-name input',
+                         '.prejoin-input input'
+                       ];
+                       
+                       alternativeNameInputs.forEach(selector => {
+                         const altInput = document.querySelector(selector);
+                         if (altInput && altInput !== nameInput) {
+                           altInput.value = '${teacherDisplayName}';
+                           altInput.dispatchEvent(new Event('input', { bubbles: true }));
+                           altInput.dispatchEvent(new Event('change', { bubbles: true }));
+                           console.log('✅ Alternative teacher name input filled:', selector);
+                         }
+                       });
+                       
+                       // Step 3: Store in localStorage as backup
+                       localStorage.setItem('jitsi_meeting_display_name', '${teacherDisplayName}');
+                       localStorage.setItem('jitsi_display_name', '${teacherDisplayName}');
+                       
+                       // Step 4: Wait a bit for name to be processed, then auto-join
+                       setTimeout(() => {
+                         console.log('🚀 Teacher attempting to auto-join meeting...');
+                         
+                         // Try multiple join button selectors
+                         const joinButtonSelectors = [
+                           '[data-testid="prejoin.join-button"]',
+                           '.prejoin-join-button',
+                           '.prejoin-button',
+                           'button[data-testid*="join"]',
+                           'button:contains("Join")',
+                           'button:contains("join")',
+                           '.btn-join',
+                           '.join-button'
+                         ];
+                         
+                         let joinButton = null;
+                         for (const selector of joinButtonSelectors) {
+                           try {
+                             joinButton = document.querySelector(selector);
+                             if (joinButton) {
+                               console.log('✅ Found teacher join button:', selector);
+                               break;
+                             }
+                           } catch (e) {
+                             // Skip invalid selectors
+                           }
+                         }
+                         
+                         if (joinButton) {
+                           console.log('🚀 Teacher auto-clicking join button');
+                           joinButton.click();
+                           
+                           // Step 5: After joining, automatically select logging option
+                           setTimeout(() => {
+                             console.log('🔍 Teacher looking for logging options...');
+                             
+                             // Try to find and select logging options
+                             const loggingSelectors = [
+                               'input[type="checkbox"][name*="log"]',
+                               'input[type="checkbox"][id*="log"]',
+                               'input[type="checkbox"][value*="log"]',
+                               'input[type="checkbox"][data-testid*="log"]',
+                               '.logging-option input[type="checkbox"]',
+                               '.log-option input[type="checkbox"]',
+                               'input[type="checkbox"]:contains("logging")',
+                               'input[type="checkbox"]:contains("Logging")'
+                             ];
+                             
+                             loggingSelectors.forEach(selector => {
+                               try {
+                                 const loggingCheckbox = document.querySelector(selector);
+                                 if (loggingCheckbox && !loggingCheckbox.checked) {
+                                   loggingCheckbox.checked = true;
+                                   loggingCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                                   loggingCheckbox.dispatchEvent(new Event('click', { bubbles: true }));
+                                   console.log('✅ Teacher logging option selected:', selector);
+                                 }
+                               } catch (e) {
+                                 // Skip invalid selectors
+                               }
+                             });
+                             
+                             // Also try to find logging options by text content
+                             const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+                             allCheckboxes.forEach(checkbox => {
+                               const label = checkbox.nextElementSibling || checkbox.parentElement;
+                               if (label && label.textContent && 
+                                   (label.textContent.toLowerCase().includes('log') || 
+                                    label.textContent.toLowerCase().includes('logging'))) {
+                                 if (!checkbox.checked) {
+                                   checkbox.checked = true;
+                                   checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                                   checkbox.dispatchEvent(new Event('click', { bubbles: true }));
+                                   console.log('✅ Teacher logging option selected by text:', label.textContent);
+                                 }
+                               }
+                             });
+                             
+                           }, 2000); // Wait 2 seconds after joining
+                           
+                         } else {
+                           console.warn('⚠️ No teacher join button found');
+                         }
+                       }, 1500); // Wait 1.5 seconds for name processing
+                       
+                     }
+                   }, 1000);
+                   
+                   // Timeout after 15 seconds
+                   setTimeout(() => {
+                     clearInterval(checkJitsi);
+                     console.log('⏰ Teacher Jitsi setup timeout reached');
+                   }, 15000);
+                   
+                 } catch (error) {
+                   console.warn('❌ Could not inject teacher display name script:', error);
+                 }
+               `;
+               
+               meetingWindow.eval(enhancedScript);
+               console.log('🔧 Injected enhanced teacher script into meeting window');
+             } catch (error) {
+               console.warn('⚠️ Could not inject enhanced script into teacher meeting window:', error);
+             }
+           }, 2000); // Wait 2 seconds for the page to start loading
+         }
       } else {
         alert(result.message || 'Failed to generate meeting link');
       }
@@ -756,9 +967,287 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ JOIN EXISTING MEETING (In live state)
   const handleJoinMeeting = () => {
-          if (meetingLink || localRequest.meetingLink) {
-        const link = meetingLink || localRequest.meetingLink;
-      window.open(link, '_blank');
+    console.log('🔗 handleJoinMeeting called with:', {
+      meetingLink,
+      localRequestMeetingLink: localRequest.meetingLink,
+      currentUserId,
+      currentUserDisplayName,
+      selectedTeacher: localRequest.selectedTeacher
+    });
+
+    if (meetingLink || localRequest.meetingLink) {
+      // Automatically join without modal
+      const isSelectedTeacher = localRequest.selectedTeacher === currentUserId;
+      const displayName = isSelectedTeacher ? `Teacher-${currentUserDisplayName || 'User'}` : (currentUserDisplayName || 'User');
+      
+      console.log('🚀 Auto-joining meeting with display name:', displayName);
+      
+      // Show brief confirmation message
+      const roleText = isSelectedTeacher ? 'Teacher' : 'Participant';
+      alert(`🚀 Joining meeting as ${roleText}: ${displayName}\n\n🤖 Automatic setup in progress...`);
+      
+      // Call the automatic joining function directly
+      joinMeetingAutomatically(displayName);
+    } else {
+      console.warn('⚠️ No meeting link available for joining');
+    }
+  };
+
+    // ✅ AUTOMATICALLY JOIN MEETING (No modal needed)
+  const joinMeetingAutomatically = (displayName) => {
+    const link = meetingLink || localRequest.meetingLink;
+    const isSelectedTeacher = localRequest.selectedTeacher === currentUserId;
+    
+    console.log('🔗 Automatically joining meeting:', {
+      displayName,
+      isSelectedTeacher,
+      link
+    });
+    
+    // Try multiple approaches for automatic name entry
+    
+    // Approach 1: Use Jitsi Meet's config parameters (most reliable)
+    const separator = link.includes('?') ? '&' : '?';
+    const configParams = [
+      `config.prejoinPageEnabled=false`,
+      `config.prejoinConfig.name=${encodeURIComponent(displayName)}`,
+      `config.prejoinConfig.prejoinButtonText=Join Session`,
+      `userInfo.displayName=${encodeURIComponent(displayName)}`,
+      `userInfo.preferredDisplayName=${encodeURIComponent(displayName)}`
+    ];
+    
+    let enhancedLink = `${link}${separator}${configParams.join('&')}`;
+    
+    // Approach 2: Add additional Jitsi Meet parameters
+    const additionalParams = [
+      `displayName=${encodeURIComponent(displayName)}`,
+      `preferredDisplayName=${encodeURIComponent(displayName)}`,
+      `userInfo.name=${encodeURIComponent(displayName)}`,
+      `name=${encodeURIComponent(displayName)}`
+    ];
+    enhancedLink += `&${additionalParams.join('&')}`;
+    
+    // Approach 3: Use URL fragment as fallback
+    enhancedLink += `#userInfo.displayName=${encodeURIComponent(displayName)}`;
+    
+    console.log('🔗 Joining meeting with automatic name:', {
+      originalLink: link,
+      enhancedLink,
+      displayName,
+      isSelectedTeacher,
+      configParams,
+      additionalParams
+    });
+    
+    // Store in localStorage as backup
+    try {
+      localStorage.setItem('jitsi_display_name', displayName);
+      localStorage.setItem('jitsi_teacher_mode', isSelectedTeacher.toString());
+      console.log('💾 Stored display name in localStorage:', displayName);
+    } catch (error) {
+      console.warn('⚠️ Could not store in localStorage:', error);
+    }
+    
+    // Open the meeting
+    const meetingWindow = window.open(enhancedLink, '_blank');
+    
+    // Try to inject a script that will set the display name after Jitsi loads
+    if (meetingWindow) {
+      // Multiple injection attempts with different timing
+      const injectScript = (attempt = 1) => {
+        try {
+          console.log(`🔧 Attempt ${attempt}: Injecting script for ${displayName}`);
+          
+          const enhancedScript = `
+            try {
+              console.log('🔧 Starting automatic Jitsi setup for: ${displayName}');
+              
+              // More aggressive element detection
+              const findElement = (selectors) => {
+                for (const selector of selectors) {
+                  try {
+                    const element = document.querySelector(selector);
+                    if (element) return element;
+                  } catch (e) {}
+                }
+                return null;
+              };
+              
+              // Wait for Jitsi to load with multiple detection methods
+              const checkJitsi = setInterval(() => {
+                const jitsiLoaded = window.JitsiMeetExternalAPI || 
+                                   document.querySelector('[data-testid="prejoin.join-button"]') ||
+                                   document.querySelector('.prejoin-join-button') ||
+                                   document.querySelector('input[placeholder*="name" i]') ||
+                                   document.querySelector('input[placeholder*="display" i]') ||
+                                   document.querySelector('.prejoin-input input');
+                
+                if (jitsiLoaded) {
+                  clearInterval(checkJitsi);
+                  console.log('✅ Jitsi loaded, starting automatic setup...');
+                  
+                  // Step 1: Set display name with multiple attempts
+                  const nameInputSelectors = [
+                    'input[data-testid="prejoin.input.name"]',
+                    'input[placeholder*="name" i]',
+                    'input[placeholder*="display" i]',
+                    'input[name*="name" i]',
+                    'input[id*="name" i]',
+                    '.prejoin-input-name input',
+                    '.prejoin-input input',
+                    'input[type="text"]'
+                  ];
+                  
+                  let nameInput = findElement(nameInputSelectors);
+                  if (nameInput) {
+                    nameInput.value = '${displayName}';
+                    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    nameInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    nameInput.dispatchEvent(new Event('keyup', { bubbles: true }));
+                    console.log('✅ Display name set:', '${displayName}');
+                  } else {
+                    console.warn('⚠️ No name input found, trying alternative methods...');
+                    
+                    // Try to find any input field and fill it
+                    const allInputs = document.querySelectorAll('input[type="text"], input:not([type])');
+                    allInputs.forEach(input => {
+                      if (input.placeholder && (input.placeholder.toLowerCase().includes('name') || 
+                          input.placeholder.toLowerCase().includes('display'))) {
+                        input.value = '${displayName}';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log('✅ Found and filled input by placeholder:', input.placeholder);
+                      }
+                    });
+                  }
+                  
+                  // Step 2: Store in localStorage as backup
+                  try {
+                    localStorage.setItem('jitsi_meeting_display_name', '${displayName}');
+                    localStorage.setItem('jitsi_display_name', '${displayName}');
+                    console.log('💾 Stored in localStorage');
+                  } catch (e) {
+                    console.warn('⚠️ Could not store in localStorage');
+                  }
+                  
+                  // Step 3: Wait and then auto-join
+                  setTimeout(() => {
+                    console.log('🚀 Attempting to auto-join meeting...');
+                    
+                    // Try multiple join button selectors
+                    const joinButtonSelectors = [
+                      '[data-testid="prejoin.join-button"]',
+                      '.prejoin-join-button',
+                      '.prejoin-button',
+                      'button[data-testid*="join"]',
+                      'button:contains("Join")',
+                      'button:contains("join")',
+                      '.btn-join',
+                      '.join-button',
+                      'button[class*="join"]',
+                      'button[class*="Join"]'
+                    ];
+                    
+                    let joinButton = findElement(joinButtonSelectors);
+                    
+                    if (joinButton) {
+                      console.log('✅ Found join button, clicking...');
+                      joinButton.click();
+                      
+                      // Step 4: After joining, automatically select logging option
+                      setTimeout(() => {
+                        console.log('🔍 Looking for logging options...');
+                        
+                        // Try to find and select logging options
+                        const loggingSelectors = [
+                          'input[type="checkbox"][name*="log"]',
+                          'input[type="checkbox"][id*="log"]',
+                          'input[type="checkbox"][value*="log"]',
+                          'input[type="checkbox"][data-testid*="log"]',
+                          '.logging-option input[type="checkbox"]',
+                          '.log-option input[type="checkbox"]'
+                        ];
+                        
+                        loggingSelectors.forEach(selector => {
+                          try {
+                            const loggingCheckbox = document.querySelector(selector);
+                            if (loggingCheckbox && !loggingCheckbox.checked) {
+                              loggingCheckbox.checked = true;
+                              loggingCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                              loggingCheckbox.dispatchEvent(new Event('click', { bubbles: true }));
+                              console.log('✅ Logging option selected:', selector);
+                            }
+                          } catch (e) {}
+                        });
+                        
+                        // Also try to find logging options by text content
+                        const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+                        allCheckboxes.forEach(checkbox => {
+                          try {
+                            const label = checkbox.nextElementSibling || checkbox.parentElement;
+                            if (label && label.textContent && 
+                                (label.textContent.toLowerCase().includes('log') || 
+                                 label.textContent.toLowerCase().includes('logging'))) {
+                              if (!checkbox.checked) {
+                                checkbox.checked = true;
+                                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                                checkbox.dispatchEvent(new Event('click', { bubbles: true }));
+                                console.log('✅ Logging option selected by text:', label.textContent);
+                              }
+                            }
+                          } catch (e) {}
+                        });
+                        
+                      }, 3000); // Wait 3 seconds after joining
+                      
+                    } else {
+                      console.warn('⚠️ No join button found, trying to find by text...');
+                      
+                      // Try to find button by text content
+                      const allButtons = document.querySelectorAll('button');
+                      allButtons.forEach(button => {
+                        if (button.textContent && button.textContent.toLowerCase().includes('join')) {
+                          console.log('✅ Found join button by text, clicking...');
+                          button.click();
+                        }
+                      });
+                    }
+                  }, 2000); // Wait 2 seconds for name processing
+                  
+                }
+              }, 500); // Check every 500ms instead of 1000ms
+              
+              // Timeout after 20 seconds
+              setTimeout(() => {
+                clearInterval(checkJitsi);
+                console.log('⏰ Jitsi setup timeout reached');
+              }, 20000);
+              
+            } catch (error) {
+              console.warn('❌ Could not inject display name script:', error);
+            }
+          `;
+          
+          meetingWindow.eval(enhancedScript);
+          console.log(`🔧 Script injection attempt ${attempt} successful`);
+          
+          // If first attempt, try again after 5 seconds as backup
+          if (attempt === 1) {
+            setTimeout(() => injectScript(2), 5000);
+          }
+          
+        } catch (error) {
+          console.warn(`⚠️ Script injection attempt ${attempt} failed:`, error);
+          
+          // Retry after 3 seconds
+          if (attempt < 3) {
+            setTimeout(() => injectScript(attempt + 1), 3000);
+          }
+        }
+      };
+      
+      // Start first injection attempt after 1 second
+      setTimeout(() => injectScript(1), 1000);
     }
   };
 
@@ -1140,14 +1629,14 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                           </button>
                       )}
 
-                      {(meetingLink || localRequest.meetingLink) && (
-                          <button
-                              onClick={handleJoinMeeting}
-                              className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
-                          >
-                            🎥 Join Meeting Room
-                          </button>
-                      )}
+                                             {(meetingLink || localRequest.meetingLink) && (
+                           <button
+                               onClick={handleJoinMeeting}
+                               className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                           >
+                             🚀 Join Meeting Automatically
+                           </button>
+                       )}
                     </>
                 )}
 
@@ -1170,12 +1659,38 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
                 {userRoles.canViewMeeting && (
                     <>
-                      <button
-                          onClick={handleJoinMeeting}
-                          className="w-full bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors mb-2"
-                      >
-                        🎥 Join Live Session
-                      </button>
+                                             <button
+                           onClick={handleJoinMeeting}
+                           className="w-full bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors mb-2"
+                       >
+                         🚀 Join Session Automatically
+                       </button>
+                      
+                                             {/* Debug button to test automatic name entry */}
+                       <button
+                           onClick={() => {
+                             const link = meetingLink || localRequest.meetingLink;
+                             if (link) {
+                               const isSelectedTeacher = localRequest.selectedTeacher === currentUserId;
+                               let displayName = currentUserDisplayName || 'User';
+                               if (isSelectedTeacher) {
+                                 displayName = `Teacher-${displayName}`;
+                               }
+                               
+                               console.log('🔍 Debug - Testing automatic setup:', {
+                                 displayName,
+                                 isSelectedTeacher,
+                                 link
+                               });
+                               
+                               // Test the automatic joining function
+                               joinMeetingAutomatically(displayName);
+                             }
+                           }}
+                           className="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-700 transition-colors mb-2 text-sm"
+                       >
+                         🔍 Debug: Test Auto-Setup
+                       </button>
 
                       {userRoles.isSelectedTeacher && (
                           <button
@@ -1238,6 +1753,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
             View Details
           </Link>
         </div>
+
+        
       </div>
   );
 };

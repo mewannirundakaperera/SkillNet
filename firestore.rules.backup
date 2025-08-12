@@ -1,0 +1,402 @@
+# BACKUP OF OLD FIREBASE RULES - SAVED BEFORE COMPREHENSIVE REWRITE
+# This file contains the previous version of the Firebase security rules
+# Keep this for reference in case you need to revert any changes
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isResourceOwner() {
+      return request.auth.uid == resource.data.userId ||
+             request.auth.uid == resource.data.createdBy;
+    }
+    
+    // Helper function to check if user owns the request resource on create
+    function isRequestCreateOwner() {
+      return request.auth.uid == request.resource.data.createdBy ||
+             request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Helper function to check if user owns the resource for update/delete
+    function isRequestOwner() {
+      return resource.data.createdBy == request.auth.uid ||
+             resource.data.userId == request.auth.uid;
+    }
+
+    // Helper function to check if this is a request acceptance update
+    function isRequestAcceptanceUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      let statusChange = resource.data.status == 'open' && request.resource.data.status == 'active';
+      let acceptedByCurrentUser = request.resource.data.acceptedBy == request.auth.uid;
+      return statusChange && acceptedByCurrentUser && changedFields.hasAll(['status', 'acceptedBy']) &&
+             changedFields.hasOnly(['status', 'acceptedBy', 'acceptedByName', 'acceptedAt', 'meetingId', 'meetingUrl', 'roomId', 'meetingStatus', 'participants', 'participantCount', 'responses', 'responseCount', 'updatedAt']);
+    }
+
+    // Helper function to check if this is a request completion update
+    function isRequestCompletionUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      let statusToCompleted = request.resource.data.status == 'completed';
+      let isParticipantOrOwner = isRequestOwner() || request.auth.uid in resource.data.participants || request.auth.uid == resource.data.acceptedBy;
+      return statusToCompleted && isParticipantOrOwner && changedFields.hasOnly(['status', 'completedAt', 'meetingStatus', 'updatedAt']);
+    }
+    
+    // Helper function to check if user is a member of a group (including hidden members)
+    function isGroupMemberIncludingHidden(groupId) {
+      let groupData = get(/databases/$(database)/documents/groups/$(groupId)).data;
+      return request.auth.uid in groupData.members || request.auth.uid in groupData.hiddenMembers;
+    }
+
+    // Helper function to check if user is member of the target group for group requests
+    function getTargetGroupId() {
+      return resource.data.targetGroupId != null ? resource.data.targetGroupId : resource.data.groupId != null ? resource.data.groupId : null;
+    }
+
+    function getCreateTargetGroupId() {
+      return request.resource.data.targetGroupId != null ? request.resource.data.targetGroupId : request.resource.data.groupId != null ? request.resource.data.groupId : null;
+    }
+
+    function isTargetGroupMember(targetGroupId) {
+      return targetGroupId != null && exists(/databases/$(database)/documents/groups/$(targetGroupId)) && (request.auth.uid in get(/databases/$(database)/documents/groups/$(targetGroupId)).data.members || request.auth.uid in get(/databases/$(database)/documents/groups/$(targetGroupId)).data.hiddenMembers);
+    }
+
+    // Helper function to check if user is admin
+    function isAdmin() {
+      // ✅ FIXED: Remove circular dependency by only checking user role
+      // The admin collection check was causing permission issues
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ==========================================
+    // GROUP REQUEST STATUS TRANSITION HELPER FUNCTIONS
+    // ==========================================
+
+    // Check if this is a voting update
+    function isVotingUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['votes', 'voteCount']) && changedFields.hasOnly(['votes', 'voteCount', 'updatedAt', 'status']);
+    }
+
+    // Check if this is a voting status transition
+    function isVotingStatusTransition() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      let statusTransition = resource.data.status == 'open' && request.resource.data.status == 'voting_open';
+      let votingFields = changedFields.hasAny(['votes', 'voteCount']);
+      return statusTransition && votingFields && changedFields.hasOnly(['votes', 'voteCount', 'status', 'updatedAt']);
+    }
+
+    // Check if this is a participation update
+    function isParticipationUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['participants', 'participantCount']) && changedFields.hasOnly(['participants', 'participantCount', 'updatedAt', 'status']);
+    }
+
+    // Check if this is a teaching update
+    function isTeachingUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['teachers', 'teacherCount']) && changedFields.hasOnly(['teachers', 'teacherCount', 'updatedAt', 'status']);
+    }
+
+    // Check if this is a teaching status transition
+    function isTeachingStatusTransition() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      let statusTransition = resource.data.status == 'voting_open' && request.resource.data.status == 'accepted';
+      let teachingFields = changedFields.hasAny(['teachers', 'teacherCount']);
+      return statusTransition && teachingFields && changedFields.hasOnly(['teachers', 'teacherCount', 'status', 'updatedAt']);
+    }
+
+    // Check if this is a teacher selection update
+    function isTeacherSelectionUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['selectedTeacher', 'paymentDeadline', 'paymentDeadlineHours']) && changedFields.hasOnly(['selectedTeacher', 'paymentDeadline', 'paymentDeadlineHours', 'status', 'updatedAt', 'teachers', 'teacherCount']);
+    }
+
+    // Check if this is a meeting update
+    function isMeetingUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['meetingLink', 'meetingGeneratedAt']) && changedFields.hasOnly(['meetingLink', 'meetingGeneratedAt', 'status', 'updatedAt']);
+    }
+
+    // Check if this is an automatic status transition
+    function isAutoStatusTransition() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      let oldStatus = resource.data.status;
+      let newStatus = request.resource.data.status;
+      let validTransitions = ((oldStatus == 'funding' && newStatus == 'paid') || (oldStatus == 'paid' && newStatus == 'live') || (oldStatus == 'live' && newStatus == 'complete') || newStatus == 'cancelled');
+      return validTransitions && changedFields.hasOnly(['status', 'updatedAt', 'fundingExpiredAt', 'completedAt', 'meetingEndedAt']);
+    }
+
+    // Check if this is a payment update
+    function isPaymentUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['paidParticipants', 'totalPaid']) && changedFields.hasOnly(['paidParticipants', 'totalPaid', 'updatedAt', 'status']);
+    }
+
+    // Check if this is a content update
+    function isContentUpdate() {
+      let changedFields = request.resource.data.diff(resource.data).affectedKeys();
+      return changedFields.hasAny(['title', 'description', 'rate', 'skills', 'category', 'duration']) || (changedFields.hasAny(['status']) && !isVotingUpdate() && !isParticipationUpdate() && !isTeachingUpdate() && !isTeachingStatusTransition() && !isPaymentUpdate() && !isTeacherSelectionUpdate() && !isMeetingUpdate() && !isAutoStatusTransition());
+    }
+
+    // Validate that vote changes are legitimate
+    function isValidVoteChange() {
+      let oldVotes = resource.data.votes != null ? resource.data.votes : [];
+      let newVotes = request.resource.data.votes != null ? request.resource.data.votes : [];
+      let addingVote = !(request.auth.uid in oldVotes) && (request.auth.uid in newVotes) && newVotes.size() == oldVotes.size() + 1;
+      let removingVote = (request.auth.uid in oldVotes) && !(request.auth.uid in newVotes) && newVotes.size() == oldVotes.size() - 1;
+      return addingVote || removingVote;
+    }
+
+    // Validate that participation changes are legitimate
+    function isValidParticipationChange() {
+      let oldParticipants = resource.data.participants != null ? resource.data.participants : [];
+      let newParticipants = request.resource.data.participants != null ? request.resource.data.participants : [];
+      let joining = !(request.auth.uid in oldParticipants) && (request.auth.uid in newParticipants) && newParticipants.size() == oldParticipants.size() + 1;
+      let leaving = (request.auth.uid in oldParticipants) && !(request.auth.uid in newParticipants) && newParticipants.size() == oldParticipants.size() - 1;
+      return joining || leaving;
+    }
+
+    // Validate that teaching changes are legitimate
+    function isValidTeachingChange() {
+      let oldTeachers = resource.data.teachers != null ? resource.data.teachers : [];
+      let newTeachers = request.resource.data.teachers != null ? request.resource.data.teachers : [];
+      let joining = !(request.auth.uid in oldTeachers) && (request.auth.uid in newTeachers) && newTeachers.size() == oldTeachers.size() + 1;
+      let leaving = (request.auth.uid in oldTeachers) && !(request.auth.uid in newTeachers) && newTeachers.size() == oldTeachers.size() - 1;
+      return joining || leaving;
+    }
+
+    // Validate payment changes
+    function isValidPaymentChange() {
+      let oldPaid = resource.data.paidParticipants != null ? resource.data.paidParticipants : [];
+      let newPaid = request.resource.data.paidParticipants != null ? request.resource.data.paidParticipants : [];
+      let isAutomaticParticipant = request.auth.uid == resource.data.userId || request.auth.uid == resource.data.createdBy || request.auth.uid in resource.data.votes;
+      let isManualParticipant = request.auth.uid in resource.data.participants;
+      let userCanPay = isAutomaticParticipant || isManualParticipant;
+      let makingPayment = !(request.auth.uid in oldPaid) && (request.auth.uid in newPaid) && newPaid.size() == oldPaid.size() + 1;
+      return userCanPay && makingPayment;
+    }
+
+    // ==========================================
+    // USER DATA COLLECTIONS
+    // ==========================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isOwner(userId);
+    }
+
+    match /userProfiles/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    match /userActivity/{activityId} {
+      allow read, write: if isAuthenticated() && (isResourceOwner() || isRequestOwner());
+    }
+
+    match /connections/{connectionId} {
+      allow read, write: if isAuthenticated() && (isResourceOwner() || isRequestOwner());
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if isAuthenticated() && (isResourceOwner() || isRequestOwner());
+    }
+
+    // ==========================================
+    // ADMIN COLLECTIONS
+    // ==========================================
+
+    match /admin/{adminId} {
+      allow read: if isAuthenticated() && isAdmin();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update: if isAuthenticated() && (isOwner(adminId) || isAdmin());
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // ==========================================
+    // GROUPS COLLECTION
+    // ==========================================
+
+    match /groups/{groupId} {
+      allow read: if isAuthenticated() && (resource.data.isPublic == true || request.auth.uid in resource.data.members || request.auth.uid in resource.data.hiddenMembers || isAdmin());
+      allow create: if isAuthenticated() && ((request.resource.data.createdBy == request.auth.uid && request.auth.uid in request.resource.data.members) || isAdmin());
+      allow update: if isAuthenticated() && (isAdmin() || resource.data.createdBy == request.auth.uid || request.auth.uid in resource.data.members || request.auth.uid in resource.data.hiddenMembers || (resource.data.isPublic == true && request.auth.uid in request.resource.data.members) || !(request.auth.uid in request.resource.data.members) && (request.auth.uid in resource.data.members));
+      allow delete: if isAuthenticated() && (resource.data.createdBy == request.auth.uid || isAdmin());
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && (isGroupMemberIncludingHidden(groupId) || isAdmin());
+        allow create: if isAuthenticated() && ((isGroupMemberIncludingHidden(groupId) && request.resource.data.userId == request.auth.uid) || isAdmin());
+        allow update, delete: if isAuthenticated() && ((isGroupMemberIncludingHidden(groupId) && resource.data.userId == request.auth.uid) || isAdmin());
+      }
+
+      match /activeUsers/{userId} {
+        allow read: if isAuthenticated() && (isGroupMemberIncludingHidden(groupId) || isAdmin());
+        allow write: if isAuthenticated() && ((isGroupMemberIncludingHidden(groupId) && isOwner(userId)) || isAdmin());
+      }
+
+      match /typingStatus/{userId} {
+        allow read: if isAuthenticated() && (isGroupMemberIncludingHidden(groupId) || isAdmin());
+        allow write: if isAuthenticated() && ((isGroupMemberIncludingHidden(groupId) && isOwner(userId)) || isAdmin());
+      }
+    }
+
+    // ==========================================
+    // ONE-TO-ONE REQUEST COLLECTIONS
+    // ==========================================
+
+    match /requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isRequestCreateOwner();
+      allow update: if isAuthenticated() && (isRequestOwner() || isRequestAcceptanceUpdate() || isRequestCompletionUpdate() || isAdmin());
+      allow delete: if isAuthenticated() && (isRequestOwner() || isAdmin());
+    }
+
+    // ==========================================
+    // GROUP REQUESTS COLLECTION
+    // ==========================================
+
+    match /grouprequests/{requestId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isRequestCreateOwner() && ((getCreateTargetGroupId() != null && isTargetGroupMember(getCreateTargetGroupId())) || isAdmin());
+      
+      // ✅ FIXED: Proper update rules for group requests
+      allow update: if isAuthenticated() && (
+        (isContentUpdate() && (isRequestOwner() || isAdmin())) ||
+        (isVotingUpdate() && !isRequestOwner() && getTargetGroupId() != null && isTargetGroupMember(getTargetGroupId()) && isValidVoteChange()) ||
+        (isVotingStatusTransition() && !isRequestOwner() && getTargetGroupId() != null && isTargetGroupMember(getTargetGroupId()) && isValidVoteChange()) ||
+        (isParticipationUpdate() && getTargetGroupId() != null && isTargetGroupMember(getTargetGroupId()) && isValidParticipationChange()) ||
+        (isTeachingUpdate() && getTargetGroupId() != null && isTargetGroupMember(getTargetGroupId()) && isValidTeachingChange()) ||
+        (isTeachingStatusTransition() && getTargetGroupId() != null && isTargetGroupMember(getTargetGroupId()) && isValidTeachingChange()) ||
+        (isTeacherSelectionUpdate() && isRequestOwner()) ||
+        (isMeetingUpdate() && request.auth.uid == resource.data.selectedTeacher) ||
+        (isPaymentUpdate() && (request.auth.uid in resource.data.participants || request.auth.uid in resource.data.votes || request.auth.uid == resource.data.userId || request.auth.uid == resource.data.createdBy) && isValidPaymentChange()) ||
+        (isAutoStatusTransition() && (isRequestOwner() || request.auth.uid in resource.data.participants || request.auth.uid in resource.data.teachers || request.auth.uid == resource.data.selectedTeacher || request.auth.uid in resource.data.votes || isAdmin())) ||
+        isAdmin()
+      );
+
+      allow delete: if isAuthenticated() && (isRequestOwner() || isAdmin());
+    }
+
+    // ==========================================
+    // REQUEST RESPONSES COLLECTION
+    // ==========================================
+
+    match /requestResponses/{responseId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.responderId || request.auth.uid == resource.data.requestOwnerId || isAdmin());
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.responderId;
+    }
+
+    // ==========================================
+    // HIDDEN REQUESTS COLLECTION
+    // ==========================================
+
+    match /hiddenRequests/{hiddenId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    // ==========================================
+    // POSTS AND SOCIAL FEATURES
+    // ==========================================
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isRequestOwner();
+      allow update, delete: if isAuthenticated() && isResourceOwner();
+    }
+
+    match /posts/{postId}/comments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isRequestOwner();
+      allow update, delete: if isAuthenticated() && isResourceOwner();
+    }
+
+    // ==========================================
+    // CHAT AND MESSAGING
+    // ==========================================
+
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, write: if isAuthenticated() && (request.auth.uid in resource.data.participants || request.auth.uid in request.resource.data.participants || isAdmin());
+    }
+
+    match /chats/{chatId} {
+      allow read, write: if isAuthenticated() && (request.auth.uid in resource.data.participants || request.auth.uid in request.resource.data.participants || isAdmin());
+    }
+
+    // ==========================================
+    // ACTIVITY AND ANALYTICS
+    // ==========================================
+
+    match /activities/{activityId} {
+      allow read: if isAuthenticated() && (isResourceOwner() || isAdmin());
+      allow write: if isAuthenticated() && (isResourceOwner() || isRequestOwner() || isAdmin());
+    }
+
+    // ==========================================
+    // PUBLIC AND ADMIN DATA
+    // ==========================================
+
+    match /adminData/{document=**} {
+      allow read, write: if isAuthenticated() && isAdmin();
+    }
+
+    match /publicData/{document} {
+      allow read: if true;
+      allow write: if isAuthenticated() || isAdmin();
+    }
+
+    // ==========================================
+    // ADDITIONAL COLLECTIONS
+    // ==========================================
+
+    match /feedback/{feedbackId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isRequestOwner();
+      allow update, delete: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    match /payments/{paymentId} {
+      allow read, write: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    match /sessionMaterials/{materialId} {
+      allow read: if isAuthenticated() && (isResourceOwner() || request.auth.uid in resource.data.participants || isAdmin());
+      allow create: if isAuthenticated() && isRequestOwner();
+      allow update, delete: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    // ==========================================
+    // MEETINGS COLLECTION
+    // ==========================================
+
+    match /meetings/{meetingId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.hostUserId || request.auth.uid in resource.data.participants || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.hostUserId || request.auth.uid in resource.data.participants || isAdmin());
+      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.hostUserId || isAdmin());
+    }
+
+    // ==========================================
+    // DENY ALL OTHER ACCESS BY DEFAULT
+    // ==========================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

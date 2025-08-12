@@ -448,22 +448,24 @@ export const groupRequestService = {
                 userId: requestData.userId
             });
 
-            // ✅ NEW: Check if this is a voting/participation/payment/teaching update
+            // ✅ NEW: Check if this is a voting/participation/payment/teaching/meeting update
             const isVotingUpdate = updateData.votes !== undefined || updateData.voteCount !== undefined;
             const isParticipationUpdate = updateData.participants !== undefined || updateData.participantCount !== undefined;
             const isPaymentUpdate = updateData.paidParticipants !== undefined || updateData.totalPaid !== undefined;
             const isTeachingUpdate = updateData.teachers !== undefined || updateData.teacherCount !== undefined;
+            const isMeetingUpdate = updateData.meetingLink !== undefined || updateData.meetingGeneratedAt !== undefined;
 
             console.log('🔍 Update type detection:', {
                 isVotingUpdate,
                 isParticipationUpdate,
                 isPaymentUpdate,
                 isTeachingUpdate,
+                isMeetingUpdate,
                 updateDataKeys: Object.keys(updateData)
             });
 
-            // ✅ NEW: Allow group members to vote, participate, pay, and teach
-            if (isVotingUpdate || isParticipationUpdate || isPaymentUpdate || isTeachingUpdate) {
+            // ✅ NEW: Allow group members to vote, participate, pay, teach, and manage meetings
+            if (isVotingUpdate || isParticipationUpdate || isPaymentUpdate || isTeachingUpdate || isMeetingUpdate) {
                 console.log('📊 Processing group member action - verifying group membership...');
 
                 // Verify user is a group member for voting/participation operations
@@ -536,6 +538,21 @@ export const groupRequestService = {
                         }
 
                         console.log('✅ Payment validation passed for user:', userId);
+                    }
+
+                    // Additional business logic checks for meeting updates
+                    if (isMeetingUpdate) {
+                        // Check if user is the selected teacher
+                        if (requestData.selectedTeacher !== userId) {
+                            return { success: false, message: 'Only the selected teacher can manage meeting operations' };
+                        }
+
+                        // Check if request is in correct status for meeting management
+                        if (!['paid', 'live'].includes(requestData.status)) {
+                            return { success: false, message: 'Meeting management is not allowed in current request status' };
+                        }
+
+                        console.log('✅ Meeting update validation passed for selected teacher:', userId);
                     }
 
                 } catch (groupError) {
