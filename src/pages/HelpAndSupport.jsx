@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { ChatIcon, GroupIcon, SearchIcon, DocumentIcon, MoneyIcon, LockIcon } from '@/components/Icons/SvgIcons';
 
 const HelpAndSupport = () => {
   const { user } = useAuth();
@@ -249,7 +250,9 @@ const HelpAndSupport = () => {
                 ))}
                 {searchQuery && filteredFAQ.length === 0 && (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">🔍</div>
+                    <div className="text-4xl mb-4">
+                      <SearchIcon className="w-16 h-16 mx-auto text-blue-500" />
+                    </div>
                     <p className="text-[#A0AEC0] text-lg">No results found for "{searchQuery}"</p>
                     <p className="text-[#718096] text-sm mt-2">Try different keywords or browse our categories</p>
                   </div>
@@ -261,7 +264,9 @@ const HelpAndSupport = () => {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-[#2D3748] border border-[#4A5568] rounded-lg p-6">
-                    <div className="text-3xl mb-4">📝</div>
+                    <div className="text-3xl mb-4">
+                      <DocumentIcon className="w-12 h-12 mx-auto text-green-500" />
+                    </div>
                     <h3 className="text-lg font-semibold text-white mb-2">Creating Requests</h3>
                     <p className="text-[#A0AEC0] text-sm mb-4">
                       Learn how to create effective requests that get responses quickly.
@@ -272,7 +277,9 @@ const HelpAndSupport = () => {
                   </div>
 
                   <div className="bg-[#2D3748] border border-[#4A5568] rounded-lg p-6">
-                    <div className="text-3xl mb-4">👥</div>
+                    <div className="text-3xl mb-4">
+                      <GroupIcon className="w-12 h-12 mx-auto text-purple-500" />
+                    </div>
                     <h3 className="text-lg font-semibold text-white mb-2">Managing Groups</h3>
                     <p className="text-[#A0AEC0] text-sm mb-4">
                       Everything you need to know about creating and managing study groups.
@@ -283,7 +290,9 @@ const HelpAndSupport = () => {
                   </div>
 
                   <div className="bg-[#2D3748] border border-[#4A5568] rounded-lg p-6">
-                    <div className="text-3xl mb-4">💰</div>
+                    <div className="text-3xl mb-4">
+                      <MoneyIcon className="w-12 h-12 mx-auto text-yellow-500" />
+                    </div>
                     <h3 className="text-lg font-semibold text-white mb-2">Payment & Billing</h3>
                     <p className="text-[#A0AEC0] text-sm mb-4">
                       Understanding our payment system and billing procedures.
@@ -294,7 +303,9 @@ const HelpAndSupport = () => {
                   </div>
 
                   <div className="bg-[#2D3748] border border-[#4A5568] rounded-lg p-6">
-                    <div className="text-3xl mb-4">🔒</div>
+                    <div className="text-3xl mb-4">
+                      <LockIcon className="w-12 h-12 mx-auto text-red-500" />
+                    </div>
                     <h3 className="text-lg font-semibold text-white mb-2">Privacy & Security</h3>
                     <p className="text-[#A0AEC0] text-sm mb-4">
                       How we protect your data and maintain your privacy.

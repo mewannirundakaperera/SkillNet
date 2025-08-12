@@ -12,6 +12,7 @@ import {
     limit
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
+import { UserIcon, ChatIcon, GroupIcon, TargetIcon, PlusIcon, ArrowRightIcon, TrendingUpIcon, TrendingDownIcon } from '@/components/Icons/SvgIcons';
 
 const RequestStats = () => {
     const { user } = useAuth();
@@ -257,7 +258,9 @@ const RequestStats = () => {
                             <p className="text-2xl font-bold text-white">{stats.oneToOne.created}</p>
                             <p className="text-xs text-[#718096]">Created by you</p>
                         </div>
-                        <div className="text-blue-500 text-2xl">👤</div>
+                        <div className="text-blue-500 text-2xl">
+                            <UserIcon className="w-8 h-8" color="#4299E1" />
+                        </div>
                     </div>
                 </Link>
 
@@ -269,7 +272,9 @@ const RequestStats = () => {
                             <p className="text-2xl font-bold text-white">{stats.oneToOne.received}</p>
                             <p className="text-xs text-[#718096]">From other students</p>
                         </div>
-                        <div className="text-green-500 text-2xl">💬</div>
+                        <div className="text-green-500 text-2xl">
+                            <ChatIcon className="w-8 h-8" color="#10B981" />
+                        </div>
                     </div>
                 </Link>
 
@@ -281,7 +286,9 @@ const RequestStats = () => {
                             <p className="text-2xl font-bold text-white">{stats.group.created}</p>
                             <p className="text-xs text-[#718096]">Created by you</p>
                         </div>
-                        <div className="text-purple-500 text-2xl">👥</div>
+                        <div className="text-purple-500 text-2xl">
+                            <GroupIcon className="w-8 h-8" color="#8B5CF6" />
+                        </div>
                     </div>
                 </Link>
 
@@ -293,7 +300,9 @@ const RequestStats = () => {
                             <p className="text-2xl font-bold text-white">{stats.group.received}</p>
                             <p className="text-xs text-[#718096]">From your groups</p>
                         </div>
-                        <div className="text-orange-500 text-2xl">🎯</div>
+                        <div className="text-orange-500 text-2xl">
+                            <TargetIcon className="w-8 h-8" color="#F59E0B" />
+                        </div>
                     </div>
                 </Link>
             </div>
@@ -335,24 +344,34 @@ const RequestStats = () => {
 
             {/* Quick Actions */}
             <div className="bg-[#1A202C] rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">
+                    <TargetIcon className="w-5 h-5 inline mr-2 text-[#4299E1]" />
+                    Quick Actions
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Link
                         to="/requests/create"
-                        className="flex items-center gap-3 p-4 border border-[#2D3748] rounded-lg hover:bg-[#2D3748] transition-colors"
+                        className="flex items-center justify-between p-4 bg-[#2D3748] hover:bg-[#4A5568] rounded-lg transition-colors group"
                     >
-                        <div className="bg-blue-100 text-blue-600 rounded-full p-2">👤</div>
-                        <div>
-                            <p className="font-medium text-white">Create 1:1 Request</p>
-                            <p className="text-sm text-[#A0AEC0]">Get individual help</p>
+                        <div className="flex items-center gap-3">
+                            <div className="text-blue-500 text-2xl">
+                                <PlusIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-white">Create New Request</p>
+                                <p className="text-sm text-[#A0AEC0]">Start a new learning request</p>
+                            </div>
                         </div>
+                        <ArrowRightIcon className="w-5 h-5 text-[#A0AEC0] group-hover:text-white transition-colors" />
                     </Link>
 
                     <Link
                         to="/requests/create-group"
                         className="flex items-center gap-3 p-4 border border-[#2D3748] rounded-lg hover:bg-[#2D3748] transition-colors"
                     >
-                        <div className="bg-purple-100 text-purple-600 rounded-full p-2">👥</div>
+                        <div className="bg-purple-100 text-purple-600 rounded-full p-2">
+                            <GroupIcon className="w-5 h-5" color="#7C3AED" />
+                        </div>
                         <div>
                             <p className="font-medium text-white">Create Group Request</p>
                             <p className="text-sm text-[#A0AEC0]">Collaborate with groups</p>
@@ -363,7 +382,9 @@ const RequestStats = () => {
                         to="/OneToOneRequests"
                         className="flex items-center gap-3 p-4 border border-[#2D3748] rounded-lg hover:bg-[#2D3748] transition-colors"
                     >
-                        <div className="bg-green-100 text-green-600 rounded-full p-2">💬</div>
+                        <div className="bg-green-100 text-green-600 rounded-full p-2">
+                            <ChatIcon className="w-5 h-5" color="#059669" />
+                        </div>
                         <div>
                             <p className="font-medium text-white">Browse 1:1 Requests</p>
                             <p className="text-sm text-[#A0AEC0]">Help other students</p>
@@ -374,7 +395,9 @@ const RequestStats = () => {
                         to="/requests/group-received"
                         className="flex items-center gap-3 p-4 border border-[#2D3748] rounded-lg hover:bg-[#2D3748] transition-colors"
                     >
-                        <div className="bg-orange-100 text-orange-600 rounded-full p-2">🎯</div>
+                        <div className="bg-orange-100 text-orange-600 rounded-full p-2">
+                            <TargetIcon className="w-5 h-5" color="#D97706" />
+                        </div>
                         <div>
                             <p className="font-medium text-white">Browse Group Requests</p>
                             <p className="text-sm text-[#A0AEC0]">Join group sessions</p>
@@ -393,7 +416,10 @@ const RequestStats = () => {
                                 <div className={`rounded-full p-2 ${
                                     activity.type === 'group' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                                 }`}>
-                                    {activity.type === 'group' ? '👥' : '👤'}
+                                    {activity.type === 'group' ? 
+                                        <GroupIcon className="w-5 h-5" color="#7C3AED" /> : 
+                                        <UserIcon className="w-5 h-5" color="#2563EB" />
+                                    }
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-white">

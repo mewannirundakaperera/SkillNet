@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { UserAvatar } from "@/components/UI/PhotoGallery";
 
 export default function TeachandLearnNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -19,7 +20,7 @@ export default function TeachandLearnNavbar() {
           <li><Link to="/OnlineMeeting" className="hover:text-indigo-600">Online Meeting</Link></li>
         </ul>
         <div className="flex items-center gap-4">
-          <img src="https://randomuser.me/api/portraits/men/40.jpg" alt="User" className="h-8 w-8 rounded-full" />
+          <UserAvatar size="md" alt="User" />
         </div>
       </nav>
   );

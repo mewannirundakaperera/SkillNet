@@ -7,6 +7,31 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
+// ✅ NEW: Currency formatting utility
+const formatCurrency = (amount, currency = 'Rs.') => {
+  if (!amount) return 'Free';
+  
+  // Handle different currency formats
+  switch (currency) {
+    case 'USD':
+    case '$':
+      return `$${parseFloat(amount).toFixed(2)}`;
+    case 'EUR':
+    case '€':
+      return `€${parseFloat(amount).toFixed(2)}`;
+    case 'GBP':
+    case '£':
+      return `£${parseFloat(amount).toFixed(2)}`;
+    case 'INR':
+    case '₹':
+      return `₹${parseFloat(amount).toFixed(2)}`;
+    case 'LKR':
+    case 'Rs.':
+    default:
+      return `Rs. ${parseFloat(amount).toFixed(2)}`;
+  }
+};
+
 
 
 const OneToOneRequests = () => {
@@ -605,7 +630,7 @@ const OneToOneRequests = () => {
           </div>
           <div className="card-dark rounded-lg p-4 shadow-sm border-l-4 border-green-500">
             <div className="text-lg font-bold text-green-400">{categories.highPaying.length}</div>
-            <div className="text-[#A0AEC0] text-sm">High Paying (₹1000+)</div>
+            <div className="text-[#A0AEC0] text-sm">High Paying (Rs. 1000+)</div>
           </div>
           <div className="card-dark rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
             <div className="text-lg font-bold text-purple-400">{Object.keys(categories.subjects).length}</div>
@@ -674,8 +699,8 @@ const OneToOneRequests = () => {
                   className="input-dark border border-[#4A5568] rounded-lg px-3 py-2 text-sm w-full"
                 >
                   <option value="all">All Payments</option>
-                  <option value="high">High (₹1000+)</option>
-                  <option value="low">Low (&lt;₹1000)</option>
+                  <option value="high">High (Rs. 1000+)</option>
+                  <option value="low">Low (&lt;Rs. 1000)</option>
                   <option value="free">Free</option>
                 </select>
               </div>
@@ -742,7 +767,7 @@ const OneToOneRequests = () => {
                                       )}
                                       {req.paymentAmount && (
                                           <span className="bg-green-900 text-green-300 text-xs px-2 py-1 rounded border border-green-700">
-                                              {req.currency || 'Rs.'}{req.paymentAmount}
+                                              {formatCurrency(req.paymentAmount, req.currency)}
                                           </span>
                                       )}
                                   </div>
@@ -870,7 +895,7 @@ const OneToOneRequests = () => {
                     {selected.paymentAmount && (
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-[#A0AEC0]">💰 Payment:</span>
-                          <span className="text-green-400 font-semibold">{selected.currency || 'Rs.'}{selected.paymentAmount}</span>
+                          <span className="text-green-400 font-semibold">{formatCurrency(selected.paymentAmount, selected.currency)}</span>
                         </div>
                     )}
                   </div>
@@ -993,7 +1018,7 @@ const OneToOneRequests = () => {
                               onClick={() => setSelected(req)}
                           >
                             <div className="font-medium text-green-200">{req.title}</div>
-                            <div className="text-green-400 text-xs">{req.subject} • {req.currency || 'Rs.'}{req.paymentAmount}</div>
+                            <div className="text-green-400 text-xs">{req.subject} • {formatCurrency(req.paymentAmount, req.currency)}</div>
                           </div>
                       ))}
                     </div>

@@ -4,6 +4,27 @@ import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/services/authService";
 import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "@/config/firebase";
+import {
+  ComputerIcon,
+  GroupIcon,
+  GlobeIcon,
+  FireIcon,
+  StarIcon,
+  LightningIcon,
+  DocumentIcon,
+  ClockIcon,
+  TrophyIcon,
+  ChatIcon,
+  LightbulbIcon,
+  BookIcon,
+  GraduationIcon,
+  MusicIcon,
+  ClipboardIcon,
+  MoneyIcon,
+  RefreshIcon,
+  UserIcon,
+  WrenchIcon
+} from "@/components/Icons/SvgIcons";
 
 export default function IntelligentNavbar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -330,31 +351,31 @@ export default function IntelligentNavbar() {
         {
           section: "Subjects & Communities",
           items: [
-            { label: "All Subjects", icon: "💻", to: "/subjects" },
-            { label: "Course-Based Communities", icon: "👥", to: "/communities" },
-            { label: "Common Community", icon: "🌐", to: "/common" },
-            { label: "Popular Topics", icon: "🔥", to: "/topics", isNew: true },
-            { label: "Browse Tutors", icon: "⭐", to: "/tutors" }
+            { label: "All Subjects", icon: <ComputerIcon className="w-5 h-5" color="#4299E1" />, to: "/subjects" },
+            { label: "Course-Based Communities", icon: <GroupIcon className="w-5 h-5" color="#4299E1" />, to: "/communities" },
+            { label: "Common Community", icon: <GlobeIcon className="w-5 h-5" color="#4299E1" />, to: "/common" },
+            { label: "Popular Topics", icon: <FireIcon className="w-5 h-5" color="#4299E1" />, to: "/topics", isNew: true },
+            { label: "Browse Tutors", icon: <StarIcon className="w-5 h-5" color="#4299E1" />, to: "/tutors" }
           ]
         },
         {
           section: "Skill Exchange",
           items: [
-            { label: "Free Sessions", icon: "⚡", to: "/free-sessions" },
-            { label: "Paid Sessions", icon: "📄", to: "/paid-sessions" },
-            { label: "Upcoming Sessions", icon: "🕐", to: "/upcoming", isNew: true },
-            { label: "Most Requested", icon: "🏆", to: "/requested" },
-            { label: "Tutor Reviews", icon: "💬", to: "/reviews" }
+            { label: "Free Sessions", icon: <LightningIcon className="w-5 h-5" color="#4299E1" />, to: "/free-sessions" },
+            { label: "Paid Sessions", icon: <DocumentIcon className="w-5 h-5" color="#4299E1" />, to: "/paid-sessions" },
+            { label: "Upcoming Sessions", icon: <ClockIcon className="w-5 h-5" color="#4299E1" />, to: "/upcoming", isNew: true },
+            { label: "Most Requested", icon: <TrophyIcon className="w-5 h-5" color="#4299E1" />, to: "/requested" },
+            { label: "Tutor Reviews", icon: <ChatIcon className="w-5 h-5" color="#4299E1" />, to: "/reviews" }
           ]
         },
         {
           section: "Knowledge Boards",
           items: [
-            { label: "Latest Questions", icon: "💡", to: "/questions" },
-            { label: "Paid Sessions", icon: "📄", to: "/paid" },
-            { label: "Trending Topics", icon: "🔥", to: "/trending", isNew: true },
-            { label: "Most Viewed Answers", icon: "📚", to: "/answers" },
-            { label: "New Teachers", icon: "🎓", to: "/teachers" }
+            { label: "Latest Questions", icon: <LightbulbIcon className="w-5 h-5" color="#4299E1" />, to: "/questions" },
+            { label: "Paid Sessions", icon: <DocumentIcon className="w-5 h-5" color="#4299E1" />, to: "/paid" },
+            { label: "Trending Topics", icon: <FireIcon className="w-5 h-5" color="#4299E1" />, to: "/trending", isNew: true },
+            { label: "Most Viewed Answers", icon: <BookIcon className="w-5 h-5" color="#4299E1" />, to: "/answers" },
+            { label: "New Teachers", icon: <GraduationIcon className="w-5 h-5" color="#4299E1" />, to: "/teachers" }
           ]
         }
       ]
@@ -367,19 +388,19 @@ export default function IntelligentNavbar() {
         {
           section: "Become a Tutor",
           items: [
-            { label: "Register as Tutor", icon: "🎵", to: "/register-tutor" },
-            { label: "Set Available Subjects", icon: "📋", to: "/subjects" },
-            { label: "Add Time Slots", icon: "🕐", to: "/time-slots" },
-            { label: "Set Price (Optional)", icon: "💰", to: "/pricing" }
+            { label: "Register as Tutor", icon: <MusicIcon className="w-5 h-5" color="#4299E1" />, to: "/register-tutor" },
+            { label: "Set Available Subjects", icon: <ClipboardIcon className="w-5 h-5" color="#4299E1" />, to: "/subjects" },
+            { label: "Add Time Slots", icon: <ClockIcon className="w-5 h-5" color="#4299E1" />, to: "/time-slots" },
+            { label: "Set Price (Optional)", icon: <MoneyIcon className="w-5 h-5" color="#4299E1" />, to: "/pricing" }
           ]
         },
         {
           section: "Manage Teaching",
           items: [
-            { label: "Your Sessions", icon: "🔄", to: "/sessions" },
-            { label: "Earnings", icon: "💰", to: "/earnings" },
-            { label: "Student Feedback", icon: "💬", to: "/feedback", isNew: true },
-            { label: "Edit Tutor Profile", icon: "👤", to: "/edit-profile" }
+            { label: "Your Sessions", icon: <RefreshIcon className="w-5 h-5" color="#4299E1" />, to: "/sessions" },
+            { label: "Earnings", icon: <MoneyIcon className="w-5 h-5" color="#4299E1" />, to: "/earnings" },
+            { label: "Student Feedback", icon: <ChatIcon className="w-5 h-5" color="#4299E1" />, to: "/feedback", isNew: true },
+            { label: "Edit Tutor Profile", icon: <UserIcon className="w-5 h-5" color="#4299E1" />, to: "/edit-profile" }
           ]
         }
       ]
@@ -392,20 +413,20 @@ export default function IntelligentNavbar() {
         {
           section: "Learning Options",
           items: [
-            { label: "Request Knowledge", icon: "📄", to: "/request-knowledge" },
-            { label: "Request Help", icon: "🔧", to: "/request-help" },
-            { label: "One-on-One Learning", icon: "👥", to: "/one-on-one" },
-            { label: "Group Sessions", icon: "👥", to: "/group-sessions", isNew: true },
-            { label: "Join Upcoming Session", icon: "🕐", to: "/join-session" }
+            { label: "Request Knowledge", icon: <DocumentIcon className="w-5 h-5" color="#4299E1" />, to: "/request-knowledge" },
+            { label: "Request Help", icon: <WrenchIcon className="w-5 h-5" color="#4299E1" />, to: "/request-help" },
+            { label: "One-on-One Learning", icon: <GroupIcon className="w-5 h-5" color="#4299E1" />, to: "/one-on-one" },
+            { label: "Group Sessions", icon: <GroupIcon className="w-5 h-5" color="#4299E1" />, to: "/group-sessions", isNew: true },
+            { label: "Join Upcoming Session", icon: <ClockIcon className="w-5 h-5" color="#4299E1" />, to: "/join-session" }
           ]
         },
         {
           section: "My Learning",
           items: [
-            { label: "Enrolled Sessions", icon: "📋", to: "/enrolled" },
-            { label: "Learning History", icon: "📋", to: "/history" },
-            { label: "Notes", icon: "📄", to: "/notes" },
-            { label: "Ask a Tutor", icon: "💬", to: "/ask-tutor" }
+            { label: "Enrolled Sessions", icon: <ClipboardIcon className="w-5 h-5" color="#4299E1" />, to: "/enrolled" },
+            { label: "Learning History", icon: <ClipboardIcon className="w-5 h-5" color="#4299E1" />, to: "/history" },
+            { label: "Notes", icon: <DocumentIcon className="w-5 h-5" color="#4299E1" />, to: "/notes" },
+            { label: "Ask a Tutor", icon: <ChatIcon className="w-5 h-5" color="#4299E1" />, to: "/ask-tutor" }
           ]
         }
       ]
@@ -425,7 +446,7 @@ export default function IntelligentNavbar() {
               <img src="/brain-logo.png" alt="Logo" className="h-8 w-8" />
               <div className="flex items-center">
                 <span className="font-bold text-xl text-[#4299E1]">Skill</span>
-                <span className="font-bold text-xl text-white">-net</span>
+                <span className="font-bold text-xl text-white">Net</span>
               </div>
             </Link>
 

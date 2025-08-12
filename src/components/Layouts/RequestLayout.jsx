@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import IntelligentNavbar from "@components/Navigation/IntelligentNavbar.jsx";
+import { useAuth } from '@/hooks/useAuth';
+import { ChatIcon, VideoIcon, ChartBarIcon } from '@/components/Icons/SvgIcons';
 
 // Simple Layout Component (basic navbar + content)
 export function SimpleLayout({ children }) {
@@ -47,7 +49,7 @@ export default function RequestLayout({ children, title, subtitle }) {
 
   // Main sidebar navigation items
   const sidebarNavItems = [
-    { to: "/StudentConnect", label: "Dashboard", icon: "📊", type: "link" },
+    { to: "/StudentConnect", label: "Dashboard", icon: <ChartBarIcon className="w-5 h-5" color="currentColor" />, type: "link" },
     {
       to: "/requests/create",
       label: "Create Requests",
@@ -67,7 +69,7 @@ export default function RequestLayout({ children, title, subtitle }) {
     {
       to: "/requests/available",
       label: "Received Requests",
-      icon: "💬",
+      icon: <ChatIcon className="w-5 h-5" color="currentColor" />,
       type: "expandable",
       expanded: receivedRequestsExpanded,
       setExpanded: setReceivedRequestsExpanded,
@@ -82,7 +84,7 @@ export default function RequestLayout({ children, title, subtitle }) {
     {
       to: "/meetings/dashboard",
       label: "Meeting Dashboard",
-      icon: "🎥",
+      icon: <VideoIcon className="w-5 h-5" color="currentColor" />,
       type: "link"
     }
   ];

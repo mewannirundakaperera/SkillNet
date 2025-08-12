@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { CalendarIcon, ClockIcon, UserIcon, CheckIcon } from '@/components/Icons/SvgIcons';
 
 const teachers = [
   {
@@ -58,10 +59,9 @@ export default function TimeSlotSelection() {
     <div className="min-h-screen bg-[#1A202C] flex flex-col">
       {/* Top Navbar */}
       <nav className="card-dark border-b border-[#4A5568] flex items-center justify-between px-8 py-3">
-        <div className="flex items-center gap-2">
-          <Link to="/">
+        <div className="flex items-center gap-2 mb-6">
+          <CalendarIcon className="w-6 h-6 text-[#4299E1]" />
           <span className="font-bold text-lg text-[#4299E1]">Student Scheduler</span>
-          </Link>
         </div>
         <ul className="flex gap-6 text-[#E0E0E0] font-medium">
           <li><Link to="/SelectTeacher" className="hover:text-[#4299E1] transition-colors">Select Teacher</Link></li>
@@ -107,7 +107,10 @@ export default function TimeSlotSelection() {
         </aside>
         {/* Main Content */}
         <main className="flex-1 flex flex-col gap-8 mt-8">
-          <h1 className="text-2xl font-bold mb-4 text-white">Schedule Your Session</h1>
+          <h1 className="text-2xl font-bold mb-4 text-white">
+            <ClockIcon className="w-6 h-6 inline mr-2 text-[#4299E1]" />
+            Schedule Your Session
+          </h1>
           <div className="flex gap-8">
             {/* Calendar & Time Slots */}
             <section className="card-dark rounded-xl shadow p-6 flex flex-col gap-6 w-[420px]">
@@ -148,7 +151,10 @@ export default function TimeSlotSelection() {
               <div className="flex items-center gap-3 mb-2">
                 <img src={selectedTeacher.avatar} alt={selectedTeacher.name} className="w-14 h-14 rounded-full object-cover" />
                 <div>
-                  <div className="font-bold text-lg text-white">{selectedTeacher.name}</div>
+                  <div className="font-bold text-lg text-white">
+                    <UserIcon className="w-5 h-5 inline mr-2 text-[#48BB78]" />
+                    {selectedTeacher.name}
+                  </div>
                   <div className="flex items-center gap-1 text-yellow-400 text-sm">
                     <span>★</span>
                     <span>{selectedTeacher.rating} Rating</span>

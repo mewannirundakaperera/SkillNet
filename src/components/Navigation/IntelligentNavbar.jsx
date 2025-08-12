@@ -382,7 +382,7 @@ export default function IntelligentNavbar() {
             <img src="/brain-logo.png" alt="Logo" className="h-8 w-8" />
             <div className="flex items-center">
               <span className="font-bold text-xl text-blue-500">Skill</span>
-              <span className="font-bold text-xl text-white">-net</span>
+              <span className="font-bold text-xl text-white">Net</span>
             </div>
           </Link>
 

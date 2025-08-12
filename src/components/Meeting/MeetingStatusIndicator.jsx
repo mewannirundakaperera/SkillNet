@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMeeting } from '@/hooks/useMeeting';
-import RequestMeetingButton from './RequestMeetingButton';
+import { RequestMeetingButton } from './RequestMeetingButton';
+import { VideoIcon, CheckIcon, XIcon, ClockIcon, QuestionIcon } from '@/components/Icons/SvgIcons';
 
 const MeetingStatusIndicator = ({
                                     request,
@@ -48,7 +49,7 @@ const MeetingStatusIndicator = ({
 
             case 'pending':
                 return {
-                    icon: '⏳',
+                    icon: <ClockIcon className="w-5 h-5" color="currentColor" />,
                     text: 'Pending',
                     color: 'yellow',
                     description: 'Waiting for response'
@@ -57,22 +58,23 @@ const MeetingStatusIndicator = ({
             case 'accepted':
                 if (meetingData?.meeting) {
                     return {
-                        icon: '🎥',
+                        icon: <VideoIcon className="w-5 h-5" color="currentColor" />,
                         text: 'Meeting Ready',
-                        color: 'green',
+                        color: 'blue',
                         description: 'Video meeting is available'
                     };
+                } else {
+                    return {
+                        icon: <CheckIcon className="w-5 h-5" color="currentColor" />,
+                        text: 'Accepted',
+                        color: 'green',
+                        description: 'Request accepted, meeting setup required'
+                    };
                 }
-                return {
-                    icon: '✅',
-                    text: 'Accepted',
-                    color: 'blue',
-                    description: 'Request accepted, setting up meeting...'
-                };
 
             case 'completed':
                 return {
-                    icon: '✅',
+                    icon: <CheckIcon className="w-5 h-5" color="currentColor" />,
                     text: 'Completed',
                     color: 'green',
                     description: 'Session completed successfully'
@@ -80,7 +82,7 @@ const MeetingStatusIndicator = ({
 
             case 'cancelled':
                 return {
-                    icon: '❌',
+                    icon: <XIcon className="w-5 h-5" color="currentColor" />,
                     text: 'Cancelled',
                     color: 'red',
                     description: 'Request was cancelled'
@@ -88,7 +90,7 @@ const MeetingStatusIndicator = ({
 
             case 'expired':
                 return {
-                    icon: '⏰',
+                    icon: <ClockIcon className="w-5 h-5" color="currentColor" />,
                     text: 'Expired',
                     color: 'gray',
                     description: 'Request has expired'
@@ -96,7 +98,7 @@ const MeetingStatusIndicator = ({
 
             default:
                 return {
-                    icon: '❓',
+                    icon: <QuestionIcon className="w-5 h-5" color="currentColor" />,
                     text: 'Unknown',
                     color: 'gray',
                     description: 'Status unknown'

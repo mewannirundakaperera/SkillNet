@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { HiOutlineUpload } from "react-icons/hi";
 import { FiUser, FiMail, FiLock } from "react-icons/fi";
 import { signUp } from "@services/authService";
 import { UserCollectionService } from "@/services/user.js"; // Import the service
@@ -8,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
-  const [file, setFile] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -18,13 +16,6 @@ export default function SignUp() {
   const [validationErrors, setValidationErrors] = useState({});
 
   const navigate = useNavigate();
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-    }
-  };
 
   const getPasswordStrength = (password) => {
     let strength = 0;
@@ -95,17 +86,7 @@ export default function SignUp() {
       }
     }
 
-    // File validation (optional but recommended format)
-    if (file) {
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
 
-      if (!allowedTypes.includes(file.type)) {
-        errors.file = "Only PDF, JPEG, JPG, and PNG files are allowed";
-      } else if (file.size > maxSize) {
-        errors.file = "File size must be less than 5MB";
-      }
-    }
 
     return errors;
   };
@@ -368,42 +349,7 @@ export default function SignUp() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-white mb-1 space-y-px">
-                Upload University Registration Letter
-              </label>
-              <label
-                htmlFor="file-upload"
-                className={`flex flex-col items-center justify-center w-full p-6 border border-dashed rounded-[6px] cursor-pointer hover:border-[#4299E1] transition-colors ${
-                  validationErrors.file ? 'border-red-500' : 'border-[#4A5568]'
-                }`}
-              >
-                <HiOutlineUpload className="w-8 h-8 text-[#A0AEC0] mb-2" />
-                <p className="text-sm text-[#A0AEC0] text-center">
-                  <span className="font-medium">Drag and drop</span> or{" "}
-                  <span className="font-medium">browse</span> files
-                </p>
-                <p className="text-xs text-[#718096] mt-1">
-                  PDF, JPEG, JPG, PNG (Max 5MB)
-                </p>
-                {file && (
-                  <p className="mt-2 text-sm text-white font-medium">
-                    {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                  </p>
-                )}
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept=".pdf,.jpeg,.jpg,.png"
-                  className="sr-only"
-                  onChange={handleFileChange}
-                  disabled={loading}
-                />
-              </label>
-              {validationErrors.file && (
-                <p className="text-red-400 text-xs mt-1">{validationErrors.file}</p>
-              )}
-            </div>
+
 
             <div className="flex items-start pt-2">
               <div className="flex items-center h-5">

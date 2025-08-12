@@ -462,7 +462,17 @@ const EnhancedGroupRequestCard = ({ request, currentUserId, onRequestUpdate }) =
 
     try {
       setLoading(true);
-      const paymentAmount = parseFloat(request.rate?.replace(/[^0-9.-]+/g,"") || "25");
+      // Handle different rate formats safely
+      let paymentAmount = 25; // Default fallback
+      if (request?.rate) {
+        if (typeof request.rate === 'string') {
+          paymentAmount = parseFloat(request.rate.replace(/[^0-9.-]+/g,"") || "25");
+        } else if (typeof request.rate === 'number') {
+          paymentAmount = request.rate;
+        } else {
+          paymentAmount = parseFloat(request.rate) || 25;
+        }
+      }
 
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -1470,6 +1480,8 @@ const AllGroupRequests = () => {
     return matchesCategory && matchesStatus && matchesSearch;
   });
 
+
+
   // Get status statistics
   const getStatusStats = () => {
     const stats = {};
@@ -1533,6 +1545,8 @@ const AllGroupRequests = () => {
   return (
       <div className="bg-slate-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">

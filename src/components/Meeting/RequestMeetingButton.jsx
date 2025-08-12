@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useMeeting } from '@/hooks/useMeeting';
+import { VideoIcon, RocketIcon, WarningIcon } from '@/components/Icons/SvgIcons';
 
 const RequestMeetingButton = ({
                                   request,
@@ -161,7 +162,7 @@ const RequestMeetingButton = ({
             case 'create':
                 return (
                     <>
-                        <span className="mr-2">🎥</span>
+                        <VideoIcon className="w-5 h-5 mr-2" color="currentColor" />
                         {requestType === 'group' ? 'Start Group Meeting' : 'Start Meeting'}
                     </>
                 );
@@ -169,7 +170,7 @@ const RequestMeetingButton = ({
             case 'join':
                 return (
                     <>
-                        <span className="mr-2">🚀</span>
+                        <RocketIcon className="w-5 h-5 mr-2" color="currentColor" />
                         Join Meeting
                     </>
                 );
@@ -177,7 +178,7 @@ const RequestMeetingButton = ({
             case 'error':
                 return (
                     <>
-                        <span className="mr-2">⚠️</span>
+                        <WarningIcon className="w-5 h-5 mr-2" color="currentColor" />
                         Try Again
                     </>
                 );

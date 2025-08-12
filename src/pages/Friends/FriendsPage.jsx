@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { collection, query, where, getDocs, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, serverTimestamp, addDoc } from "firebase/firestore";
 import { db } from "@/config/firebase";
+import { TargetIcon, ChatIcon, GroupIcon } from '@/components/Icons/SvgIcons';
 
 export default function FriendsPage() {
   const { user } = useAuth();
@@ -729,7 +730,9 @@ export default function FriendsPage() {
                     <div className="flex-1 p-4 overflow-y-auto">
                       {chatHistory.length === 0 ? (
                         <div className="text-center text-[#A0AEC0] py-8">
-                          <div className="text-4xl mb-2">💬</div>
+                          <div className="text-4xl mb-2">
+                            <ChatIcon className="w-16 h-16 mx-auto text-green-500" />
+                          </div>
                           <p>Start a conversation with {selectedFriend.displayName || selectedFriend.name}</p>
                         </div>
                       ) : (
@@ -778,7 +781,9 @@ export default function FriendsPage() {
                 ) : (
                   <div className="flex-1 flex items-center justify-center">
                     <div className="text-center text-[#A0AEC0]">
-                      <div className="text-6xl mb-4">👥</div>
+                      <div className="text-6xl mb-4">
+                        <GroupIcon className="w-24 h-24 mx-auto text-purple-500" />
+                      </div>
                       <h3 className="text-xl font-semibold text-white mb-2">Select a Friend</h3>
                       <p>Choose a friend from the list to start chatting or send target requests</p>
                     </div>

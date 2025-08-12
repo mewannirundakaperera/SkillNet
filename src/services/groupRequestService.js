@@ -453,7 +453,20 @@ export const groupRequestService = {
             const isParticipationUpdate = updateData.participants !== undefined || updateData.participantCount !== undefined;
             const isPaymentUpdate = updateData.paidParticipants !== undefined || updateData.totalPaid !== undefined;
             const isTeachingUpdate = updateData.teachers !== undefined || updateData.teacherCount !== undefined;
-            const isMeetingUpdate = updateData.meetingLink !== undefined || updateData.meetingGeneratedAt !== undefined;
+            const isMeetingUpdate = updateData.meetingLink !== undefined || 
+                           updateData.meetingGeneratedAt !== undefined || 
+                           updateData.meetingEndedAt !== undefined ||
+                           (updateData.status === 'complete' && updateData.meetingEndedAt !== undefined);
+
+            // Enhanced logging for meeting update detection
+            if (updateData.meetingEndedAt !== undefined || updateData.status === 'complete') {
+                console.log('🔍 Meeting end detection details:', {
+                    hasMeetingEndedAt: updateData.meetingEndedAt !== undefined,
+                    hasStatusComplete: updateData.status === 'complete',
+                    isMeetingUpdate,
+                    updateDataKeys: Object.keys(updateData)
+                });
+            }
 
             console.log('🔍 Update type detection:', {
                 isVotingUpdate,
@@ -492,8 +505,22 @@ export const groupRequestService = {
 
                     // Additional business logic checks for voting
                     if (isVotingUpdate) {
+                        console.log('🔍 Voting ownership check:', {
+                            userId,
+                            requestUserId: requestData.userId,
+                            requestCreatedBy: requestData.createdBy,
+                            isUserIdMatch: requestData.userId === userId,
+                            isCreatedByMatch: requestData.createdBy === userId,
+                            requestData: {
+                                id: requestData.id,
+                                title: requestData.title,
+                                status: requestData.status
+                            }
+                        });
+                        
                         // Check if user is request owner (owners can't vote on their own requests)
                         if (requestData.userId === userId || requestData.createdBy === userId) {
+                            console.log('❌ User is request owner, blocking vote');
                             return { success: false, message: 'You cannot vote on your own request' };
                         }
 
@@ -508,7 +535,7 @@ export const groupRequestService = {
                     // Additional business logic checks for participation
                     if (isParticipationUpdate) {
                         // Check if request is in correct status for participation
-                        if (!['voting_open', 'accepted'].includes(requestData.status)) {
+                        if (!['funding', 'voting_open', 'accepted'].includes(requestData.status)) {
                             return { success: false, message: 'Participation is not allowed in current request status' };
                         }
 
@@ -548,8 +575,20 @@ export const groupRequestService = {
                         }
 
                         // Check if request is in correct status for meeting management
+                        // Allow 'paid' and 'live' status for meeting operations, and allow ending meetings from 'live' status
                         if (!['paid', 'live'].includes(requestData.status)) {
                             return { success: false, message: 'Meeting management is not allowed in current request status' };
+                        }
+
+                        // Special case: allow ending meetings (status change to 'complete') from 'live' status
+                        if (updateData.status === 'complete' && requestData.status === 'live') {
+                            console.log('✅ Meeting end operation allowed for live status');
+                        } else if (updateData.status === 'live' && requestData.status === 'paid') {
+                            console.log('✅ Meeting start operation allowed for paid status');
+                        } else if (updateData.status === requestData.status) {
+                            console.log('✅ Meeting update operation allowed (no status change)');
+                        } else {
+                            return { success: false, message: 'Invalid status transition for meeting management' };
                         }
 
                         console.log('✅ Meeting update validation passed for selected teacher:', userId);
@@ -562,6 +601,14 @@ export const groupRequestService = {
             } else {
                 // ✅ EXISTING: Regular ownership check for other updates (title, description, status changes, etc.)
                 console.log('📝 Processing content update - checking ownership...');
+                console.log('🔍 Content update details:', {
+                    userId,
+                    requestOwner: requestData.userId,
+                    requestCreator: requestData.createdBy,
+                    isOwner: requestData.userId === userId,
+                    isCreator: requestData.createdBy === userId,
+                    updateDataKeys: Object.keys(updateData)
+                });
 
                 if (requestData.userId !== userId && requestData.createdBy !== userId) {
                     return { success: false, message: 'You can only update your own requests' };
@@ -574,6 +621,18 @@ export const groupRequestService = {
                 ...updateData,
                 updatedAt: serverTimestamp(),
             };
+
+            // ✅ NEW: Automatically set payment deadline when status changes to funding
+            if (updateData.status === 'funding' && requestData.status !== 'funding') {
+                console.log('🔄 Status changing to funding, setting payment deadline...');
+                const deadlineResult = await this.setPaymentDeadline(requestId, 24); // Default 24 hours
+                if (deadlineResult.success) {
+                    finalUpdateData.paymentDeadline = deadlineResult.deadline;
+                    console.log('✅ Payment deadline automatically set for funding state');
+                } else {
+                    console.warn('⚠️ Failed to set payment deadline:', deadlineResult.message);
+                }
+            }
 
             // ✅ NEW: Ensure required fields exist for teaching updates
             if (isTeachingUpdate) {
@@ -610,6 +669,9 @@ export const groupRequestService = {
 
             console.log('📝 Final update data:', Object.keys(finalUpdateData));
 
+            // ✅ NEW: Check payment deadline before updating
+            await this.checkPaymentDeadline(requestId, requestData);
+
             await updateDoc(requestRef, finalUpdateData);
             console.log('✅ Request updated successfully');
 
@@ -621,6 +683,161 @@ export const groupRequestService = {
                 return { success: false, message: 'Permission denied. You cannot update this request.' };
             }
             return { success: false, message: `Failed to update request: ${error.message}` };
+        }
+    },
+
+    /**
+     * ✅ NEW: Check payment deadline and automatically transition from funding to paid state
+     * This function checks if the payment deadline has passed and automatically updates the status
+     */
+    async checkPaymentDeadline(requestId, requestData) {
+        try {
+            // Only check if request is in funding state
+            if (requestData.status !== 'funding') {
+                return;
+            }
+
+            const paymentDeadline = requestData.paymentDeadline;
+            if (!paymentDeadline) {
+                console.log('⚠️ No payment deadline set for funding request:', requestId);
+                return;
+            }
+
+            const now = new Date();
+            const deadline = paymentDeadline.toDate ? paymentDeadline.toDate() : new Date(paymentDeadline);
+
+            console.log('⏰ Checking payment deadline:', {
+                requestId,
+                currentTime: now.toISOString(),
+                deadline: deadline.toISOString(),
+                isExpired: now > deadline
+            });
+
+            // If deadline has passed, automatically transition to 'paid' state
+            if (now > deadline) {
+                console.log('⏰ Payment deadline expired, transitioning to paid state:', requestId);
+                
+                const requestRef = doc(db, 'grouprequests', requestId);
+                await updateDoc(requestRef, {
+                    status: 'paid',
+                    updatedAt: serverTimestamp(),
+                    fundingExpiredAt: serverTimestamp(),
+                    autoTransitionReason: 'Payment deadline expired'
+                });
+
+                console.log('✅ Successfully transitioned request to paid state due to expired deadline');
+            }
+        } catch (error) {
+            console.error('❌ Error checking payment deadline:', error);
+            // Don't fail the main update operation if deadline check fails
+        }
+    },
+
+    /**
+     * ✅ NEW: Set payment deadline when request enters funding state
+     * This function should be called when manually setting status to 'funding'
+     */
+    async setPaymentDeadline(requestId, deadlineHours = 24) {
+        try {
+            console.log('⏰ Setting payment deadline for request:', requestId, 'deadline hours:', deadlineHours);
+            
+            const requestRef = doc(db, 'grouprequests', requestId);
+            const requestSnap = await getDoc(requestRef);
+            
+            if (!requestSnap.exists()) {
+                console.log('❌ Request not found:', requestId);
+                return { success: false, message: 'Request not found' };
+            }
+
+            const requestData = requestSnap.data();
+            
+            // Calculate deadline (default: 24 hours from now)
+            const deadline = new Date();
+            deadline.setHours(deadline.getHours() + deadlineHours);
+            
+            await updateDoc(requestRef, {
+                paymentDeadline: deadline,
+                updatedAt: serverTimestamp()
+            });
+
+            console.log('✅ Payment deadline set:', {
+                requestId,
+                deadline: deadline.toISOString(),
+                deadlineHours
+            });
+
+            return { success: true, message: 'Payment deadline set successfully', deadline };
+        } catch (error) {
+            console.error('❌ Error setting payment deadline:', error);
+            return { success: false, message: `Failed to set payment deadline: ${error.message}` };
+        }
+    },
+
+    /**
+     * ✅ NEW: Check all funding requests for expired deadlines
+     * This function can be called periodically to check all funding requests
+     */
+    async checkAllFundingDeadlines() {
+        try {
+            console.log('🔍 Checking all funding requests for expired deadlines...');
+            
+            const fundingRequestsRef = collection(db, 'grouprequests');
+            const fundingQuery = query(
+                fundingRequestsRef,
+                where('status', '==', 'funding'),
+                where('paymentDeadline', '!=', null)
+            );
+            
+            const fundingSnapshot = await getDocs(fundingQuery);
+            console.log(`📊 Found ${fundingSnapshot.size} funding requests with deadlines`);
+            
+            let expiredCount = 0;
+            const now = new Date();
+            
+            for (const docSnap of fundingSnapshot.docs) {
+                const requestData = docSnap.data();
+                const deadline = requestData.paymentDeadline.toDate ? 
+                    requestData.paymentDeadline.toDate() : 
+                    new Date(requestData.paymentDeadline);
+                
+                if (now > deadline) {
+                    console.log('⏰ Deadline expired for request:', docSnap.id);
+                    await this.checkPaymentDeadline(docSnap.id, requestData);
+                    expiredCount++;
+                }
+            }
+            
+            console.log(`✅ Checked ${fundingSnapshot.size} funding requests, ${expiredCount} deadlines expired`);
+            return { success: true, checked: fundingSnapshot.size, expired: expiredCount };
+        } catch (error) {
+            console.error('❌ Error checking all funding deadlines:', error);
+            return { success: false, message: `Failed to check funding deadlines: ${error.message}` };
+        }
+    },
+
+    /**
+     * ✅ NEW: Manual deadline check function for UI calls
+     * This can be called from buttons or admin panels
+     */
+    async manualDeadlineCheck() {
+        try {
+            console.log('🔍 Manual deadline check initiated...');
+            const result = await this.checkAllFundingDeadlines();
+            
+            if (result.success) {
+                console.log(`✅ Manual deadline check completed: ${result.checked} requests checked, ${result.expired} deadlines expired`);
+                return { 
+                    success: true, 
+                    message: `Deadline check completed. ${result.checked} requests checked, ${result.expired} deadlines expired.`,
+                    checked: result.checked,
+                    expired: result.expired
+                };
+            } else {
+                return { success: false, message: 'Deadline check failed' };
+            }
+        } catch (error) {
+            console.error('❌ Error in manual deadline check:', error);
+            return { success: false, message: `Manual deadline check failed: ${error.message}` };
         }
     },
 

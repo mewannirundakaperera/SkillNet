@@ -4,6 +4,56 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { groupRequestService } from '@/services/groupRequestService';
 
+// Helper function to calculate cost per person
+const calculateCostPerPerson = (request) => {
+  // Safety check - if no request, return 0
+  if (!request) {
+    console.warn('⚠️ calculateCostPerPerson: No request provided');
+    return '0';
+  }
+  
+  // Handle different rate formats safely
+  let totalCost = 0;
+  if (request?.rate) {
+    if (typeof request.rate === 'string') {
+      totalCost = parseFloat(request.rate.replace(/[^0-9.-]+/g,"") || "0");
+    } else if (typeof request.rate === 'number') {
+      totalCost = request.rate;
+    } else {
+      totalCost = parseFloat(request.rate) || 0;
+    }
+  }
+  
+  // Get owner/creator
+  const owner = request?.userId || request?.createdBy;
+  
+  // Get voters (excluding owner to avoid double counting)
+  const voters = request?.votes || [];
+  const votersExcludingOwner = voters.filter(voterId => voterId !== owner);
+  
+  // Get manual participants (excluding owner and voters to avoid double counting)
+  const manualParticipants = request?.participants || [];
+  const manualParticipantsExcludingOwner = manualParticipants.filter(participantId => 
+    participantId !== owner && !voters.includes(participantId)
+  );
+  
+  // Calculate total unique participants: owner + voters + manual participants
+  const totalParticipants = 1 + votersExcludingOwner.length + manualParticipantsExcludingOwner.length;
+  
+  console.log('💰 Cost per person calculation:', {
+    totalCost,
+    owner,
+    votersCount: voters.length,
+    votersExcludingOwnerCount: votersExcludingOwner.length,
+    manualParticipantsCount: manualParticipants.length,
+    manualParticipantsExcludingOwnerCount: manualParticipantsExcludingOwner.length,
+    totalParticipants,
+    costPerPerson: totalParticipants > 0 ? (totalCost / totalParticipants).toFixed(2) : '0'
+  });
+  
+  return totalParticipants > 0 ? (totalCost / totalParticipants).toFixed(2) : '0';
+};
+
 // Payment Countdown Timer Component
 const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUserId }) => {
   console.log('⏰ PaymentCountdownTimer render:', {
@@ -19,6 +69,13 @@ const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUs
 
   useEffect(() => {
     const calculateTimeLeft = async () => {
+      // ✅ ADDED: Safety check for deadline
+      if (!deadline) {
+        console.warn('⚠️ PaymentCountdownTimer: No deadline provided');
+        setIsExpired(true);
+        return;
+      }
+
       console.log('🔄 PaymentCountdownTimer calculateTimeLeft:', {
         deadline,
         deadlineType: typeof deadline,
@@ -206,9 +263,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
       };
     }
 
-    const owner = localRequest.userId || localRequest.createdBy;
+    const owner = localRequest?.userId || localRequest?.createdBy;
     const isOwner = currentUserId === owner;
-    const votees = localRequest.votes || [];
+    const votees = localRequest?.votes || [];
     const isVotee = votees.includes(currentUserId);
     const hasVoted = isVotee;
 
@@ -217,16 +274,16 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
     const isAutomaticParticipant = automaticParticipants.has(currentUserId);
 
     // Manual participants (those who chose to join)
-    const manualParticipants = localRequest.participants || [];
+    const manualParticipants = localRequest?.participants || [];
     const isManualParticipant = manualParticipants.includes(currentUserId);
 
     // Teachers (those who chose to teach)
-    const teachers = localRequest.teachers || [];
+    const teachers = localRequest?.teachers || [];
     const isTeacher = teachers.includes(currentUserId);
-    const isSelectedTeacher = localRequest.selectedTeacher === currentUserId;
+    const isSelectedTeacher = localRequest?.selectedTeacher === currentUserId;
 
     // Paid participants
-    const paidParticipants = localRequest.paidParticipants || [];
+    const paidParticipants = localRequest?.paidParticipants || [];
     const hasPaid = paidParticipants.includes(currentUserId);
 
     console.log('👤 User role calculation:', {
@@ -266,8 +323,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
     const pendingPaymentCount = participantsWhoPay.length - paidCount;
 
     // Role and permission logic by status
-    console.log('🎯 Processing status:', localRequest.status);
-    switch (localRequest.status) {
+    console.log('🎯 Processing status:', localRequest?.status);
+    switch (localRequest?.status) {
       case 'pending':
         if (isOwner) {
           userRole = 'owner';
@@ -422,7 +479,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
     console.log('✅ Final userRoles:', finalUserRoles);
     return finalUserRoles;
-  }, [request, currentUserId]);
+  }, [localRequest, currentUserId]); // ✅ FIXED: Added localRequest dependency
 
   // Get user display names for teachers
   const getUserDisplayName = async (userId) => {
@@ -444,12 +501,14 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
   // Load teacher names
   useEffect(() => {
-    if (localRequest.teachers && localRequest.teachers.length > 0) {
-      localRequest.teachers.forEach(userId => {
-        getUserDisplayName(userId);
+    if (localRequest?.teachers && localRequest?.teachers.length > 0) {
+      localRequest?.teachers.forEach(userId => {
+        if (userId) { // ✅ ADDED: Safety check for userId
+          getUserDisplayName(userId);
+        }
       });
     }
-  }, [localRequest.teachers]);
+  }, [localRequest?.teachers]); // ✅ FIXED: Removed getUserDisplayName dependency to avoid infinite loop
 
   // ✅ HANDLE VOTING (Only in pending state, owner cannot vote)
   const handleVote = async () => {
@@ -473,10 +532,10 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
       setLoading(true);
 
       // ✅ ADDED: Validate request data before voting
-      if (!localRequest.id || !localRequest.votes) {
+      if (!localRequest?.id || !Array.isArray(localRequest.votes)) {
         console.error('❌ Invalid request data for voting:', {
-          hasId: !!localRequest.id,
-          hasVotes: !!localRequest.votes,
+          hasId: !!localRequest?.id,
+          hasVotes: Array.isArray(localRequest?.votes),
           localRequest
         });
         throw new Error('Invalid request data for voting');
@@ -542,24 +601,24 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
       if (roleType === 'teacher') {
         updateData = {
-          teachers: [...(localRequest.teachers || []), currentUserId],
-          teacherCount: (localRequest.teacherCount || 0) + 1,
+          teachers: [...(localRequest?.teachers || []), currentUserId],
+          teacherCount: (localRequest?.teacherCount || 0) + 1,
           updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isTeachingUpdate() requirements
         };
 
         // If first teacher, change to accepted
-        if (!localRequest.teachers || localRequest.teachers.length === 0) {
+        if (!localRequest?.teachers || localRequest.teachers.length === 0) {
           updateData.status = 'accepted';
         }
       } else if (roleType === 'participant') {
         updateData = {
-          participants: [...(localRequest.participants || []), currentUserId],
-          participantCount: (localRequest.participantCount || 0) + 1,
+          participants: [...(localRequest?.participants || []), currentUserId],
+          participantCount: (localRequest?.participantCount || 0) + 1,
           updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isParticipationUpdate() requirements
         };
       }
 
-      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest?.id, updateData, currentUserId);
 
       if (result.success) {
         // ✅ FIXED: Update local state immediately
@@ -570,7 +629,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         setLocalRequest(updatedRequest);
         
         // Notify parent component
-        onRequestUpdate?.(localRequest.id, updatedRequest);
+        onRequestUpdate?.(localRequest?.id, updatedRequest);
       } else {
         alert(result.message || 'Failed to select role');
       }
@@ -638,7 +697,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
       console.log('📝 Teacher selection update data:', updateData);
 
-      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest?.id, updateData, currentUserId);
 
       if (result.success) {
         // ✅ FIXED: Update local state immediately
@@ -649,7 +708,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         setLocalRequest(updatedRequest);
         
         // Notify parent component
-        onRequestUpdate?.(localRequest.id, updatedRequest);
+        onRequestUpdate?.(localRequest?.id, updatedRequest);
         
         setSelectedTeacher('');
         setPaymentDeadline('');
@@ -676,19 +735,29 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
     try {
       setLoading(true);
-      const paymentAmount = parseFloat(localRequest.rate?.replace(/[^0-9.-]+/g,"") || "0");
+      // Handle different rate formats safely
+      let paymentAmount = 0;
+      if (localRequest?.rate) {
+        if (typeof localRequest.rate === 'string') {
+          paymentAmount = parseFloat(localRequest.rate.replace(/[^0-9.-]+/g,"") || "0");
+        } else if (typeof localRequest.rate === 'number') {
+          paymentAmount = localRequest.rate;
+        } else {
+          paymentAmount = parseFloat(localRequest.rate) || 0;
+        }
+      }
 
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const newPaidParticipants = [...(localRequest.paidParticipants || []), currentUserId];
+      const newPaidParticipants = [...(localRequest?.paidParticipants || []), currentUserId];
       const updateData = {
         paidParticipants: newPaidParticipants,
-        totalPaid: (localRequest.totalPaid || 0) + paymentAmount,
+        totalPaid: (localRequest?.totalPaid || 0) + paymentAmount,
         updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isPaymentUpdate() requirements
       };
 
-      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest?.id, updateData, currentUserId);
 
       if (result.success) {
         // ✅ FIXED: Update local state immediately
@@ -699,7 +768,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         setLocalRequest(updatedRequest);
         
         // Notify parent component
-        onRequestUpdate?.(localRequest.id, updatedRequest);
+        onRequestUpdate?.(localRequest?.id, updatedRequest);
         alert('Payment successful!');
       } else {
         alert(result.message || 'Payment failed');
@@ -723,7 +792,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
     try {
       setLoading(true);
-      const mockLink = `https://meet.jit.si/SkillNet-${localRequest.id}-${Date.now()}`;
+      const mockLink = `https://meet.jit.si/SkillNet-${localRequest?.id}-${Date.now()}`;
 
       const updateData = {
         meetingLink: mockLink,
@@ -732,7 +801,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match isMeetingUpdate() requirements
       };
 
-      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest?.id, updateData, currentUserId);
 
       if (result.success) {
         setMeetingLink(mockLink);
@@ -743,217 +812,217 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         };
         setLocalRequest(updatedRequest);
         
-                // Notify parent component
-        onRequestUpdate?.(localRequest.id, updatedRequest);
+        // Notify parent component
+        onRequestUpdate?.(localRequest?.id, updatedRequest);
 
-                 // Open meeting in new tab with teacher prefix and auto-name entry
-         const teacherDisplayName = `Teacher-${teacherNames[currentUserId] || currentUserDisplayName || 'Teacher'}`;
-         
-         console.log('🔗 Teacher display name prepared:', {
-           teacherDisplayName,
-           currentUserId,
-           teacherNames: teacherNames[currentUserId],
-           currentUserDisplayName
-         });
-         
-         // Use the same improved approach as handleJoinMeeting
-         const configParams = [
-           `config.prejoinPageEnabled=false`,
-           `config.prejoinConfig.name=${encodeURIComponent(teacherDisplayName)}`,
-           `config.prejoinConfig.prejoinButtonText=Start Teaching`,
-           `userInfo.displayName=${encodeURIComponent(teacherDisplayName)}`,
-           `userInfo.preferredDisplayName=${encodeURIComponent(teacherDisplayName)}`
-         ];
-         
-         let enhancedLink = `${mockLink}?${configParams.join('&')}`;
-         
-         // Add additional parameters
-         const additionalParams = [
-           `displayName=${encodeURIComponent(teacherDisplayName)}`,
-           `preferredDisplayName=${encodeURIComponent(teacherDisplayName)}`,
-           `userInfo.name=${encodeURIComponent(teacherDisplayName)}`,
-           `name=${encodeURIComponent(teacherDisplayName)}`
-         ];
-         enhancedLink += `&${additionalParams.join('&')}`;
-         
-         // Add URL fragment
-         enhancedLink += `#userInfo.displayName=${encodeURIComponent(teacherDisplayName)}`;
-         
-         console.log('🔗 Generated meeting link with auto-name:', {
-           originalLink: mockLink,
-           enhancedLink,
-           teacherDisplayName,
-           currentUserId,
-           configParams,
-           additionalParams
-         });
-         
-         // Store in localStorage as backup
-         try {
-           localStorage.setItem('jitsi_display_name', teacherDisplayName);
-           localStorage.setItem('jitsi_teacher_mode', 'true');
-           console.log('💾 Stored teacher display name in localStorage:', teacherDisplayName);
-         } catch (error) {
-           console.warn('⚠️ Could not store in localStorage:', error);
-         }
-         
-         // Open the meeting and inject the enhanced script
-         const meetingWindow = window.open(enhancedLink, '_blank');
-         
-         // Inject the same enhanced script for automatic setup
-         if (meetingWindow) {
-           setTimeout(() => {
-             try {
-               const enhancedScript = `
-                 try {
-                   console.log('🔧 Starting automatic Jitsi setup for teacher: ${teacherDisplayName}');
-                   
-                   // Wait for Jitsi to load
-                   const checkJitsi = setInterval(() => {
-                     if (window.JitsiMeetExternalAPI || document.querySelector('[data-testid="prejoin.join-button"]')) {
-                       clearInterval(checkJitsi);
-                       console.log('✅ Jitsi loaded, starting automatic teacher setup...');
-                       
-                       // Step 1: Set display name in prejoin page
-                       const nameInput = document.querySelector('input[data-testid="prejoin.input.name"]');
-                       if (nameInput) {
-                         nameInput.value = '${teacherDisplayName}';
-                         nameInput.dispatchEvent(new Event('input', { bubbles: true }));
-                         nameInput.dispatchEvent(new Event('change', { bubbles: true }));
-                         console.log('✅ Teacher display name set:', '${teacherDisplayName}');
-                       }
-                       
-                       // Step 2: Also try alternative name input selectors
-                       const alternativeNameInputs = [
-                         'input[placeholder*="name" i]',
-                         'input[placeholder*="display" i]',
-                         'input[name*="name" i]',
-                         'input[id*="name" i]',
-                         '.prejoin-input-name input',
-                         '.prejoin-input input'
-                       ];
-                       
-                       alternativeNameInputs.forEach(selector => {
-                         const altInput = document.querySelector(selector);
-                         if (altInput && altInput !== nameInput) {
-                           altInput.value = '${teacherDisplayName}';
-                           altInput.dispatchEvent(new Event('input', { bubbles: true }));
-                           altInput.dispatchEvent(new Event('change', { bubbles: true }));
-                           console.log('✅ Alternative teacher name input filled:', selector);
-                         }
-                       });
-                       
-                       // Step 3: Store in localStorage as backup
-                       localStorage.setItem('jitsi_meeting_display_name', '${teacherDisplayName}');
-                       localStorage.setItem('jitsi_display_name', '${teacherDisplayName}');
-                       
-                       // Step 4: Wait a bit for name to be processed, then auto-join
-                       setTimeout(() => {
-                         console.log('🚀 Teacher attempting to auto-join meeting...');
-                         
-                         // Try multiple join button selectors
-                         const joinButtonSelectors = [
-                           '[data-testid="prejoin.join-button"]',
-                           '.prejoin-join-button',
-                           '.prejoin-button',
-                           'button[data-testid*="join"]',
-                           'button:contains("Join")',
-                           'button:contains("join")',
-                           '.btn-join',
-                           '.join-button'
-                         ];
-                         
-                         let joinButton = null;
-                         for (const selector of joinButtonSelectors) {
-                           try {
-                             joinButton = document.querySelector(selector);
-                             if (joinButton) {
-                               console.log('✅ Found teacher join button:', selector);
-                               break;
-                             }
-                           } catch (e) {
-                             // Skip invalid selectors
-                           }
-                         }
-                         
-                         if (joinButton) {
-                           console.log('🚀 Teacher auto-clicking join button');
-                           joinButton.click();
-                           
-                           // Step 5: After joining, automatically select logging option
-                           setTimeout(() => {
-                             console.log('🔍 Teacher looking for logging options...');
-                             
-                             // Try to find and select logging options
-                             const loggingSelectors = [
-                               'input[type="checkbox"][name*="log"]',
-                               'input[type="checkbox"][id*="log"]',
-                               'input[type="checkbox"][value*="log"]',
-                               'input[type="checkbox"][data-testid*="log"]',
-                               '.logging-option input[type="checkbox"]',
-                               '.log-option input[type="checkbox"]',
-                               'input[type="checkbox"]:contains("logging")',
-                               'input[type="checkbox"]:contains("Logging")'
-                             ];
-                             
-                             loggingSelectors.forEach(selector => {
-                               try {
-                                 const loggingCheckbox = document.querySelector(selector);
-                                 if (loggingCheckbox && !loggingCheckbox.checked) {
-                                   loggingCheckbox.checked = true;
-                                   loggingCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
-                                   loggingCheckbox.dispatchEvent(new Event('click', { bubbles: true }));
-                                   console.log('✅ Teacher logging option selected:', selector);
-                                 }
-                               } catch (e) {
-                                 // Skip invalid selectors
-                               }
-                             });
-                             
-                             // Also try to find logging options by text content
-                             const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
-                             allCheckboxes.forEach(checkbox => {
-                               const label = checkbox.nextElementSibling || checkbox.parentElement;
-                               if (label && label.textContent && 
-                                   (label.textContent.toLowerCase().includes('log') || 
-                                    label.textContent.toLowerCase().includes('logging'))) {
-                                 if (!checkbox.checked) {
-                                   checkbox.checked = true;
-                                   checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                                   checkbox.dispatchEvent(new Event('click', { bubbles: true }));
-                                   console.log('✅ Teacher logging option selected by text:', label.textContent);
-                                 }
-                               }
-                             });
-                             
-                           }, 2000); // Wait 2 seconds after joining
-                           
-                         } else {
-                           console.warn('⚠️ No teacher join button found');
-                         }
-                       }, 1500); // Wait 1.5 seconds for name processing
-                       
-                     }
-                   }, 1000);
-                   
-                   // Timeout after 15 seconds
-                   setTimeout(() => {
-                     clearInterval(checkJitsi);
-                     console.log('⏰ Teacher Jitsi setup timeout reached');
-                   }, 15000);
-                   
-                 } catch (error) {
-                   console.warn('❌ Could not inject teacher display name script:', error);
-                 }
-               `;
-               
-               meetingWindow.eval(enhancedScript);
-               console.log('🔧 Injected enhanced teacher script into meeting window');
-             } catch (error) {
-               console.warn('⚠️ Could not inject enhanced script into teacher meeting window:', error);
-             }
-           }, 2000); // Wait 2 seconds for the page to start loading
-         }
+        // Open meeting in new tab with teacher prefix and auto-name entry
+        const teacherDisplayName = `Teacher-${teacherNames[currentUserId] || currentUserDisplayName || 'Teacher'}`;
+        
+        console.log('🔗 Teacher display name prepared:', {
+          teacherDisplayName,
+          currentUserId,
+          teacherNames: teacherNames[currentUserId],
+          currentUserDisplayName
+        });
+        
+        // Use the same improved approach as handleJoinMeeting
+        const configParams = [
+          `config.prejoinPageEnabled=false`,
+          `config.prejoinConfig.name=${encodeURIComponent(teacherDisplayName)}`,
+          `config.prejoinConfig.prejoinButtonText=Start Teaching`,
+          `userInfo.displayName=${encodeURIComponent(teacherDisplayName)}`,
+          `userInfo.preferredDisplayName=${encodeURIComponent(teacherDisplayName)}`
+        ];
+        
+        let enhancedLink = `${mockLink}?${configParams.join('&')}`;
+        
+        // Add additional parameters
+        const additionalParams = [
+          `displayName=${encodeURIComponent(teacherDisplayName)}`,
+          `preferredDisplayName=${encodeURIComponent(teacherDisplayName)}`,
+          `userInfo.name=${encodeURIComponent(teacherDisplayName)}`,
+          `name=${encodeURIComponent(teacherDisplayName)}`
+        ];
+        enhancedLink += `&${additionalParams.join('&')}`;
+        
+        // Add URL fragment
+        enhancedLink += `#userInfo.displayName=${encodeURIComponent(teacherDisplayName)}`;
+        
+        console.log('🔗 Generated meeting link with auto-name:', {
+          originalLink: mockLink,
+          enhancedLink,
+          teacherDisplayName,
+          currentUserId,
+          configParams,
+          additionalParams
+        });
+        
+        // Store in localStorage as backup
+        try {
+          localStorage.setItem('jitsi_display_name', teacherDisplayName);
+          localStorage.setItem('jitsi_teacher_mode', 'true');
+          console.log('💾 Stored teacher display name in localStorage:', teacherDisplayName);
+        } catch (error) {
+          console.warn('⚠️ Could not store in localStorage:', error);
+        }
+        
+        // Open the meeting and inject the enhanced script
+        const meetingWindow = window.open(enhancedLink, '_blank');
+        
+        // Inject the same enhanced script for automatic setup
+        if (meetingWindow) {
+          setTimeout(() => {
+            try {
+              const enhancedScript = `
+                try {
+                  console.log('🔧 Starting automatic Jitsi setup for teacher: ${teacherDisplayName}');
+                  
+                  // Wait for Jitsi to load
+                  const checkJitsi = setInterval(() => {
+                    if (window.JitsiMeetExternalAPI || document.querySelector('[data-testid="prejoin.join-button"]')) {
+                      clearInterval(checkJitsi);
+                      console.log('✅ Jitsi loaded, starting automatic teacher setup...');
+                      
+                      // Step 1: Set display name in prejoin page
+                      const nameInput = document.querySelector('input[data-testid="prejoin.input.name"]');
+                      if (nameInput) {
+                        nameInput.value = '${teacherDisplayName}';
+                        nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        nameInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        console.log('✅ Teacher display name set:', '${teacherDisplayName}');
+                      }
+                      
+                      // Step 2: Also try alternative name input selectors
+                      const alternativeNameInputs = [
+                        'input[placeholder*="name" i]',
+                        'input[placeholder*="display" i]',
+                        'input[name*="name" i]',
+                        'input[id*="name" i]',
+                        '.prejoin-input-name input',
+                        '.prejoin-input input'
+                      ];
+                      
+                      alternativeNameInputs.forEach(selector => {
+                        const altInput = document.querySelector(selector);
+                        if (altInput && altInput !== nameInput) {
+                          altInput.value = '${teacherDisplayName}';
+                          altInput.dispatchEvent(new Event('input', { bubbles: true }));
+                          altInput.dispatchEvent(new Event('change', { bubbles: true }));
+                          console.log('✅ Alternative teacher name input filled:', selector);
+                        }
+                      });
+                      
+                      // Step 3: Store in localStorage as backup
+                      localStorage.setItem('jitsi_meeting_display_name', '${teacherDisplayName}');
+                      localStorage.setItem('jitsi_display_name', '${teacherDisplayName}');
+                      
+                      // Step 4: Wait a bit for name to be processed, then auto-join
+                      setTimeout(() => {
+                        console.log('🚀 Teacher attempting to auto-join meeting...');
+                        
+                        // Try multiple join button selectors
+                        const joinButtonSelectors = [
+                          '[data-testid="prejoin.join-button"]',
+                          '.prejoin-join-button',
+                          '.prejoin-button',
+                          'button[data-testid*="join"]',
+                          'button:contains("Join")',
+                          'button:contains("join")',
+                          '.btn-join',
+                          '.join-button'
+                        ];
+                        
+                        let joinButton = null;
+                        for (const selector of joinButtonSelectors) {
+                          try {
+                            joinButton = document.querySelector(selector);
+                            if (joinButton) {
+                              console.log('✅ Found teacher join button:', selector);
+                              break;
+                            }
+                          } catch (e) {
+                            // Skip invalid selectors
+                          }
+                        }
+                        
+                        if (joinButton) {
+                          console.log('🚀 Teacher auto-clicking join button');
+                          joinButton.click();
+                          
+                          // Step 5: After joining, automatically select logging option
+                          setTimeout(() => {
+                            console.log('🔍 Teacher looking for logging options...');
+                            
+                            // Try to find and select logging options
+                            const loggingSelectors = [
+                              'input[type="checkbox"][name*="log"]',
+                              'input[type="checkbox"][id*="log"]',
+                              'input[type="checkbox"][value*="log"]',
+                              'input[type="checkbox"][data-testid*="log"]',
+                              '.logging-option input[type="checkbox"]',
+                              '.log-option input[type="checkbox"]',
+                              'input[type="checkbox"]:contains("logging")',
+                              'input[type="checkbox"]:contains("Logging")'
+                            ];
+                            
+                            loggingSelectors.forEach(selector => {
+                              try {
+                                const loggingCheckbox = document.querySelector(selector);
+                                if (loggingCheckbox && !loggingCheckbox.checked) {
+                                  loggingCheckbox.checked = true;
+                                  loggingCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                                  loggingCheckbox.dispatchEvent(new Event('click', { bubbles: true }));
+                                  console.log('✅ Teacher logging option selected:', selector);
+                                }
+                              } catch (e) {
+                                // Skip invalid selectors
+                              }
+                            });
+                            
+                            // Also try to find logging options by text content
+                            const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+                            allCheckboxes.forEach(checkbox => {
+                              const label = checkbox.nextElementSibling || checkbox.parentElement;
+                              if (label && label.textContent && 
+                                  (label.textContent.toLowerCase().includes('log') || 
+                                   label.textContent.toLowerCase().includes('logging'))) {
+                                if (!checkbox.checked) {
+                                  checkbox.checked = true;
+                                  checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                                  checkbox.dispatchEvent(new Event('click', { bubbles: true }));
+                                  console.log('✅ Teacher logging option selected by text:', label.textContent);
+                                }
+                              }
+                            });
+                            
+                          }, 2000); // Wait 2 seconds after joining
+                          
+                        } else {
+                          console.warn('⚠️ No teacher join button found');
+                        }
+                      }, 1500); // Wait 1.5 seconds for name processing
+                      
+                    }
+                  }, 1000);
+                  
+                  // Timeout after 15 seconds
+                  setTimeout(() => {
+                    clearInterval(checkJitsi);
+                    console.log('⏰ Teacher Jitsi setup timeout reached');
+                  }, 15000);
+                  
+                } catch (error) {
+                  console.warn('❌ Could not inject teacher display name script:', error);
+                }
+              `;
+              
+              meetingWindow.eval(enhancedScript);
+              console.log('🔧 Injected enhanced teacher script into meeting window');
+            } catch (error) {
+              console.warn('⚠️ Could not inject enhanced script into teacher meeting window:', error);
+            }
+          }, 2000); // Wait 2 seconds for the page to start loading
+        }
       } else {
         alert(result.message || 'Failed to generate meeting link');
       }
@@ -969,15 +1038,15 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
   const handleJoinMeeting = () => {
     console.log('🔗 handleJoinMeeting called with:', {
       meetingLink,
-      localRequestMeetingLink: localRequest.meetingLink,
+      localRequestMeetingLink: localRequest?.meetingLink,
       currentUserId,
       currentUserDisplayName,
-      selectedTeacher: localRequest.selectedTeacher
+      selectedTeacher: localRequest?.selectedTeacher
     });
 
-    if (meetingLink || localRequest.meetingLink) {
+    if (meetingLink || localRequest?.meetingLink) {
       // Automatically join without modal
-      const isSelectedTeacher = localRequest.selectedTeacher === currentUserId;
+      const isSelectedTeacher = localRequest?.selectedTeacher === currentUserId;
       const displayName = isSelectedTeacher ? `Teacher-${currentUserDisplayName || 'User'}` : (currentUserDisplayName || 'User');
       
       console.log('🚀 Auto-joining meeting with display name:', displayName);
@@ -995,8 +1064,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
     // ✅ AUTOMATICALLY JOIN MEETING (No modal needed)
   const joinMeetingAutomatically = (displayName) => {
-    const link = meetingLink || localRequest.meetingLink;
-    const isSelectedTeacher = localRequest.selectedTeacher === currentUserId;
+    const link = meetingLink || localRequest?.meetingLink;
+    const isSelectedTeacher = localRequest?.selectedTeacher === currentUserId;
     
     console.log('🔗 Automatically joining meeting:', {
       displayName,
@@ -1268,10 +1337,11 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
       const updateData = {
         status: 'complete',
         meetingEndedAt: new Date(),
-        completedAt: new Date()
+        completedAt: new Date(),
+        updatedAt: new Date() // ✅ FIXED: Add updatedAt field to match Firebase rules
       };
 
-      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest?.id, updateData, currentUserId);
 
       if (result.success) {
         // ✅ FIXED: Update local state immediately
@@ -1281,8 +1351,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         };
         setLocalRequest(updatedRequest);
         
-                // Notify parent component
-        onRequestUpdate?.(localRequest.id, updatedRequest);
+        // Notify parent component
+        onRequestUpdate?.(localRequest?.id, updatedRequest);
         alert('Meeting ended successfully!');
       } else {
         alert(result.message || 'Failed to end meeting');
@@ -1297,7 +1367,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
   // Get card styling based on status
   const getCardStyling = () => {
-    switch (localRequest.status) {
+    switch (localRequest?.status) {
       case 'pending':
         return 'border-yellow-300 bg-yellow-50';
       case 'voting_open':
@@ -1321,15 +1391,15 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
   // Debug logging
   console.log('🔍 RequestCard Final State:', {
-    requestId: localRequest.id,
-    status: localRequest.status,
+    requestId: localRequest?.id,
+    status: localRequest?.status,
     userRoles,
-    votes: localRequest.votes,
-    teachers: localRequest.teachers,
-    participants: localRequest.participants,
-    paidParticipants: localRequest.paidParticipants,
-    paymentDeadline: localRequest.paymentDeadline,
-    paymentDeadlineType: typeof localRequest.paymentDeadline
+    votes: localRequest?.votes,
+    teachers: localRequest?.teachers,
+    participants: localRequest?.participants,
+    paidParticipants: localRequest?.paidParticipants,
+    paymentDeadline: localRequest?.paymentDeadline,
+    paymentDeadlineType: typeof localRequest?.paymentDeadline
   });
 
   return (
@@ -1338,25 +1408,25 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
             <img
-                src={localRequest.createdByAvatar || `https://ui-avatars.com/api/?name=${localRequest.createdByName}&background=3b82f6&color=fff`}
-                alt={localRequest.createdByName}
+                src={localRequest?.createdByAvatar || `https://ui-avatars.com/api/?name=${localRequest?.createdByName}&background=3b82f6&color=fff`}
+                alt={localRequest?.createdByName}
                 className="w-12 h-12 rounded-full object-cover"
             />
             <div>
-              <h3 className="font-semibold text-lg text-gray-900">{localRequest.title}</h3>
+              <h3 className="font-semibold text-lg text-gray-900">{localRequest?.title}</h3>
               <p className="text-sm text-gray-600">
-                {localRequest.createdByName} • {localRequest.groupName}
+                {localRequest?.createdByName} • {localRequest?.groupName}
               </p>
             </div>
           </div>
           <div className="text-right">
-            {localRequest.rate && (
+            {localRequest?.rate && (
                 <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium block mb-2">
-              {localRequest.rate}
+              {localRequest?.rate}
             </span>
             )}
             <span className="text-xs px-2 py-1 rounded-full font-medium bg-gray-100 text-gray-700">
-            {localRequest.status.replace('_', ' ').toUpperCase()}
+            {localRequest?.status?.replace('_', ' ').toUpperCase()}
           </span>
           </div>
         </div>
@@ -1369,12 +1439,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         </div>
 
         {/* Description */}
-        <p className="text-gray-700 text-sm mb-4 line-clamp-3">{localRequest.description}</p>
+        <p className="text-gray-700 text-sm mb-4 line-clamp-3">{localRequest?.description}</p>
 
         {/* Skills */}
-        {localRequest.skills && localRequest.skills.length > 0 && (
+        {localRequest?.skills && localRequest?.skills.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {localRequest.skills.map((skill, index) => (
+              {localRequest?.skills.map((skill, index) => (
                   <span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
               {skill}
             </span>
@@ -1383,16 +1453,16 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
         )}
 
         {/* Status-specific content */}
-        {localRequest.status === 'pending' && (
+        {localRequest?.status === 'pending' && (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Community Approval</span>
-                <span className="text-sm text-gray-600">{localRequest.voteCount || 0}/5</span>
+                <span className="text-sm text-gray-600">{localRequest?.voteCount || 0}/5</span>
               </div>
               <div className="w-full bg-yellow-200 rounded-full h-2 mb-3">
                 <div
                     className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(((localRequest.voteCount || 0) / 5) * 100, 100)}%` }}
+                    style={{ width: `${Math.min(((localRequest?.voteCount || 0) / 5) * 100, 100)}%` }}
                 />
               </div>
 
@@ -1408,7 +1478,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
               {userRoles.isOwner && (
                   <div className="text-center text-sm text-yellow-700 font-medium">
-                    ⏳ Waiting for 5 community votes ({localRequest.voteCount || 0}/5)
+                    ⏳ Waiting for 5 community votes ({localRequest?.voteCount || 0}/5)
                   </div>
               )}
 
@@ -1420,7 +1490,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
             </div>
         )}
 
-        {localRequest.status === 'voting_open' && (
+        {localRequest?.status === 'voting_open' && (
             <div className="mb-4">
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
@@ -1471,9 +1541,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
             </div>
         )}
 
-        {localRequest.status === 'accepted' && (
+        {localRequest?.status === 'accepted' && (
             <div className="mb-4">
-              {userRoles.isOwner && localRequest.teachers && localRequest.teachers.length > 0 && (
+              {userRoles.isOwner && localRequest?.teachers && localRequest?.teachers.length > 0 && (
                   <div className="bg-green-100 border border-green-300 rounded-lg p-4 mb-4">
                     <h4 className="font-medium text-green-800 mb-3">Select Teacher & Set Payment Deadline</h4>
 
@@ -1486,7 +1556,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                             className="w-full border border-green-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                         >
                           <option value="">Select a teacher</option>
-                          {localRequest.teachers.map((teacherId) => (
+                          {localRequest?.teachers.map((teacherId) => (
                               <option key={teacherId} value={teacherId}>
                                 {teacherNames[teacherId] || teacherId}
                               </option>
@@ -1521,7 +1591,36 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                   </div>
               )}
 
-              {!userRoles.isOwner && (
+              {/* Role Selection for Non-Owners in Accepted State */}
+              {!userRoles.isOwner && userRoles.canChooseRole && (
+                  <div className="bg-blue-100 border border-blue-300 rounded-lg p-4 mb-4">
+                    <h4 className="font-medium text-blue-800 mb-3">Choose Your Role</h4>
+                    <p className="text-sm text-blue-700 mb-3">
+                      The request has been accepted! Choose how you want to participate:
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                            onClick={() => handleRoleSelection('teacher')}
+                            disabled={loading}
+                            className="bg-green-600 text-white py-2 px-3 rounded-lg font-medium text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+                        >
+                          🎯 Become Teacher
+                        </button>
+                        <button
+                            onClick={() => handleRoleSelection('participant')}
+                            disabled={loading}
+                            className="bg-orange-600 text-white py-2 px-3 rounded-lg font-medium text-sm hover:bg-orange-700 transition-colors disabled:opacity-50"
+                        >
+                          👥 Join as Participant
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+              )}
+
+              {!userRoles.isOwner && !userRoles.canChooseRole && (
                   <div className="text-center text-sm text-green-700 font-medium">
                     ⏳ Waiting for owner to select teacher and set payment deadline
                   </div>
@@ -1529,7 +1628,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
             </div>
         )}
 
-        {localRequest.status === 'funding' && (
+        {localRequest?.status === 'funding' && (
             <div className="mb-4">
               <div className="bg-purple-100 border border-purple-300 rounded-lg p-4 mb-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -1538,7 +1637,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                 </div>
 
                 {/* Payment Deadline Timer */}
-                {localRequest.paymentDeadline && (
+                {localRequest?.paymentDeadline && (
                     <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-red-600">⏰</span>
@@ -1546,8 +1645,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                       </div>
                       <div className="text-center">
                         <PaymentCountdownTimer
-                            deadline={localRequest.paymentDeadline}
-                            requestId={localRequest.id}
+                            deadline={localRequest?.paymentDeadline}
+                            requestId={localRequest?.id}
                             onRequestUpdate={onRequestUpdate}
                             currentUserId={currentUserId}
                         />
@@ -1571,8 +1670,23 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                         }}
                     />
                   </div>
+                  
+                  {/* Participant Information */}
+                  <div className="mb-3 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="text-xs text-purple-700 mb-2">
+                      <strong>Participants who must pay:</strong>
+                    </div>
+                    <div className="text-xs text-purple-600 space-y-1">
+                      <div>👑 Owner: {userRoles.isOwner ? 'You' : 'Session Creator'}</div>
+                      <div>🗳️ Voters: {(userRoles.automaticParticipants || []).filter(id => id !== (localRequest?.userId || localRequest?.createdBy)).length} people (automatic participants & payers)</div>
+                      {(userRoles.manualParticipants || []).length > 0 && (
+                        <div>👥 Manual Participants: {(userRoles.manualParticipants || []).length} people</div>
+                      )}
+                    </div>
+                  </div>
+                  
                   <p className="text-xs text-purple-600">
-                    Cost per person: Rs. {localRequest.rate || 'TBD'}
+                    Cost per person: Rs. {localRequest ? calculateCostPerPerson(localRequest) : '0'}
                   </p>
                 </div>
 
@@ -1582,7 +1696,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                         disabled={loading}
                         className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
                     >
-                      {loading ? 'Processing Payment...' : `Pay Rs. ${localRequest.rate || '0'}`}
+                      {loading ? 'Processing Payment...' : `Pay Rs. ${localRequest ? calculateCostPerPerson(localRequest) : '0'}`}
                     </button>
                 )}
 
@@ -1605,7 +1719,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
             </div>
         )}
 
-        {localRequest.status === 'paid' && (
+        {localRequest?.status === 'paid' && (
             <div className="mb-4">
               <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -1619,7 +1733,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
                 {userRoles.canViewMeeting && (
                     <>
-                      {userRoles.isSelectedTeacher && !meetingLink && !localRequest.meetingLink && (
+                      {userRoles.isSelectedTeacher && !meetingLink && !localRequest?.meetingLink && (
                           <button
                               onClick={handleGenerateMeetingLink}
                               disabled={loading}
@@ -1629,14 +1743,14 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                           </button>
                       )}
 
-                                             {(meetingLink || localRequest.meetingLink) && (
-                           <button
-                               onClick={handleJoinMeeting}
-                               className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
-                           >
+                      {(meetingLink || localRequest?.meetingLink) && (
+                          <button
+                              onClick={handleJoinMeeting}
+                              className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
+                          >
                              🚀 Join Meeting Automatically
-                           </button>
-                       )}
+                          </button>
+                      )}
                     </>
                 )}
 
@@ -1649,7 +1763,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
             </div>
         )}
 
-        {localRequest.status === 'live' && (
+        {localRequest?.status === 'live' && (
             <div className="mb-4">
               <div className="bg-red-100 border border-red-300 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -1659,19 +1773,19 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
                 {userRoles.canViewMeeting && (
                     <>
-                                             <button
-                           onClick={handleJoinMeeting}
-                           className="w-full bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors mb-2"
-                       >
+                      <button
+                          onClick={handleJoinMeeting}
+                          className="w-full bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors mb-2"
+                      >
                          🚀 Join Session Automatically
                        </button>
                       
-                                             {/* Debug button to test automatic name entry */}
+                      {/* Debug button to test automatic name entry */}
                        <button
                            onClick={() => {
-                             const link = meetingLink || localRequest.meetingLink;
+                             const link = meetingLink || localRequest?.meetingLink;
                              if (link) {
-                               const isSelectedTeacher = localRequest.selectedTeacher === currentUserId;
+                               const isSelectedTeacher = localRequest?.selectedTeacher === currentUserId;
                                let displayName = currentUserDisplayName || 'User';
                                if (isSelectedTeacher) {
                                  displayName = `Teacher-${displayName}`;
@@ -1690,7 +1804,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                            className="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-yellow-700 transition-colors mb-2 text-sm"
                        >
                          🔍 Debug: Test Auto-Setup
-                       </button>
+                      </button>
 
                       {userRoles.isSelectedTeacher && (
                           <button
@@ -1713,7 +1827,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
             </div>
         )}
 
-        {localRequest.status === 'complete' && (
+        {localRequest?.status === 'complete' && (
             <div className="mb-4">
               <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -1723,13 +1837,13 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                 <div className="text-sm text-gray-600 space-y-1">
                   <div>👥 Participants: {userRoles.participantsWhoPay.length}</div>
                   <div>💰 Paid Participants: {userRoles.paidCount}</div>
-                  <div>👨‍🏫 Teacher: {teacherNames[localRequest.selectedTeacher] || 'Unknown'}</div>
+                  <div>👨‍🏫 Teacher: {teacherNames[localRequest?.selectedTeacher] || 'Unknown'}</div>
                 </div>
               </div>
             </div>
         )}
 
-        {localRequest.status === 'cancelled' && (
+        {localRequest?.status === 'cancelled' && (
             <div className="mb-4">
               <div className="bg-red-100 border border-red-300 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -1737,7 +1851,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
                   <span className="font-medium text-red-800">Session Cancelled</span>
                 </div>
                 <p className="text-sm text-red-700">
-                  {localRequest.cancellationReason || 'Not enough votes or participants'}
+                  {localRequest?.cancellationReason || 'Not enough votes or participants'}
                 </p>
               </div>
             </div>
@@ -1745,9 +1859,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate, currentUserDispl
 
         {/* Footer */}
         <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Duration: {localRequest.duration || 'TBD'}</span>
+          <span>Duration: {localRequest?.duration || 'TBD'}</span>
           <Link
-              to={`/requests/details/${localRequest.id}`}
+              to={`/requests/details/${localRequest?.id}`}
               className="text-blue-600 hover:text-blue-800 font-medium"
           >
             View Details

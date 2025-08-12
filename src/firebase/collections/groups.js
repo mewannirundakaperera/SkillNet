@@ -160,20 +160,61 @@ export class GroupsService {
     // Join group
     static async joinGroup(groupId, userId, userData) {
       try {
-        const batch = writeBatch(db);
-
-        // Add user to group members
+        console.log('🔗 Attempting to join group:', { groupId, userId });
+        
+        // First, get the current group data to check structure
         const groupRef = doc(db, GROUPS_COLLECTION, groupId);
-        batch.update(groupRef, {
-          members: arrayUnion(userId),
-          memberCount: increment(1),
+        const groupSnap = await getDoc(groupRef);
+        
+        if (!groupSnap.exists()) {
+          throw new Error('Group not found');
+        }
+        
+        const groupData = groupSnap.data();
+        console.log('📋 Current group data:', groupData);
+        
+        // Prepare update data with fallbacks for missing fields
+        const updateData = {
           updatedAt: serverTimestamp()
-        });
-
-        await batch.commit();
-        return true;
+        };
+        
+        // Handle members array
+        if (groupData.members && Array.isArray(groupData.members)) {
+          updateData.members = arrayUnion(userId);
+        } else {
+          // Create members array if it doesn't exist
+          updateData.members = [userId];
+        }
+        
+        // Handle memberCount
+        if (typeof groupData.memberCount === 'number') {
+          updateData.memberCount = increment(1);
+        } else {
+          // Set memberCount if it doesn't exist
+          const currentMembers = groupData.members || [];
+          updateData.memberCount = currentMembers.length + 1;
+        }
+        
+        console.log('📝 Update data:', updateData);
+        
+        // Try batch operation first
+        try {
+          const batch = writeBatch(db);
+          batch.update(groupRef, updateData);
+          await batch.commit();
+          console.log('✅ Group joined successfully via batch');
+          return true;
+        } catch (batchError) {
+          console.warn('⚠️ Batch operation failed, trying direct update:', batchError.message);
+          
+          // Fallback to direct update
+          await updateDoc(groupRef, updateData);
+          console.log('✅ Group joined successfully via direct update');
+          return true;
+        }
+        
       } catch (error) {
-        console.error('Error joining group:', error);
+        console.error('❌ Error joining group:', error);
         throw error;
       }
     }

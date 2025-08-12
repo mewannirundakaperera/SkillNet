@@ -1,6 +1,7 @@
 // src/components/Meeting/MeetingButton.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { VideoIcon, LightningIcon } from '@/components/Icons/SvgIcons';
 import MeetingInvite from './MeetingInvite';
 
 const MeetingButton = ({
@@ -51,13 +52,13 @@ const MeetingButton = ({
     const getButtonContent = () => {
         switch (variant) {
             case 'icon':
-                return <span className="text-xl">🎥</span>;
+                return <VideoIcon className="w-5 h-5" color="currentColor" />;
             case 'link':
                 return 'Start Video Call';
             default:
                 return (
                     <>
-                        <span className="mr-2">🎥</span>
+                        <VideoIcon className="w-5 h-5 mr-2" color="currentColor" />
                         Meet Now
                     </>
                 );
@@ -83,7 +84,7 @@ const MeetingButton = ({
                         className="ml-1 px-2 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded-r-lg border-l border-blue-400 transition-colors"
                         title="Start meeting instantly"
                     >
-                        ⚡
+                        <LightningIcon className="w-4 h-4" color="white" />
                     </button>
                 )}
             </div>

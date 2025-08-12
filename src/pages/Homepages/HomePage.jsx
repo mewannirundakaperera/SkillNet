@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { collection, query, where, getDocs, getDoc, orderBy, limit, doc } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import { GroupsService } from "@/firebase/collections/groups";
+import { GroupIcon, LightbulbIcon, RocketIcon } from '@/components/Icons/SvgIcons';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -14,17 +15,11 @@ export default function HomePage() {
     groups: 0,
     earnings: 0
   });
-  const [chartData, setChartData] = useState({
-    connections: [],
-    likes: [],
-    requests: [],
-    groups: [],
-    earnings: []
-  });
+
   const [loading, setLoading] = useState(true);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [suggestedGroups, setSuggestedGroups] = useState([]);
-  const [recentRequests, setRecentRequests] = useState([]);
+
   const [isVisitor, setIsVisitor] = useState(false);
 
   useEffect(() => {
@@ -48,20 +43,30 @@ export default function HomePage() {
       const userDoc = await getDoc(doc(db, 'users', user.id));
       const userData = userDoc.data();
 
-      // Calculate connections (friends count)
-      const connections = userData?.friends?.length || 0;
-
-      // Calculate likes (posts liked)
-      const likes = userData?.postsLiked?.length || 0;
-
-      // Calculate requests (active requests count)
+      // Calculate requests (all requests user can see: one-to-one + group requests + accepted)
       const requestsQuery = query(
         collection(db, 'requests'),
         where('requesterId', '==', user.id),
-        where('status', 'in', ['active', 'pending', 'accepted'])
+        where('status', 'in', ['active', 'pending', 'accepted', 'completed'])
       );
       const requestsSnapshot = await getDocs(requestsQuery);
-      const requests = requestsSnapshot.size;
+      const oneToOneRequests = requestsSnapshot.size;
+
+      // Get group requests from user's groups
+      const userGroups = userData?.groupsJoined || [];
+      let groupRequests = 0;
+      
+      if (userGroups.length > 0) {
+        const groupRequestsQuery = query(
+          collection(db, 'grouprequests'),
+          where('groupId', 'in', userGroups)
+        );
+        const groupRequestsSnapshot = await getDocs(groupRequestsQuery);
+        groupRequests = groupRequestsSnapshot.size;
+      }
+
+      // Total requests = one-to-one + group requests
+      const requests = oneToOneRequests + groupRequests;
 
       // Calculate groups (joined groups count)
       const groups = userData?.groupsJoined?.length || 0;
@@ -82,39 +87,13 @@ export default function HomePage() {
       });
 
       setStats({
-        connections,
-        likes,
         requests,
         groups,
         earnings: totalEarnings
       });
-
-      // Generate chart data for the last 7 days
-      const chartData = generateChartData({
-        connections,
-        likes,
-        requests,
-        groups,
-        earnings: totalEarnings
-      });
-      setChartData(chartData);
 
       // Load initial groups
       await loadRandomGroups();
-
-      // Load recent requests
-      const recentRequestsQuery = query(
-        collection(db, 'requests'),
-        where('requesterId', '==', user.id),
-        orderBy('createdAt', 'desc'),
-        limit(4)
-      );
-      const recentRequestsSnapshot = await getDocs(recentRequestsQuery);
-      const requestsData = recentRequestsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-      }));
-      setRecentRequests(requestsData);
 
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -185,53 +164,6 @@ export default function HomePage() {
     }
   };
 
-  const generateChartData = (currentStats) => {
-    const days = 7;
-    const data = {
-      connections: [],
-      likes: [],
-      requests: [],
-      groups: [],
-      earnings: []
-    };
-
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-      // Generate realistic progression data
-      const progress = Math.min(0.9, (days - i) / days);
-      
-      data.connections.push({
-        date: dateStr,
-        value: Math.round(currentStats.connections * progress)
-      });
-      
-      data.likes.push({
-        date: dateStr,
-        value: Math.round(currentStats.likes * progress)
-      });
-      
-      data.requests.push({
-        date: dateStr,
-        value: Math.round(currentStats.requests * progress)
-      });
-      
-      data.groups.push({
-        date: dateStr,
-        value: Math.round(currentStats.groups * progress)
-      });
-      
-      data.earnings.push({
-        date: dateStr,
-        value: Math.round(currentStats.earnings * progress)
-      });
-    }
-
-    return data;
-  };
-
   const handleJoinGroup = async (groupId) => {
     try {
       await GroupsService.joinGroup(groupId, user.id, {
@@ -256,45 +188,14 @@ export default function HomePage() {
     }
   };
 
-  const renderChart = (data, color, title) => {
-    const maxValue = Math.max(...data.map(d => d.value));
-    const minHeight = 60;
-
-    return (
-      <div className="bg-[#2D3748] rounded-lg p-4">
-        <h4 className="text-sm font-medium text-white mb-3 text-center">{title}</h4>
-        <div className="flex items-end justify-between h-20 gap-1">
-          {data.map((item, index) => {
-            const height = maxValue > 0 ? (item.value / maxValue) * minHeight : 0;
-            return (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div
-                  className="w-full rounded-t transition-all duration-300 hover:opacity-80"
-                  style={{
-                    height: `${Math.max(height, 4)}px`,
-                    backgroundColor: color
-                  }}
-                />
-                <span className="text-xs text-[#A0AEC0] mt-1 text-center">
-                  {item.date}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="text-center mt-2">
-          <span className="text-lg font-bold text-white">
-            {data[data.length - 1]?.value || 0}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
   if (loading && !isVisitor) {
     return (
-        <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
-          <div className="text-center">
+        <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] flex items-center justify-center relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-[#3B82F6] to-[#1D4ED8] rounded-full blur-xl"></div>
+          </div>
+          <div className="text-center relative z-10">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
           <p className="mt-4 text-[#A0AEC0] text-lg">Loading your dashboard...</p>
         </div>
@@ -305,8 +206,12 @@ export default function HomePage() {
   // Show loading while auth state is being determined
   if (user === undefined) {
     return (
-      <div className="min-h-screen bg-[#1A202C] flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] flex items-center justify-center relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-[#3B82F6] to-[#1D4ED8] rounded-full blur-xl"></div>
+        </div>
+        <div className="text-center relative z-10">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#4299E1] mx-auto"></div>
           <p className="mt-4 text-[#A0AEC0] text-lg">Loading...</p>
         </div>
@@ -316,12 +221,56 @@ export default function HomePage() {
 
   if (isVisitor) {
     return (
-      <div className="min-h-screen bg-[#1A202C]">
+      <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] relative overflow-hidden">
+        {/* Educational Background Pattern */}
+        <div className="absolute inset-0">
+          {/* Gradient Overlay - Reduced opacity to show background more */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0F172A]/60 via-[#1E293B]/50 to-[#334155]/60"></div>
+          
+          {/* Geometric Shapes - Increased opacity and size for better visibility */}
+          <div className="absolute top-10 left-10 w-80 h-80 bg-gradient-to-br from-[#3B82F6]/40 to-[#1D4ED8]/40 rounded-full blur-2xl"></div>
+          <div className="absolute top-40 right-20 w-64 h-64 bg-gradient-to-br from-[#8B5CF6]/40 to-[#7C3AED]/40 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-20 left-1/4 w-48 h-48 bg-gradient-to-br from-[#10B981]/40 to-[#059669]/40 rounded-full blur-2xl"></div>
+          
+          {/* Additional geometric elements for more visual interest */}
+          <div className="absolute top-1/3 left-1/6 w-32 h-32 bg-gradient-to-br from-[#F59E0B]/30 to-[#D97706]/30 rounded-full blur-xl"></div>
+          <div className="absolute bottom-1/4 right-1/6 w-40 h-40 bg-gradient-to-br from-[#EC4899]/30 to-[#DB2777]/30 rounded-full blur-xl"></div>
+          
+          {/* Educational Icons Pattern - Increased opacity for better visibility */}
+          <div className="absolute top-1/4 left-1/3 opacity-15">
+            <svg className="w-32 h-32 text-[#3B82F6]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09v6.82L12 23 1 15.82V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9z"/>
+            </svg>
+          </div>
+          <div className="absolute top-1/3 right-1/4 opacity-15">
+            <svg className="w-28 h-28 text-[#8B5CF6]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 0 1 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>
+            </svg>
+          </div>
+          <div className="absolute bottom-1/3 left-1/6 opacity-15">
+            <svg className="w-20 h-20 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+          </div>
+          
+          {/* Additional educational icons for more visual richness */}
+          <div className="absolute top-1/2 right-1/3 opacity-10">
+            <svg className="w-24 h-24 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+          </div>
+          <div className="absolute bottom-1/3 right-1/4 opacity-10">
+            <svg className="w-16 h-16 text-[#EC4899]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1.08-1.36-1.9-1.36h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+          </div>
+        </div>
+
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8">
+        <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8 relative z-10">
           <div className="flex-1 flex flex-col gap-8 min-w-0">
             {/* Welcome Banner for Visitors */}
-            <section className="card-dark p-8 flex flex-col items-center text-center mb-2">
+            <section className="card-dark p-8 flex flex-col items-center text-center mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
               <div className="mb-6">
                 <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">Welcome to SkillNet</h1>
                 <p className="text-xl text-[#E0E0E0] mb-6">Connect. Collaborate. Grow. Join our professional community today.</p>
@@ -343,7 +292,7 @@ export default function HomePage() {
             </section>
 
             {/* Public Groups for Visitors */}
-            <section className="card-dark p-6 mb-2">
+            <section className="card-dark p-6 mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
               <div className="flex justify-between items-center mb-6 min-w-0">
                 <h2 className="text-2xl font-bold text-white break-words flex-1 min-w-0">
                   Discover Groups
@@ -358,13 +307,13 @@ export default function HomePage() {
               {suggestedGroups.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {suggestedGroups.map((group) => (
-                    <div key={group.id} className="group bg-[#1A202C] rounded-lg p-4 hover:bg-[#2D3748] transition-all duration-200 border border-[#2D3748] hover:border-[#4A5568] hover:shadow-lg">
+                    <div key={group.id} className="group bg-[#1E293B]/60 backdrop-blur-sm rounded-lg p-4 hover:bg-[#334155]/60 transition-all duration-200 border border-[#475569]/30 hover:border-[#64748B] hover:shadow-lg">
                       {/* Group Image */}
                       <div className="mb-4 text-center">
                         <img
                           src={group.image || group.photoURL || `https://ui-avatars.com/api/?name=${group.name}&background=3b82f6&color=fff&size=80`}
                           alt={group.name}
-                          className="w-20 h-20 rounded-lg object-cover border-2 border-[#4A5568] group-hover:border-[#4299E1] transition-colors duration-200 mx-auto"
+                          className="w-20 h-20 rounded-lg object-cover border-2 border-[#475569] group-hover:border-[#4299E1] transition-colors duration-200 mx-auto"
                         />
                       </div>
                       
@@ -414,7 +363,9 @@ export default function HomePage() {
                 </div>
               ) : (
                 <div className="text-center py-12 text-[#A0AEC0]">
-                  <div className="text-6xl mb-4">👥</div>
+                  <div className="text-6xl mb-4">
+                    <GroupIcon className="w-24 h-24 mx-auto text-purple-500" />
+                  </div>
                   <h3 className="text-xl font-semibold mb-3 text-white">No Public Groups Available</h3>
                   <p className="mb-6">There are no public groups to display right now.</p>
                   <div className="flex justify-center">
@@ -436,7 +387,7 @@ export default function HomePage() {
           {/* Right Sidebar for Visitors */}
           <aside className="w-full xl:w-96 flex flex-col gap-8 min-w-0">
             {/* Features Overview */}
-            <section className="card-dark p-6 flex flex-col items-center mb-2">
+            <section className="card-dark p-6 flex flex-col items-center mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
               <h3 className="text-xl font-bold mb-6 text-white text-center">Why Join SkillNet?</h3>
               <div className="space-y-4 w-full">
                 <div className="p-4 bg-gradient-to-br from-[#4299E1] to-[#00BFFF] rounded-lg text-white text-center">
@@ -458,7 +409,7 @@ export default function HomePage() {
             </section>
 
             {/* Call to Action */}
-            <section className="card-dark p-6 text-center">
+            <section className="card-dark p-6 text-center backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
               <h3 className="text-lg font-bold mb-4 text-white">Ready to Get Started?</h3>
               <p className="text-[#A0AEC0] mb-6">Join thousands of professionals already using SkillNet</p>
               <Link
@@ -475,12 +426,56 @@ export default function HomePage() {
   }
 
     return (
-        <div className="min-h-screen bg-[#1A202C]">
+        <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] relative overflow-hidden">
+                  {/* Educational Background Pattern */}
+        <div className="absolute inset-0">
+          {/* Gradient Overlay - Reduced opacity to show background more */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0F172A]/60 via-[#1E293B]/50 to-[#334155]/60"></div>
+          
+          {/* Geometric Shapes - Increased opacity and size for better visibility */}
+          <div className="absolute top-10 left-10 w-80 h-80 bg-gradient-to-br from-[#3B82F6]/40 to-[#1D4ED8]/40 rounded-full blur-2xl"></div>
+          <div className="absolute top-40 right-20 w-64 h-64 bg-gradient-to-br from-[#8B5CF6]/40 to-[#7C3AED]/40 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-20 left-1/4 w-48 h-48 bg-gradient-to-br from-[#10B981]/40 to-[#059669]/40 rounded-full blur-2xl"></div>
+          
+          {/* Additional geometric elements for more visual interest */}
+          <div className="absolute top-1/3 left-1/6 w-32 h-32 bg-gradient-to-br from-[#F59E0B]/30 to-[#D97706]/30 rounded-full blur-xl"></div>
+          <div className="absolute bottom-1/4 right-1/6 w-40 h-40 bg-gradient-to-br from-[#EC4899]/30 to-[#DB2777]/30 rounded-full blur-xl"></div>
+          
+          {/* Educational Icons Pattern - Increased opacity for better visibility */}
+          <div className="absolute top-1/4 left-1/3 opacity-15">
+            <svg className="w-32 h-32 text-[#3B82F6]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09v6.82L12 23 1 15.82V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9z"/>
+            </svg>
+          </div>
+          <div className="absolute top-1/3 right-1/4 opacity-15">
+            <svg className="w-28 h-28 text-[#8B5CF6]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 0 1 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>
+            </svg>
+          </div>
+          <div className="absolute bottom-1/3 left-1/6 opacity-15">
+            <svg className="w-20 h-20 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+          </div>
+          
+          {/* Additional educational icons for more visual richness */}
+          <div className="absolute top-1/2 right-1/3 opacity-10">
+            <svg className="w-24 h-24 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+          </div>
+          <div className="absolute bottom-1/3 right-1/4 opacity-10">
+            <svg className="w-16 h-16 text-[#EC4899]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1.08-1.36-1.9-1.36h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+          </div>
+        </div>
+
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8">
+          <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8 relative z-10">
         <div className="flex-1 flex flex-col gap-8 min-w-0">
           {/* Welcome Banner */}
-          <section className="card-dark p-8 flex flex-col items-center text-center mb-2">
+              <section className="card-dark p-8 flex flex-col items-center text-center mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
             <div className="flex items-center gap-4 mb-4 w-full max-w-full">
               <img
                 src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || user?.name}&background=3b82f6&color=fff`}
@@ -504,61 +499,11 @@ export default function HomePage() {
                 >
                 View Profile
                 </Link>
-                <Link
-                to="/friends"
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-300"
-                >
-                💬 Friends & Chat
-                </Link>
-            </div>
-          </section>
-
-
-
-          {/* Recent Requests */}
-          <section className="card-dark p-6 mb-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Recent Requests</h2>
-              <Link
-                to="/requests/my-requests"
-                className="text-[#4299E1] hover:text-[#3182CE] transition-colors"
-              >
-                View All →
-              </Link>
-                </div>
-            <div className="space-y-4">
-              {recentRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="bg-[#2D3748] rounded-lg p-4 hover:bg-[#4A5568] transition-colors duration-200"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white truncate flex-1 mr-4">
-                      {request.title || 'Untitled Request'}
-                    </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      request.status === 'active' ? 'bg-green-600 text-white' :
-                      request.status === 'pending' ? 'bg-yellow-600 text-white' :
-                      request.status === 'accepted' ? 'bg-blue-600 text-white' :
-                      'bg-gray-600 text-white'
-                    }`}>
-                      {request.status}
-                    </span>
-                </div>
-                  <p className="text-[#A0AEC0] text-sm mb-3 line-clamp-2">
-                    {request.description || 'No description available'}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-[#A0AEC0]">
-                    <span>Budget: Rs. {request.budget || 'Not specified'}</span>
-                    <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Unknown date'}</span>
-                </div>
-                </div>
-              ))}
             </div>
           </section>
 
           {/* Suggested Groups */}
-          <section className="card-dark p-6 mb-2">
+              <section className="card-dark p-6 mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
             <div className="flex justify-between items-center mb-6 min-w-0">
               <h2 className="text-2xl font-bold text-white break-words flex-1 min-w-0">
                 Discover Groups
@@ -578,7 +523,7 @@ export default function HomePage() {
                       setGroupsLoading(false);
                     }
                   }}
-                  className="p-2 text-[#4299E1] hover:text-[#00BFFF] transition-colors rounded-lg hover:bg-[#2D3748] disabled:opacity-50"
+                      className="p-2 text-[#4299E1] hover:text-[#00BFFF] transition-colors rounded-lg hover:bg-[#334155]/50 disabled:opacity-50"
                   title="Refresh groups"
                   disabled={groupsLoading}
                 >
@@ -598,13 +543,13 @@ export default function HomePage() {
             {suggestedGroups.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {suggestedGroups.map((group) => (
-                  <div key={group.id} className="group bg-[#1A202C] rounded-lg p-4 hover:bg-[#2D3748] transition-all duration-200 border border-[#2D3748] hover:border-[#4A5568] hover:shadow-lg">
+                      <div key={group.id} className="group bg-[#1E293B]/60 backdrop-blur-sm rounded-lg p-4 hover:bg-[#334155]/60 transition-all duration-200 border border-[#475569]/30 hover:border-[#64748B] hover:shadow-lg">
                     {/* Group Image */}
                     <div className="mb-4 text-center">
                       <img
                         src={group.image || group.photoURL || `https://ui-avatars.com/api/?name=${group.name}&background=3b82f6&color=fff&size=80`}
                         alt={group.name}
-                        className="w-20 h-20 rounded-lg object-cover border-2 border-[#4A5568] group-hover:border-[#4299E1] transition-colors duration-200 mx-auto"
+                            className="w-20 h-20 rounded-lg object-cover border-2 border-[#475569] group-hover:border-[#4299E1] transition-colors duration-200 mx-auto"
                       />
                     </div>
                     
@@ -665,7 +610,9 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="text-center py-12 text-[#A0AEC0]">
-                <div className="text-6xl mb-4">👥</div>
+                    <div className="text-6xl mb-4">
+                        <GroupIcon className="w-24 h-24 mx-auto text-purple-500" />
+                      </div>
                 <h3 className="text-xl font-semibold mb-3 text-white">No Groups Available</h3>
                 <p className="mb-6">There are no new groups to suggest right now.</p>
                 <div className="flex justify-center">
@@ -686,18 +633,11 @@ export default function HomePage() {
 
           {/* Right Sidebar */}
         <aside className="w-full xl:w-96 flex flex-col gap-8 min-w-0">
-          {/* Enhanced Dashboard with Five Stats */}
-            <section className="card-dark p-6 flex flex-col items-center mb-2">
+          {/* Enhanced Dashboard with Three Stats */}
+                <section className="card-dark p-6 flex flex-col items-center mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
             <h3 className="text-base font-bold mb-4 text-white break-words">My Dashboard</h3>
             <div className="grid grid-cols-1 gap-4 w-full text-center">
-                <div className="p-4 bg-gradient-to-br from-[#4299E1] to-[#00BFFF] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                  <div className="text-2xl font-bold">{stats.connections.toLocaleString()}</div>
-                  <div className="text-sm opacity-90">Connections</div>
-                </div>
-                <div className="p-4 bg-gradient-to-br from-[#48BB78] to-[#38A169] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                <div className="text-2xl font-bold">{stats.likes.toLocaleString()}</div>
-                <div className="text-sm opacity-90">Likes</div>
-                </div>
+
                 <div className="p-4 bg-gradient-to-br from-[#8B5CF6] to-[#A855F7] rounded-lg text-white hover:scale-105 transition-transform duration-200">
                 <div className="text-2xl font-bold">{stats.requests.toLocaleString()}</div>
                 <div className="text-sm opacity-90">Requests</div>
@@ -711,50 +651,6 @@ export default function HomePage() {
                 <div className="text-sm opacity-90">Earnings</div>
                 </div>
               </div>
-            </section>
-
-
-
-          {/* Recent Requests */}
-            <section className="card-dark p-6 mb-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Recent Requests</h2>
-              <Link
-                to="/requests/my-requests"
-                className="text-[#4299E1] hover:text-[#3182CE] transition-colors"
-              >
-                View All →
-              </Link>
-                            </div>
-            <div className="space-y-4">
-              {recentRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="bg-[#2D3748] rounded-lg p-4 hover:bg-[#4A5568] transition-colors duration-200"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white truncate flex-1 mr-4">
-                      {request.title || 'Untitled Request'}
-                    </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      request.status === 'active' ? 'bg-green-600 text-white' :
-                      request.status === 'pending' ? 'bg-yellow-600 text-white' :
-                      request.status === 'accepted' ? 'bg-blue-600 text-white' :
-                      'bg-gray-600 text-white'
-                    }`}>
-                      {request.status}
-                        </span>
-                  </div>
-                  <p className="text-[#A0AEC0] text-sm mb-3 line-clamp-2">
-                    {request.description || 'No description available'}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-[#A0AEC0]">
-                    <span>Budget: Rs. {request.budget || 'Not specified'}</span>
-                    <span>{request.createdAt?.toDate?.()?.toLocaleDateString() || 'Unknown date'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
             </section>
           </aside>
         </main>

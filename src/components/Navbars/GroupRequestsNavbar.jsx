@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { UserAvatar } from "@/components/UI/PhotoGallery";
 
 export default function GroupRequestsNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -30,11 +31,7 @@ export default function GroupRequestsNavbar() {
           </button>
         </Link>
         {/* User Avatar */}
-        <img
-          src="https://randomuser.me/api/portraits/men/32.jpg"
-          alt="User Avatar"
-          className="h-10 w-10 rounded-full border-2 border-white shadow"
-        />
+        <UserAvatar size="md" alt="User Avatar" />
       </div>
       {/* Hamburger for mobile */}
       <button
@@ -42,20 +39,20 @@ export default function GroupRequestsNavbar() {
         onClick={() => setMenuOpen((v) => !v)}
         aria-label="Toggle menu"
       >
-        <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
       </button>
       {/* Mobile Dropdown */}
       {menuOpen && (
         <div className="absolute top-full left-0 w-full bg-white shadow-lg z-50 flex flex-col items-center py-4 md:hidden animate-fade-in">
-          <ul className="flex flex-col gap-4 text-gray-700 font-medium w-full items-center">
-            <li><Link to="/" className="hover:text-indigo-600 w-full block text-center" onClick={() => setMenuOpen(false)}>Home</Link></li>
-            <li><a href="/StudentConnect" className="hover:text-indigo-600 w-full block text-center">Request</a></li>
-            <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Connections</a></li>
-            <li><a href="/GroupChat" className="hover:text-indigo-600 w-full block text-center">Groups</a></li>
-            <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li>
-            <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Messages</a></li>
-            <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Settings</a></li>
-          </ul>
+          <div className="flex flex-col gap-2 mt-4 w-4/5">
+            <Link to="/" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Home</Link>
+            <Link to="/StudentConnect" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Request</Link>
+            <Link to="/GroupChat" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Groups</Link>
+            <Link to="/SelectTeacher" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Teach & Learn</Link>
+            <Link to="/Settings" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Settings</Link>
+          </div>
         </div>
       )}
     </nav>

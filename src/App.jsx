@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Link } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 // Import your existing components
@@ -39,6 +39,7 @@ import MeetingDashboard from '@/components/Meeting/MeetingDashboard';
 
 import HelpAndSupport from './pages/HelpAndSupport';
 import DatabaseTestToolComponent from './components/DatabaseTestTool';
+import { SearchIcon, HomeIcon, ArrowLeftIcon } from '@/components/Icons/SvgIcons';
 
 // Import the updated layout system
 import RequestLayout, { SimpleLayout, FullWidthLayout, ProfileLayout } from "@/components/Layouts/RequestLayout";
@@ -85,15 +86,28 @@ const NotFound = () => {
         <SimpleLayout>
             <div className="min-h-96 flex items-center justify-center">
                 <div className="text-center">
+                    <div className="mb-6">
+                        <SearchIcon className="w-32 h-32 mx-auto text-[#A0AEC0] opacity-50" />
+                    </div>
                     <h1 className="text-6xl font-bold text-[#A0AEC0]">404</h1>
                     <h2 className="text-2xl font-semibold text-white mt-4">Page Not Found</h2>
-                    <p className="text-[#A0AEC0] mt-2">The page you're looking for doesn't exist.</p>
-                    <a
-                        href="/"
-                        className="btn-gradient-primary mt-6 inline-block px-6 py-3 rounded-lg font-semibold transition-colors"
-                    >
-                        Go Home
-                    </a>
+                    <p className="text-[#A0AEC0] mt-4 mb-8">The page you're looking for doesn't exist.</p>
+                    <div className="space-x-4">
+                        <Link
+                            to="/"
+                            className="inline-flex items-center gap-2 bg-[#4299E1] hover:bg-[#3182CE] text-white px-6 py-3 rounded-lg transition-colors"
+                        >
+                            <HomeIcon className="w-5 h-5" />
+                            Go Home
+                        </Link>
+                        <button
+                            onClick={() => window.history.back()}
+                            className="inline-flex items-center gap-2 border border-[#4299E1] text-[#4299E1] hover:bg-[#4299E1] hover:text-white px-6 py-3 rounded-lg transition-colors"
+                        >
+                            <ArrowLeftIcon className="w-5 h-5" />
+                            Go Back
+                        </button>
+                    </div>
                 </div>
             </div>
         </SimpleLayout>
@@ -292,7 +306,7 @@ const AppRoutes = () => {
             />
 
             {/* ===== TEST JITSI PAGE ===== */}
-            
+
 
             {/* ===== LEGACY PATHS FOR BACKWARD COMPATIBILITY ===== */}
             <Route path="/OneToOneRequests" element={<Navigate to="/requests/available" replace />} />

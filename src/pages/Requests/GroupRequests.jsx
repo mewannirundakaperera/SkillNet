@@ -200,9 +200,9 @@ const GroupRequests = () => {
             { key: 'pending', label: 'Pending', color: 'bg-yellow-900 text-yellow-200' },
             { key: 'voting_open', label: 'Voting', color: 'bg-orange-900 text-orange-200' },
             { key: 'accepted', label: 'Accepted', color: 'bg-green-900 text-green-200' },
-            { key: 'payment_complete', label: 'Ready', color: 'bg-yellow-800 text-yellow-100' },
+            { key: 'payment_complete', label: 'Paid', color: 'bg-yellow-800 text-yellow-100' },
             { key: 'in_progress', label: 'Live', color: 'bg-blue-900 text-blue-200' },
-            { key: 'completed', label: 'Done', color: 'bg-slate-600 text-slate-100' },
+            { key: 'completed', label: 'Complete', color: 'bg-slate-600 text-slate-100' },
             { key: 'cancelled', label: 'Cancelled', color: 'bg-red-900 text-red-200' }
           ].map(({ key, label, color }) => (
               <button

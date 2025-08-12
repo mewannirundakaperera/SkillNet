@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { migrateUsersToUserProfiles } from '@/utils/migrateUserProfiles';
 import { UserCollectionService } from '@/services/user.js';
+import { CheckCircleIcon, RefreshIcon, InfoIcon, CelebrationIcon, DatabaseIcon } from '@/components/Icons/SvgIcons';
 
 export default function SetupUserProfiles() {
   const [migrationStatus, setMigrationStatus] = useState('ready'); // ready, running, success, error
@@ -50,13 +51,17 @@ export default function SetupUserProfiles() {
   return (
     <div className="p-6 card-dark rounded-lg shadow-lg max-w-2xl mx-auto mt-8">
       <h2 className="text-2xl font-bold mb-4 text-white">
-        🔧 UserProfiles Collection Setup
+        <DatabaseIcon className="w-8 h-8 inline mr-3 text-[#4299E1]" />
+        Database Setup & Migration Tool
       </h2>
 
       <div className="space-y-6">
         {/* Collection Status Check */}
         <div className="border border-[#4A5568] rounded-lg p-4">
-          <h3 className="text-lg font-semibold mb-2 text-white">1. Check Collection Status</h3>
+          <h3 className="text-lg font-semibold mb-2 text-white">
+            <CheckCircleIcon className="w-5 h-5 inline mr-2 text-green-400" />
+            1. Check Collection Status
+          </h3>
           <p className="text-[#A0AEC0] mb-3">
             First, let's check if the userProfiles collection already exists.
           </p>
@@ -81,7 +86,10 @@ export default function SetupUserProfiles() {
 
         {/* Migration Section */}
         <div className="border border-[#4A5568] rounded-lg p-4">
-          <h3 className="text-lg font-semibold mb-2 text-white">2. Run Migration</h3>
+          <h3 className="text-lg font-semibold mb-2 text-white">
+            <RefreshIcon className="w-5 h-5 inline mr-2 text-blue-400" />
+            2. Run Migration
+          </h3>
           <p className="text-[#A0AEC0] mb-3">
             This will create public profiles for all existing users in your users collection.
             {collectionExists && (
@@ -112,7 +120,10 @@ export default function SetupUserProfiles() {
         {/* Migration Results */}
         {migrationResult && (
           <div className="border border-[#4A5568] rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-2 text-white">Migration Results</h3>
+            <h3 className="text-lg font-semibold mb-2 text-white">
+              <CheckCircleIcon className="w-5 h-5 inline mr-2 text-green-400" />
+              Migration Results
+            </h3>
 
             {migrationResult.success ? (
               <div className="bg-green-900 text-green-300 p-3 rounded border border-green-700">
@@ -136,7 +147,10 @@ export default function SetupUserProfiles() {
         {/* Next Steps */}
         {migrationStatus === 'success' && (
           <div className="border border-[#4A5568] rounded-lg p-4 bg-[#2D3748]">
-            <h3 className="text-lg font-semibold mb-2 text-[#4299E1]">🎉 Next Steps</h3>
+            <h3 className="text-lg font-semibold mb-2 text-[#4299E1]">
+              <CelebrationIcon className="w-5 h-5 inline mr-2" />
+              Next Steps
+            </h3>
             <div className="text-[#E0E0E0] space-y-2">
               <p>✅ Your userProfiles collection has been created successfully!</p>
               <p>✅ Profile editing should now work without errors</p>
@@ -150,7 +164,10 @@ export default function SetupUserProfiles() {
 
         {/* Instructions */}
         <div className="border border-[#4A5568] rounded-lg p-4 bg-[#2D3748]">
-          <h3 className="text-lg font-semibold mb-2 text-white">ℹ️ What This Does</h3>
+          <h3 className="text-lg font-semibold mb-2 text-white">
+            <InfoIcon className="w-5 h-5 inline mr-2 text-blue-400" />
+            What This Does
+          </h3>
           <ul className="text-[#A0AEC0] space-y-1 text-sm">
             <li>• Creates a <code>userProfiles</code> collection with public user data</li>
             <li>• Copies safe fields: displayName, bio, location, skills, interests, avatar</li>

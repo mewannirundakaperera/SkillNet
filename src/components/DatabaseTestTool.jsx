@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import DatabaseTestTool from '@/utils/databaseTestTool';
 import { migrateParticipantData, migrateSingleRequest, validateParticipantData } from '@/utils/migrateParticipantData';
+import { CheckIcon, XIcon, WarningIcon, InfoIcon, RefreshIcon, SearchIcon, DatabaseIcon, UserIcon, DocumentIcon, GroupIcon, ProfileIcon, EditIcon, TrashIcon, LockIcon, ChartBarIcon, LightbulbIcon } from '@/components/Icons/SvgIcons';
 
 const DatabaseTestToolComponent = () => {
     const { user } = useAuth();
@@ -106,10 +107,10 @@ const DatabaseTestToolComponent = () => {
 
     const getResultIcon = (type) => {
         switch (type) {
-            case 'success': return '✅';
-            case 'error': return '❌';
-            case 'warning': return '⚠️';
-            default: return 'ℹ️';
+            case 'success': return <CheckIcon className="w-5 h-5 text-green-500" />;
+            case 'error': return <XIcon className="w-5 h-5 text-red-500" />;
+            case 'warning': return <WarningIcon className="w-5 h-5 text-yellow-500" />;
+            default: return <InfoIcon className="w-5 h-5 text-blue-500" />;
         }
     };
 
@@ -123,31 +124,31 @@ const DatabaseTestToolComponent = () => {
     };
 
     const handleMigrateAll = async () => {
-        setMigrationStatus('🔄 Starting migration...');
+        setMigrationStatus(<><RefreshIcon className="w-4 h-4 mr-2" /> Starting migration...</>);
         try {
             const result = await migrateParticipantData();
             if (result.success) {
-                setMigrationStatus(`✅ Migration completed: ${result.updatedRequests} requests updated, ${result.errorCount} errors`);
+                setMigrationStatus(<><CheckIcon className="w-4 h-4 mr-2" /> Migration completed: {result.updatedRequests} requests updated, {result.errorCount} errors</>);
             } else {
-                setMigrationStatus(`❌ Migration failed: ${result.message}`);
+                setMigrationStatus(<><XIcon className="w-4 h-4 mr-2" /> Migration failed: {result.message}</>);
             }
         } catch (error) {
-            setMigrationStatus(`❌ Migration error: ${error.message}`);
+            setMigrationStatus(<><XIcon className="w-4 h-4 mr-2" /> Migration error: {error.message}</>);
         }
     };
 
     const handleValidateData = async () => {
-        setMigrationStatus('🔍 Validating data...');
+        setMigrationStatus(<><SearchIcon className="w-4 h-4 mr-2" /> Validating data...</>);
         try {
             const result = await validateParticipantData();
             if (result.success) {
                 setValidationResults(result);
-                setMigrationStatus(`✅ Validation completed: ${result.consistentRequests} consistent, ${result.inconsistentRequests} inconsistent`);
+                setMigrationStatus(<><CheckIcon className="w-4 h-4 mr-2" /> Validation completed: {result.consistentRequests} consistent, {result.inconsistentRequests} inconsistent</>);
             } else {
-                setMigrationStatus(`❌ Validation failed: ${result.message}`);
+                setMigrationStatus(<><XIcon className="w-4 h-4 mr-2" /> Validation failed: {result.message}</>);
             }
         } catch (error) {
-            setMigrationStatus(`❌ Validation error: ${error.message}`);
+            setMigrationStatus(<><XIcon className="w-4 h-4 mr-2" /> Validation error: {error.message}</>);
         }
     };
 
@@ -155,16 +156,16 @@ const DatabaseTestToolComponent = () => {
         const requestId = prompt('Enter request ID to migrate:');
         if (!requestId) return;
         
-        setMigrationStatus(`🔄 Migrating request ${requestId}...`);
+        setMigrationStatus(<><RefreshIcon className="w-4 h-4 mr-2" /> Migrating request {requestId}...</>);
         try {
             const result = await migrateSingleRequest(requestId);
             if (result.success) {
-                setMigrationStatus(`✅ Single request migrated: ${result.message}`);
+                setMigrationStatus(<><CheckIcon className="w-4 h-4 mr-2" /> Single request migrated: {result.message}</>);
             } else {
-                setMigrationStatus(`❌ Single request migration failed: ${result.message}`);
+                setMigrationStatus(<><XIcon className="w-4 h-4 mr-2" /> Single request migration failed: {result.message}</>);
             }
         } catch (error) {
-            setMigrationStatus(`❌ Single request migration error: ${error.message}`);
+            setMigrationStatus(<><XIcon className="w-4 h-4 mr-2" /> Single request migration error: {error.message}</>);
         }
     };
 
@@ -173,7 +174,7 @@ const DatabaseTestToolComponent = () => {
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-white mb-2">🔧 Database Test Tool</h1>
+                    <h1 className="text-3xl font-bold text-white mb-2"><DatabaseIcon className="w-8 h-8 inline mr-2" /> Database Test Tool</h1>
                     <p className="text-[#A0AEC0]">
                         Debug database permission issues and test Firebase connections
                     </p>
@@ -181,7 +182,7 @@ const DatabaseTestToolComponent = () => {
 
                 {/* User Info */}
                 <div className="bg-[#2D3748] rounded-lg p-4 mb-6 border border-[#4A5568]">
-                    <h2 className="text-lg font-semibold text-white mb-3">👤 Current User</h2>
+                    <h2 className="text-lg font-semibold text-white mb-3"><UserIcon className="w-5 h-5 inline mr-2" /> Current User</h2>
                     {user ? (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                             <div>
@@ -198,7 +199,7 @@ const DatabaseTestToolComponent = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className="text-red-400">❌ No user authenticated</div>
+                        <div className="text-red-400"><XIcon className="w-4 h-4 inline mr-1" /> No user authenticated</div>
                     )}
                 </div>
 
@@ -212,14 +213,14 @@ const DatabaseTestToolComponent = () => {
                             disabled={isRunning || !user}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isRunning ? '🔄 Running Tests...' : '🚀 Run Full Test Suite'}
+                            {isRunning ? <><RefreshIcon className="w-4 h-4 mr-2" /> Running Tests...</> : <><RocketIcon className="w-4 h-4 mr-2" /> Run Full Test Suite</>}
                         </button>
                         
                         <button
                             onClick={clearResults}
                             className="bg-gray-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-gray-700 transition-colors"
                         >
-                            🗑️ Clear Results
+                            <TrashIcon className="w-4 h-4 mr-2" /> Clear Results
                         </button>
                         
                         <button
@@ -245,7 +246,7 @@ const DatabaseTestToolComponent = () => {
                             disabled={isRunning}
                             className="bg-[#1A202C] text-[#4299E1] px-3 py-2 rounded text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568] disabled:opacity-50"
                         >
-                            🔐 Authentication
+                            <LockIcon className="w-5 h-5 inline mr-2" /> Authentication
                         </button>
                         
                         <button
@@ -253,7 +254,7 @@ const DatabaseTestToolComponent = () => {
                             disabled={isRunning}
                             className="bg-[#1A202C] text-[#4299E1] px-3 py-2 rounded text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568] disabled:opacity-50"
                         >
-                            📖 Read Requests
+                            <DocumentIcon className="w-5 h-5 inline mr-2" /> Read Requests
                         </button>
                         
                         <button
@@ -261,7 +262,7 @@ const DatabaseTestToolComponent = () => {
                             disabled={isRunning}
                             className="bg-[#1A202C] text-[#4299E1] px-3 py-2 rounded text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568] disabled:opacity-50"
                         >
-                            💬 Read Responses
+                            <ChatIcon className="w-5 h-5 inline mr-2" /> Read Responses
                         </button>
                         
                         <button
@@ -277,7 +278,7 @@ const DatabaseTestToolComponent = () => {
                             disabled={isRunning}
                             className="bg-[#1A202C] text-[#4299E1] px-3 py-2 rounded text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568] disabled:opacity-50"
                         >
-                            👥 Read Users
+                            <GroupIcon className="w-5 h-5 inline mr-2" /> Read Users
                         </button>
                         
                         <button
@@ -285,7 +286,7 @@ const DatabaseTestToolComponent = () => {
                             disabled={isRunning}
                             className="bg-[#1A202C] text-[#4299E1] px-3 py-2 rounded text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568] disabled:opacity-50"
                         >
-                            📋 Read Profiles
+                            <ProfileIcon className="w-5 h-5 inline mr-2" /> Read Profiles
                         </button>
                         
                         <button
@@ -293,7 +294,7 @@ const DatabaseTestToolComponent = () => {
                             disabled={isRunning}
                             className="bg-[#1A202C] text-[#4299E1] px-3 py-2 rounded text-sm hover:bg-[#4A5568] transition-colors border border-[#4A5568] disabled:opacity-50"
                         >
-                            ✏️ Write Access
+                            <EditIcon className="w-5 h-5 inline mr-2" /> Write Access
                         </button>
                         
                         <button
@@ -308,7 +309,7 @@ const DatabaseTestToolComponent = () => {
 
                 {/* Participant Data Migration Section */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">🔄 Participant Data Migration</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4"><RefreshIcon className="w-5 h-5 inline mr-2" /> Participant Data Migration</h3>
                   
                   <div className="space-y-4">
                     <div className="flex gap-2">
@@ -316,19 +317,19 @@ const DatabaseTestToolComponent = () => {
                         onClick={handleValidateData}
                         className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                       >
-                        🔍 Validate Data
+                        <SearchIcon className="w-5 h-5 inline mr-2" /> Validate Data
                       </button>
                       <button
                         onClick={handleMigrateAll}
                         className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
                       >
-                        🚀 Migrate All
+                        <RocketIcon className="w-5 h-5 inline mr-2" /> Migrate All
                       </button>
                       <button
                         onClick={handleMigrateSingle}
                         className="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
                       >
-                        📝 Migrate Single
+                        <DocumentIcon className="w-5 h-5 inline mr-2" /> Migrate Single
                       </button>
                     </div>
                     
@@ -349,7 +350,7 @@ const DatabaseTestToolComponent = () => {
                         
                         {validationResults.inconsistentRequests > 0 && (
                           <div className="mt-3">
-                            <h5 className="font-medium text-red-800 mb-2">⚠️ Inconsistent Requests:</h5>
+                            <h5 className="font-medium text-red-800 mb-2"><WarningIcon className="w-4 h-4 inline mr-1" /> Inconsistent Requests:</h5>
                             <div className="max-h-40 overflow-y-auto space-y-1">
                               {validationResults.results
                                 .filter(r => !r.isConsistent)
@@ -380,7 +381,7 @@ const DatabaseTestToolComponent = () => {
                 {showResults && (
                     <div className="bg-[#2D3748] rounded-lg p-6 border border-[#4A5568]">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-semibold text-white">📊 Test Results</h2>
+                            <h2 className="text-lg font-semibold text-white"><ChartBarIcon className="w-5 h-5 inline mr-2" /> Test Results</h2>
                             {summary && (
                                 <div className="text-sm">
                                     <span className="text-[#A0AEC0]">Results: </span>
@@ -427,10 +428,10 @@ const DatabaseTestToolComponent = () => {
 
                 {/* Help Section */}
                 <div className="mt-8 bg-[#2D3748] rounded-lg p-6 border border-[#4A5568]">
-                    <h2 className="text-lg font-semibold text-white mb-4">💡 How to Use</h2>
+                    <h2 className="text-lg font-semibold text-white mb-4"><LightbulbIcon className="w-5 h-5 inline mr-2" /> How to Use</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <h3 className="font-semibold text-[#4299E1] mb-2">🔍 Troubleshooting Steps</h3>
+                            <h3 className="font-semibold text-[#4299E1] mb-2"><SearchIcon className="w-4 h-4 inline mr-1" /> Troubleshooting Steps</h3>
                             <ol className="text-[#A0AEC0] text-sm space-y-2 list-decimal list-inside">
                                 <li>Run the full test suite to identify all issues</li>
                                 <li>Check authentication status first</li>
