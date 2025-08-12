@@ -1250,11 +1250,20 @@ const AllGroupRequests = () => {
 
       try {
         console.log('🔍 Checking admin status for user:', user.id);
-        const adminRef = doc(db, 'admin', user.id);
-        const adminSnap = await getDoc(adminRef);
-        const isAdmin = adminSnap.exists();
-        setIsCurrentUserAdmin(isAdmin);
-        console.log('✅ Admin status:', isAdmin);
+        
+        // ✅ FIXED: Check admin status from user document instead of admin collection
+        const userRef = doc(db, 'users', user.id);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const isAdmin = userData.role === 'admin';
+          setIsCurrentUserAdmin(isAdmin);
+          console.log('✅ Admin status from user role:', isAdmin);
+        } else {
+          console.log('ℹ️ User document not found, assuming not admin');
+          setIsCurrentUserAdmin(false);
+        }
       } catch (error) {
         console.error('❌ Error checking admin status:', error);
         setIsCurrentUserAdmin(false);

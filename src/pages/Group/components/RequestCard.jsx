@@ -6,46 +6,75 @@ import { groupRequestService } from '@/services/groupRequestService';
 
 // Payment Countdown Timer Component
 const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUserId }) => {
+  console.log('⏰ PaymentCountdownTimer render:', {
+    deadline,
+    deadlineType: typeof deadline,
+    requestId,
+    hasOnRequestUpdate: !!onRequestUpdate,
+    currentUserId
+  });
+
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
     const calculateTimeLeft = async () => {
+      console.log('🔄 PaymentCountdownTimer calculateTimeLeft:', {
+        deadline,
+        deadlineType: typeof deadline,
+        now: new Date().toISOString()
+      });
+
       const now = new Date().getTime();
       const deadlineTime = new Date(deadline).getTime();
       const difference = deadlineTime - now;
 
-      if (difference > 0) {
-        const hours = Math.floor(difference / (1000 * 60 * 60));
-        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+      console.log('⏱️ Time calculation:', {
+        now: new Date(now).toISOString(),
+        deadlineTime: new Date(deadlineTime).toISOString(),
+        difference,
+        differenceInMinutes: Math.floor(difference / (1000 * 60))
+      });
 
-        setTimeLeft({ hours, minutes, seconds });
-        setIsExpired(false);
-      } else {
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
-        setIsExpired(true);
+              if (difference > 0) {
+          const hours = Math.floor(difference / (1000 * 60 * 60));
+          const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
-        // Auto-transition to 'paid' state when funding timer expires
-        if (onRequestUpdate && requestId) {
-          try {
-            const result = await groupRequestService.updateGroupRequest(requestId, {
-              status: 'paid',
-              updatedAt: new Date(),
-              fundingExpiredAt: new Date()
-            }, currentUserId);
+          console.log('⏰ Timer active:', { hours, minutes, seconds });
+          setTimeLeft({ hours, minutes, seconds });
+          setIsExpired(false);
+        } else {
+          console.log('⏰ Timer expired, transitioning to paid state');
+          setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+          setIsExpired(true);
 
-            if (result.success) {
-              onRequestUpdate(requestId, {
+          // Auto-transition to 'paid' state when funding timer expires
+          if (onRequestUpdate && requestId) {
+            try {
+              console.log('🔄 Auto-transitioning request to paid state...');
+              const result = await groupRequestService.updateGroupRequest(requestId, {
                 status: 'paid',
+                updatedAt: new Date(),
                 fundingExpiredAt: new Date()
-              });
+              }, currentUserId);
+
+              if (result.success) {
+                console.log('✅ Auto-transition successful');
+                onRequestUpdate(requestId, {
+                  status: 'paid',
+                  fundingExpiredAt: new Date()
+                });
+              } else {
+                console.error('❌ Auto-transition failed:', result.message);
+              }
+            } catch (error) {
+              console.error('❌ Error updating request status to paid:', error);
             }
-          } catch (error) {
-            console.error('Error updating request status to paid:', error);
+          } else {
+            console.warn('⚠️ Cannot auto-transition: missing onRequestUpdate or requestId');
           }
         }
-      }
     };
 
     calculateTimeLeft();
@@ -70,8 +99,30 @@ const PaymentCountdownTimer = ({ deadline, requestId, onRequestUpdate, currentUs
 };
 
 const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
+  // ✅ DEBUG: Add comprehensive logging
+  console.log('🔍 RequestCard Render:', {
+    requestId: request?.id,
+    requestStatus: request?.status,
+    currentUserId,
+    hasOnRequestUpdate: !!onRequestUpdate
+  });
+
+  // ✅ FIXED: Add local state for request to ensure proper re-rendering
+  const [localRequest, setLocalRequest] = useState(request);
+  
+  // Update local request when prop changes
+  useEffect(() => {
+    console.log('🔄 RequestCard useEffect - request prop changed:', {
+      oldRequestId: localRequest?.id,
+      newRequestId: request?.id,
+      oldStatus: localRequest?.status,
+      newStatus: request?.status
+    });
+    setLocalRequest(request);
+  }, [request]);
+
   // Safety check for request object
-  if (!request) {
+  if (!localRequest) {
     return (
       <div className="rounded-lg shadow-sm border-2 p-6 bg-gray-50">
         <div className="text-center text-gray-500">
@@ -85,12 +136,21 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [paymentDeadline, setPaymentDeadline] = useState('');
   const [teacherNames, setTeacherNames] = useState({});
-  const [meetingLink, setMeetingLink] = useState(request.meetingLink || null);
+  const [meetingLink, setMeetingLink] = useState(localRequest.meetingLink || null);
 
   // ✅ FIXED: Complete user role and permission calculation with data validation
   const userRoles = useMemo(() => {
+    console.log('🧮 Calculating userRoles:', {
+      currentUserId,
+      localRequestId: localRequest?.id,
+      localRequestStatus: localRequest?.status,
+      localRequestUserId: localRequest?.userId,
+      localRequestCreatedBy: localRequest?.createdBy
+    });
+
     // Safety check for currentUserId
     if (!currentUserId) {
+      console.log('⚠️ No currentUserId, returning viewer role');
       return {
         userRole: 'viewer',
         roleLabel: '👁️ Viewer (Not Logged In)',
@@ -118,8 +178,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     }
 
     // ✅ ADDED: Validate request data structure
-    if (!request || typeof request !== 'object') {
-      console.warn('RequestCard: Invalid request object received:', request);
+    if (!localRequest || typeof localRequest !== 'object') {
+      console.warn('❌ RequestCard: Invalid request object received:', localRequest);
       return {
         userRole: 'viewer',
         roleLabel: '⚠️ Invalid Data',
@@ -146,9 +206,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       };
     }
 
-    const owner = request.userId || request.createdBy;
+    const owner = localRequest.userId || localRequest.createdBy;
     const isOwner = currentUserId === owner;
-    const votees = request.votes || [];
+    const votees = localRequest.votes || [];
     const isVotee = votees.includes(currentUserId);
     const hasVoted = isVotee;
 
@@ -157,17 +217,34 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     const isAutomaticParticipant = automaticParticipants.has(currentUserId);
 
     // Manual participants (those who chose to join)
-    const manualParticipants = request.participants || [];
+    const manualParticipants = localRequest.participants || [];
     const isManualParticipant = manualParticipants.includes(currentUserId);
 
     // Teachers (those who chose to teach)
-    const teachers = request.teachers || [];
+    const teachers = localRequest.teachers || [];
     const isTeacher = teachers.includes(currentUserId);
-    const isSelectedTeacher = request.selectedTeacher === currentUserId;
+    const isSelectedTeacher = localRequest.selectedTeacher === currentUserId;
 
     // Paid participants
-    const paidParticipants = request.paidParticipants || [];
+    const paidParticipants = localRequest.paidParticipants || [];
     const hasPaid = paidParticipants.includes(currentUserId);
+
+    console.log('👤 User role calculation:', {
+      owner,
+      isOwner,
+      votees: votees.length,
+      isVotee,
+      hasVoted,
+      automaticParticipants: automaticParticipants.size,
+      isAutomaticParticipant,
+      manualParticipants: manualParticipants.length,
+      isManualParticipant,
+      teachers: teachers.length,
+      isTeacher,
+      isSelectedTeacher,
+      paidParticipants: paidParticipants.length,
+      hasPaid
+    });
 
     // Role determination based on state and user actions
     let userRole = 'viewer';
@@ -189,7 +266,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
     const pendingPaymentCount = participantsWhoPay.length - paidCount;
 
     // Role and permission logic by status
-    switch (request.status) {
+    console.log('🎯 Processing status:', localRequest.status);
+    switch (localRequest.status) {
       case 'pending':
         if (isOwner) {
           userRole = 'owner';
@@ -317,7 +395,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         break;
     }
 
-    return {
+    const finalUserRoles = {
       userRole,
       roleLabel,
       isOwner,
@@ -341,6 +419,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       automaticParticipants: Array.from(automaticParticipants),
       allParticipants: Array.from(allParticipants)
     };
+
+    console.log('✅ Final userRoles:', finalUserRoles);
+    return finalUserRoles;
   }, [request, currentUserId]);
 
   // Get user display names for teachers
@@ -363,19 +444,28 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // Load teacher names
   useEffect(() => {
-    if (request.teachers && request.teachers.length > 0) {
-      request.teachers.forEach(userId => {
+    if (localRequest.teachers && localRequest.teachers.length > 0) {
+      localRequest.teachers.forEach(userId => {
         getUserDisplayName(userId);
       });
     }
-  }, [request.teachers]);
+  }, [localRequest.teachers]);
 
   // ✅ HANDLE VOTING (Only in pending state, owner cannot vote)
   const handleVote = async () => {
+    console.log('🗳️ handleVote called:', {
+      currentUserId,
+      loading,
+      canVote: userRoles.canVote,
+      requestId: localRequest?.id,
+      currentStatus: localRequest?.status
+    });
+
     if (!currentUserId || loading || !userRoles.canVote) {
       if (!currentUserId) {
         alert('Please log in to vote on requests');
       }
+      console.log('❌ handleVote blocked:', { currentUserId, loading, canVote: userRoles.canVote });
       return;
     }
 
@@ -383,11 +473,16 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       setLoading(true);
 
       // ✅ ADDED: Validate request data before voting
-      if (!request.id || !request.votes) {
+      if (!localRequest.id || !localRequest.votes) {
+        console.error('❌ Invalid request data for voting:', {
+          hasId: !!localRequest.id,
+          hasVotes: !!localRequest.votes,
+          localRequest
+        });
         throw new Error('Invalid request data for voting');
       }
 
-      const newVotes = [...(request.votes || []), currentUserId];
+      const newVotes = [...(localRequest.votes || []), currentUserId];
       const updateData = {
         votes: newVotes,
         voteCount: newVotes.length
@@ -396,16 +491,31 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       // Auto-transition to voting_open when 5 votes reached
       if (newVotes.length >= 5) {
         updateData.status = 'voting_open';
+        console.log('🎉 Auto-transitioning to voting_open - 5 votes reached!');
       }
 
-      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      console.log('📝 Voting update data:', updateData);
+
+      console.log('🚀 Calling groupRequestService.updateGroupRequest...');
+      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
+      console.log('📡 Voting result:', result);
 
       if (result.success) {
-        onRequestUpdate?.(request.id, {
-          ...request,
+        console.log('✅ Voting successful, updating local state...');
+        // ✅ FIXED: Update local state immediately
+        const updatedRequest = {
+          ...localRequest,
           ...updateData
-        });
+        };
+        console.log('🔄 Setting local state:', updatedRequest);
+        setLocalRequest(updatedRequest);
+        
+        // Notify parent component
+        console.log('📢 Notifying parent component...');
+        onRequestUpdate?.(localRequest.id, updatedRequest);
+        console.log('✅ Voting complete!');
       } else {
+        console.error('❌ Voting failed:', result.message);
         alert(result.message || 'Failed to process vote');
       }
     } catch (error) {
@@ -431,28 +541,33 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
       if (roleType === 'teacher') {
         updateData = {
-          teachers: [...(request.teachers || []), currentUserId],
-          teacherCount: (request.teacherCount || 0) + 1
+          teachers: [...(localRequest.teachers || []), currentUserId],
+          teacherCount: (localRequest.teacherCount || 0) + 1
         };
 
         // If first teacher, change to accepted
-        if (!request.teachers || request.teachers.length === 0) {
+        if (!localRequest.teachers || localRequest.teachers.length === 0) {
           updateData.status = 'accepted';
         }
       } else if (roleType === 'participant') {
         updateData = {
-          participants: [...(request.participants || []), currentUserId],
-          participantCount: (request.participantCount || 0) + 1
+          participants: [...(localRequest.participants || []), currentUserId],
+          participantCount: (localRequest.participantCount || 0) + 1
         };
       }
 
-      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
 
       if (result.success) {
-        onRequestUpdate?.(request.id, {
-          ...request,
+        // ✅ FIXED: Update local state immediately
+        const updatedRequest = {
+          ...localRequest,
           ...updateData
-        });
+        };
+        setLocalRequest(updatedRequest);
+        
+        // Notify parent component
+        onRequestUpdate?.(localRequest.id, updatedRequest);
       } else {
         alert(result.message || 'Failed to select role');
       }
@@ -466,10 +581,25 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ HANDLE TEACHER SELECTION BY OWNER (In accepted state)
   const handleTeacherSelection = async () => {
+    console.log('👨‍🏫 handleTeacherSelection called:', {
+      currentUserId,
+      selectedTeacher,
+      paymentDeadline,
+      isOwner: userRoles.isOwner,
+      requestId: localRequest?.id,
+      currentStatus: localRequest?.status
+    });
+
     if (!currentUserId || !selectedTeacher || !paymentDeadline || !userRoles.isOwner) {
       if (!currentUserId) {
         alert('Please log in to manage requests');
       }
+      console.log('❌ handleTeacherSelection blocked:', { 
+        currentUserId, 
+        selectedTeacher, 
+        paymentDeadline, 
+        isOwner: userRoles.isOwner 
+      });
       return;
     }
 
@@ -477,12 +607,25 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
       setLoading(true);
 
       const deadlineHours = parseInt(paymentDeadline);
-      const paymentDeadlineTime = new Date(Date.now() + (deadlineHours * 60 * 60 * 1000));
+      console.log('⏰ Payment deadline calculation:', {
+        deadlineHours,
+        currentTime: new Date().toISOString(),
+        currentTimestamp: Date.now()
+      });
+
+      // ✅ FIXED: Create deadline timestamp as a number (milliseconds since epoch)
+      // This ensures Firebase stores it correctly and PaymentCountdownTimer can parse it
+      const paymentDeadlineTime = Date.now() + (deadlineHours * 60 * 60 * 1000);
+      console.log('📅 Payment deadline will be:', {
+        timestamp: paymentDeadlineTime,
+        date: new Date(paymentDeadlineTime).toISOString(),
+        hoursFromNow: deadlineHours
+      });
 
       const updateData = {
         selectedTeacher: selectedTeacher,
         status: 'funding',
-        paymentDeadline: paymentDeadlineTime,
+        paymentDeadline: paymentDeadlineTime, // ✅ Store as number timestamp
         paymentDeadlineHours: deadlineHours,
         // Revert all other teachers to regular users
         teachers: [selectedTeacher], // Only selected teacher remains
@@ -490,13 +633,21 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         updatedAt: new Date()
       };
 
-      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      console.log('📝 Teacher selection update data:', updateData);
+
+      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
 
       if (result.success) {
-        onRequestUpdate?.(request.id, {
-          ...request,
+        // ✅ FIXED: Update local state immediately
+        const updatedRequest = {
+          ...localRequest,
           ...updateData
-        });
+        };
+        setLocalRequest(updatedRequest);
+        
+        // Notify parent component
+        onRequestUpdate?.(localRequest.id, updatedRequest);
+        
         setSelectedTeacher('');
         setPaymentDeadline('');
         alert(`Teacher selected! Payment deadline set to ${deadlineHours} hour(s).`);
@@ -522,24 +673,29 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
     try {
       setLoading(true);
-      const paymentAmount = parseFloat(request.rate?.replace(/[^0-9.-]+/g,"") || "0");
+      const paymentAmount = parseFloat(localRequest.rate?.replace(/[^0-9.-]+/g,"") || "0");
 
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const newPaidParticipants = [...(request.paidParticipants || []), currentUserId];
+      const newPaidParticipants = [...(localRequest.paidParticipants || []), currentUserId];
       const updateData = {
         paidParticipants: newPaidParticipants,
-        totalPaid: (request.totalPaid || 0) + paymentAmount
+        totalPaid: (localRequest.totalPaid || 0) + paymentAmount
       };
 
-      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
 
       if (result.success) {
-        onRequestUpdate?.(request.id, {
-          ...request,
+        // ✅ FIXED: Update local state immediately
+        const updatedRequest = {
+          ...localRequest,
           ...updateData
-        });
+        };
+        setLocalRequest(updatedRequest);
+        
+        // Notify parent component
+        onRequestUpdate?.(localRequest.id, updatedRequest);
         alert('Payment successful!');
       } else {
         alert(result.message || 'Payment failed');
@@ -563,7 +719,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
     try {
       setLoading(true);
-      const mockLink = `https://meet.jit.si/SkillNet-${request.id}-${Date.now()}`;
+      const mockLink = `https://meet.jit.si/SkillNet-${localRequest.id}-${Date.now()}`;
 
       const updateData = {
         meetingLink: mockLink,
@@ -571,14 +727,19 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         status: 'live' // Auto-transition to live when teacher joins
       };
 
-      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
 
       if (result.success) {
         setMeetingLink(mockLink);
-        onRequestUpdate?.(request.id, {
-          ...request,
+        // ✅ FIXED: Update local state immediately
+        const updatedRequest = {
+          ...localRequest,
           ...updateData
-        });
+        };
+        setLocalRequest(updatedRequest);
+        
+                // Notify parent component
+        onRequestUpdate?.(localRequest.id, updatedRequest);
 
         // Open meeting in new tab with teacher prefix
         window.open(`${mockLink}?userInfo.displayName=Teacher-${teacherNames[currentUserId] || 'Teacher'}`, '_blank');
@@ -595,8 +756,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // ✅ JOIN EXISTING MEETING (In live state)
   const handleJoinMeeting = () => {
-    if (meetingLink || request.meetingLink) {
-      const link = meetingLink || request.meetingLink;
+          if (meetingLink || localRequest.meetingLink) {
+        const link = meetingLink || localRequest.meetingLink;
       window.open(link, '_blank');
     }
   };
@@ -621,13 +782,18 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         completedAt: new Date()
       };
 
-      const result = await groupRequestService.updateGroupRequest(request.id, updateData, currentUserId);
+      const result = await groupRequestService.updateGroupRequest(localRequest.id, updateData, currentUserId);
 
       if (result.success) {
-        onRequestUpdate?.(request.id, {
-          ...request,
+        // ✅ FIXED: Update local state immediately
+        const updatedRequest = {
+          ...localRequest,
           ...updateData
-        });
+        };
+        setLocalRequest(updatedRequest);
+        
+                // Notify parent component
+        onRequestUpdate?.(localRequest.id, updatedRequest);
         alert('Meeting ended successfully!');
       } else {
         alert(result.message || 'Failed to end meeting');
@@ -642,7 +808,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
   // Get card styling based on status
   const getCardStyling = () => {
-    switch (request.status) {
+    switch (localRequest.status) {
       case 'pending':
         return 'border-yellow-300 bg-yellow-50';
       case 'voting_open':
@@ -665,14 +831,16 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
   };
 
   // Debug logging
-  console.log('RequestCard State:', {
-    requestId: request.id,
-    status: request.status,
+  console.log('🔍 RequestCard Final State:', {
+    requestId: localRequest.id,
+    status: localRequest.status,
     userRoles,
-    votes: request.votes,
-    teachers: request.teachers,
-    participants: request.participants,
-    paidParticipants: request.paidParticipants
+    votes: localRequest.votes,
+    teachers: localRequest.teachers,
+    participants: localRequest.participants,
+    paidParticipants: localRequest.paidParticipants,
+    paymentDeadline: localRequest.paymentDeadline,
+    paymentDeadlineType: typeof localRequest.paymentDeadline
   });
 
   return (
@@ -681,25 +849,25 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
             <img
-                src={request.createdByAvatar || `https://ui-avatars.com/api/?name=${request.createdByName}&background=3b82f6&color=fff`}
-                alt={request.createdByName}
+                src={localRequest.createdByAvatar || `https://ui-avatars.com/api/?name=${localRequest.createdByName}&background=3b82f6&color=fff`}
+                alt={localRequest.createdByName}
                 className="w-12 h-12 rounded-full object-cover"
             />
             <div>
-              <h3 className="font-semibold text-lg text-gray-900">{request.title}</h3>
+              <h3 className="font-semibold text-lg text-gray-900">{localRequest.title}</h3>
               <p className="text-sm text-gray-600">
-                {request.createdByName} • {request.groupName}
+                {localRequest.createdByName} • {localRequest.groupName}
               </p>
             </div>
           </div>
           <div className="text-right">
-            {request.rate && (
+            {localRequest.rate && (
                 <span className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-medium block mb-2">
-              {request.rate}
+              {localRequest.rate}
             </span>
             )}
             <span className="text-xs px-2 py-1 rounded-full font-medium bg-gray-100 text-gray-700">
-            {request.status.replace('_', ' ').toUpperCase()}
+            {localRequest.status.replace('_', ' ').toUpperCase()}
           </span>
           </div>
         </div>
@@ -712,12 +880,12 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         </div>
 
         {/* Description */}
-        <p className="text-gray-700 text-sm mb-4 line-clamp-3">{request.description}</p>
+        <p className="text-gray-700 text-sm mb-4 line-clamp-3">{localRequest.description}</p>
 
         {/* Skills */}
-        {request.skills && request.skills.length > 0 && (
+        {localRequest.skills && localRequest.skills.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {request.skills.map((skill, index) => (
+              {localRequest.skills.map((skill, index) => (
                   <span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
               {skill}
             </span>
@@ -726,16 +894,16 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
         )}
 
         {/* Status-specific content */}
-        {request.status === 'pending' && (
+        {localRequest.status === 'pending' && (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Community Approval</span>
-                <span className="text-sm text-gray-600">{request.voteCount || 0}/5</span>
+                <span className="text-sm text-gray-600">{localRequest.voteCount || 0}/5</span>
               </div>
               <div className="w-full bg-yellow-200 rounded-full h-2 mb-3">
                 <div
                     className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(((request.voteCount || 0) / 5) * 100, 100)}%` }}
+                    style={{ width: `${Math.min(((localRequest.voteCount || 0) / 5) * 100, 100)}%` }}
                 />
               </div>
 
@@ -751,7 +919,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
               {userRoles.isOwner && (
                   <div className="text-center text-sm text-yellow-700 font-medium">
-                    ⏳ Waiting for 5 community votes ({request.voteCount || 0}/5)
+                    ⏳ Waiting for 5 community votes ({localRequest.voteCount || 0}/5)
                   </div>
               )}
 
@@ -763,7 +931,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
             </div>
         )}
 
-        {request.status === 'voting_open' && (
+        {localRequest.status === 'voting_open' && (
             <div className="mb-4">
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
@@ -814,9 +982,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
             </div>
         )}
 
-        {request.status === 'accepted' && (
+        {localRequest.status === 'accepted' && (
             <div className="mb-4">
-              {userRoles.isOwner && request.teachers && request.teachers.length > 0 && (
+              {userRoles.isOwner && localRequest.teachers && localRequest.teachers.length > 0 && (
                   <div className="bg-green-100 border border-green-300 rounded-lg p-4 mb-4">
                     <h4 className="font-medium text-green-800 mb-3">Select Teacher & Set Payment Deadline</h4>
 
@@ -829,7 +997,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                             className="w-full border border-green-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                         >
                           <option value="">Select a teacher</option>
-                          {request.teachers.map((teacherId) => (
+                          {localRequest.teachers.map((teacherId) => (
                               <option key={teacherId} value={teacherId}>
                                 {teacherNames[teacherId] || teacherId}
                               </option>
@@ -872,7 +1040,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
             </div>
         )}
 
-        {request.status === 'funding' && (
+        {localRequest.status === 'funding' && (
             <div className="mb-4">
               <div className="bg-purple-100 border border-purple-300 rounded-lg p-4 mb-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -881,7 +1049,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                 </div>
 
                 {/* Payment Deadline Timer */}
-                {request.paymentDeadline && (
+                {localRequest.paymentDeadline && (
                     <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-red-600">⏰</span>
@@ -889,8 +1057,8 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                       </div>
                       <div className="text-center">
                         <PaymentCountdownTimer
-                            deadline={request.paymentDeadline}
-                            requestId={request.id}
+                            deadline={localRequest.paymentDeadline}
+                            requestId={localRequest.id}
                             onRequestUpdate={onRequestUpdate}
                             currentUserId={currentUserId}
                         />
@@ -915,7 +1083,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                     />
                   </div>
                   <p className="text-xs text-purple-600">
-                    Cost per person: Rs. {request.rate || 'TBD'}
+                    Cost per person: Rs. {localRequest.rate || 'TBD'}
                   </p>
                 </div>
 
@@ -925,7 +1093,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                         disabled={loading}
                         className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
                     >
-                      {loading ? 'Processing Payment...' : `Pay Rs. ${request.rate || '0'}`}
+                      {loading ? 'Processing Payment...' : `Pay Rs. ${localRequest.rate || '0'}`}
                     </button>
                 )}
 
@@ -948,7 +1116,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
             </div>
         )}
 
-        {request.status === 'paid' && (
+        {localRequest.status === 'paid' && (
             <div className="mb-4">
               <div className="bg-blue-100 border border-blue-300 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -962,7 +1130,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
                 {userRoles.canViewMeeting && (
                     <>
-                      {userRoles.isSelectedTeacher && !meetingLink && !request.meetingLink && (
+                      {userRoles.isSelectedTeacher && !meetingLink && !localRequest.meetingLink && (
                           <button
                               onClick={handleGenerateMeetingLink}
                               disabled={loading}
@@ -972,7 +1140,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                           </button>
                       )}
 
-                      {(meetingLink || request.meetingLink) && (
+                      {(meetingLink || localRequest.meetingLink) && (
                           <button
                               onClick={handleJoinMeeting}
                               className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors"
@@ -992,7 +1160,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
             </div>
         )}
 
-        {request.status === 'live' && (
+        {localRequest.status === 'live' && (
             <div className="mb-4">
               <div className="bg-red-100 border border-red-300 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -1030,7 +1198,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
             </div>
         )}
 
-        {request.status === 'complete' && (
+        {localRequest.status === 'complete' && (
             <div className="mb-4">
               <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -1040,13 +1208,13 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                 <div className="text-sm text-gray-600 space-y-1">
                   <div>👥 Participants: {userRoles.participantsWhoPay.length}</div>
                   <div>💰 Paid Participants: {userRoles.paidCount}</div>
-                  <div>👨‍🏫 Teacher: {teacherNames[request.selectedTeacher] || 'Unknown'}</div>
+                  <div>👨‍🏫 Teacher: {teacherNames[localRequest.selectedTeacher] || 'Unknown'}</div>
                 </div>
               </div>
             </div>
         )}
 
-        {request.status === 'cancelled' && (
+        {localRequest.status === 'cancelled' && (
             <div className="mb-4">
               <div className="bg-red-100 border border-red-300 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -1054,7 +1222,7 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
                   <span className="font-medium text-red-800">Session Cancelled</span>
                 </div>
                 <p className="text-sm text-red-700">
-                  {request.cancellationReason || 'Not enough votes or participants'}
+                  {localRequest.cancellationReason || 'Not enough votes or participants'}
                 </p>
               </div>
             </div>
@@ -1062,9 +1230,9 @@ const RequestCard = ({ request, currentUserId, onRequestUpdate }) => {
 
         {/* Footer */}
         <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Duration: {request.duration || 'TBD'}</span>
+          <span>Duration: {localRequest.duration || 'TBD'}</span>
           <Link
-              to={`/requests/details/${request.id}`}
+              to={`/requests/details/${localRequest.id}`}
               className="text-blue-600 hover:text-blue-800 font-medium"
           >
             View Details

@@ -62,8 +62,9 @@ service cloud.firestore {
 
     // Helper function to check if user is admin
     function isAdmin() {
-      return exists(/databases/$(database)/documents/admin/$(request.auth.uid)) ||
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // ✅ FIXED: Remove circular dependency by only checking user role
+      // The admin collection check was causing permission issues
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // ==========================================
