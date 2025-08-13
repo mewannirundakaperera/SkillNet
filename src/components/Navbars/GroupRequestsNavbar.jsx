@@ -13,7 +13,7 @@ export default function GroupRequestsNavbar() {
         <li><Link to="/" className="hover:text-indigo-600">Home</Link></li>
         <li><a href="/StudentConnect" className="hover:text-indigo-600">Request</a></li>
         <li><a href="/GroupChat" className="hover:text-indigo-600">Groups</a></li>
-        <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li>
+        {/* <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li> */}
         <li><a href="/Settings" className="hover:text-indigo-600">Settings</a></li>
       </ul>
       {/* Custom Right Section */}
@@ -50,7 +50,7 @@ export default function GroupRequestsNavbar() {
             <Link to="/" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Home</Link>
             <Link to="/StudentConnect" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Request</Link>
             <Link to="/GroupChat" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Groups</Link>
-            <Link to="/SelectTeacher" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Teach & Learn</Link>
+            {/* <Link to="/SelectTeacher" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Teach & Learn</Link> */}
             <Link to="/Settings" onClick={() => setMenuOpen(false)} className="hover:text-indigo-600">Settings</Link>
           </div>
         </div>

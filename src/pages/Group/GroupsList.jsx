@@ -46,11 +46,20 @@ export default function GroupsList() {
 
       try {
         console.log('🔍 Checking admin status for user:', user.id);
-        const adminRef = doc(db, 'admin', user.id);
-        const adminSnap = await getDoc(adminRef);
-        const isAdmin = adminSnap.exists();
-        setIsCurrentUserAdmin(isAdmin);
-        console.log('✅ Admin status:', isAdmin);
+        
+        // Check admin status from user document role field
+        const userRef = doc(db, 'users', user.id);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const isUserAdmin = userData.role === 'admin';
+          setIsCurrentUserAdmin(isUserAdmin);
+          console.log('✅ Admin status from user role:', isUserAdmin);
+        } else {
+          console.log('ℹ️ User document not found, assuming not admin');
+          setIsCurrentUserAdmin(false);
+        }
       } catch (error) {
         console.error('❌ Error checking admin status:', error);
         setIsCurrentUserAdmin(false);
@@ -362,189 +371,6 @@ export default function GroupsList() {
     }
   };
 
-  // Create test group for debugging
-  const createTestGroup = async () => {
-    try {
-      const testGroupData = {
-        name: `Test Group ${Date.now()}`,
-        description: 'This is a test group for debugging',
-        category: 'technology',
-        isPublic: true,
-        members: [user.id],
-        memberCount: 1,
-        hiddenMembers: [],
-        totalMemberCount: 1,
-        createdBy: user.id,
-        createdByName: user.displayName || user.name,
-        createdByAvatar: user.avatar || user.photoURL || 'https://randomuser.me/api/portraits/men/14.jpg',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastActivity: serverTimestamp(),
-        settings: {
-          allowFileSharing: true,
-          allowVoiceMessages: true,
-          moderatedJoining: false
-        }
-      };
-
-      let newGroup;
-      if (GroupsService && typeof GroupsService.createGroup === 'function') {
-        newGroup = await GroupsService.createGroup(testGroupData);
-      } else {
-        const groupsRef = collection(db, 'groups');
-        const docRef = await addDoc(groupsRef, testGroupData);
-        newGroup = { id: docRef.id, ...testGroupData };
-      }
-
-      setUserGroups(prev => [...prev, newGroup]);
-      alert(`Test group "${newGroup.name}" created successfully!`);
-
-    } catch (error) {
-      console.error('❌ Error creating test group:', error);
-      alert(`Failed to create test group: ${error.message}`);
-    }
-  };
-
-  // Test Firebase connection function
-  const testFirebaseConnection = async () => {
-    console.log('🔄 Testing Firebase Connection...');
-
-    try {
-      // Test 1: Check if Firebase db is available
-      console.log('✅ Step 1: Firebase db available:', !!db);
-      console.log('✅ Step 1: User authenticated:', !!user?.id);
-      console.log('✅ Step 1: User ID:', user?.id);
-
-      if (!db) {
-        throw new Error('Firebase db not initialized - check firebase.js imports');
-      }
-
-      if (!user?.id) {
-        throw new Error('User not authenticated - please log in first');
-      }
-
-      // Test 2: Check if we can create a collection reference
-      console.log('🔄 Step 2: Creating groups collection reference...');
-      const groupsRef = collection(db, 'groups');
-      console.log('✅ Step 2: Collection reference created successfully');
-
-      // Test 3: Try a simple read operation (no query conditions)
-      console.log('🔄 Step 3: Testing basic read access...');
-      const simpleSnapshot = await getDocs(query(groupsRef, limit(1)));
-      console.log('✅ Step 3: Basic read successful');
-      console.log('📊 Sample documents found:', simpleSnapshot.size);
-
-      // Test 4: Test the specific query that's failing (user groups)
-      console.log('🔄 Step 4: Testing user groups query...');
-      try {
-        const userGroupsQuery = query(
-          groupsRef,
-          where('members', 'array-contains', user.id)
-        );
-        const userSnapshot = await getDocs(userGroupsQuery);
-        console.log('✅ Step 4: User groups query successful');
-        console.log('👥 User groups found:', userSnapshot.size);
-
-        userSnapshot.forEach((doc) => {
-          const data = doc.data();
-          console.log(`📋 User Group: ${data.name}`, {
-            id: doc.id,
-            members: data.members?.length || 0,
-            isPublic: data.isPublic
-          });
-        });
-
-      } catch (userQueryError) {
-        console.log('⚠️ Step 4: User groups query failed:', userQueryError.message);
-        console.log('⚠️ Step 4: Error code:', userQueryError.code);
-
-        if (userQueryError.code === 'failed-precondition') {
-          console.log('💡 This suggests missing Firestore indexes');
-          console.log('💡 Go to Firebase Console → Firestore → Indexes to create them');
-        }
-      }
-
-      // Test 5: Test public groups query
-      console.log('🔄 Step 5: Testing public groups query...');
-      try {
-        const publicGroupsQuery = query(
-          groupsRef,
-          where('isPublic', '==', true),
-          limit(5)
-        );
-        const publicSnapshot = await getDocs(publicGroupsQuery);
-        console.log('✅ Step 5: Public groups query successful');
-        console.log('🌍 Public groups found:', publicSnapshot.size);
-
-        publicSnapshot.forEach((doc) => {
-          const data = doc.data();
-          console.log(`📋 Public Group: ${data.name}`, {
-            id: doc.id,
-            members: data.members?.length || 0,
-            memberCount: data.memberCount
-          });
-        });
-
-      } catch (publicQueryError) {
-        console.log('⚠️ Step 5: Public groups query failed:', publicQueryError.message);
-        console.log('⚠️ Step 5: Error code:', publicQueryError.code);
-      }
-
-      // Test 6: Check if any groups exist at all
-      console.log('🔄 Step 6: Checking total groups in database...');
-      const allGroupsSnapshot = await getDocs(groupsRef);
-      console.log('📊 Total groups in database:', allGroupsSnapshot.size);
-
-      if (allGroupsSnapshot.size === 0) {
-        console.log('⚠️ No groups found in database!');
-        console.log('💡 Try creating a test group first');
-      } else {
-        console.log('📋 Sample groups structure:');
-        allGroupsSnapshot.docs.slice(0, 2).forEach((doc) => {
-          console.log(`Group "${doc.data().name}":`, doc.data());
-        });
-      }
-
-      // Test 7: Test user's admin status
-      console.log('🔄 Step 7: Checking admin status...');
-      try {
-        const adminRef = doc(db, 'admin', user.id);
-        const adminSnap = await getDoc(adminRef);
-        console.log('👑 User is admin:', adminSnap.exists());
-      } catch (adminError) {
-        console.log('⚠️ Step 7: Admin check failed:', adminError.message);
-      }
-
-      console.log('🎉 Firebase connection test completed successfully!');
-      alert('✅ Firebase test completed! Check console for detailed results.');
-
-    } catch (error) {
-      console.error('❌ Firebase connection test failed at step:', error.message);
-      console.error('❌ Full error details:', {
-        name: error.name,
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
-
-      // Provide specific guidance based on error type
-      let guidance = '';
-      if (error.code === 'permission-denied') {
-        guidance = 'Check your Firestore security rules and authentication.';
-      } else if (error.code === 'failed-precondition') {
-        guidance = 'Missing Firestore indexes. Check Firebase Console → Firestore → Indexes.';
-      } else if (error.code === 'unavailable') {
-        guidance = 'Firebase service temporarily unavailable or network issue.';
-      } else if (error.message.includes('not initialized')) {
-        guidance = 'Check your firebase.js configuration file.';
-      } else {
-        guidance = 'Check browser console for detailed error information.';
-      }
-
-      alert(`❌ Firebase test failed: ${error.message}\n\n💡 ${guidance}`);
-    }
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -594,12 +420,10 @@ export default function GroupsList() {
         <aside className="w-80 card-dark border-r border-[#4A5568] p-6 flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-white">Groups</h2>
-            {/* ✅ ADMIN ONLY: Show Create button only for admin users */}
-            {isCurrentUserAdmin && (
-              <Link to="/groups/create" className="btn-gradient-primary px-4 py-2 rounded-lg font-semibold transition-colors text-sm">
-                + Create
-              </Link>
-            )}
+            {/* ✅ Show Create button for all users */}
+            <Link to="/groups/create" className="btn-gradient-primary px-4 py-2 rounded-lg font-semibold transition-colors text-sm">
+              + Create
+            </Link>
           </div>
           <div className="flex items-center justify-center flex-1">
             <div className="text-center">
@@ -686,12 +510,6 @@ export default function GroupsList() {
               >
                 Try Again
               </button>
-              <button
-                onClick={createTestGroup}
-                className="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
-              >
-                Create Test Group
-              </button>
             </div>
           </div>
         </aside>
@@ -708,7 +526,6 @@ export default function GroupsList() {
                 <li>• Check your internet connection</li>
                 <li>• Verify you're logged in properly</li>
                 <li>• Check browser console for detailed errors</li>
-                <li>• Try creating a test group to verify write access</li>
               </ul>
             </div>
 
@@ -780,7 +597,7 @@ export default function GroupsList() {
               <span className="text-xs bg-purple-900 text-purple-300 px-2 py-1 rounded">Admin</span>
             )}
           </div>
-          {/* ✅ ADMIN ONLY: Show Create button only for admin users */}
+          {/* Show Create button only for admins */}
           {isCurrentUserAdmin && (
             <Link
               to="/groups/create"
@@ -848,7 +665,7 @@ export default function GroupsList() {
                     : "No groups available yet. Check back later!"
                 }
               </p>
-              {/* ✅ ADMIN ONLY: Show Create Group button only for admin users */}
+              {/* Show Create Group button only for admins */}
               {isCurrentUserAdmin && (
                 <Link
                   to="/groups/create"
@@ -896,27 +713,6 @@ export default function GroupsList() {
           )}
         </div>
 
-        {/* Debug section for development */}
-        {import.meta.env.DEV && (
-          <div className="mt-4 p-3 bg-[#2D3748] rounded text-xs border border-[#4A5568]">
-            <p className="text-white"><strong>Debug Info:</strong></p>
-            <p className="text-[#E0E0E0]">User Groups: {userGroups.length}</p>
-            <p className="text-[#E0E0E0]">Public Groups: {publicGroups.length}</p>
-            <p className="text-[#E0E0E0]">Is Admin: {isCurrentUserAdmin ? 'Yes' : 'No'}</p>
-            <button
-              onClick={testFirebaseConnection}
-              className="w-full mt-2 btn-gradient-primary px-3 py-1 rounded text-xs hover:bg-[#3182CE]"
-            >
-              🔍 Test Firebase Connection
-            </button>
-            <button
-              onClick={createTestGroup}
-              className="w-full mt-1 bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
-            >
-              ➕ Create Test Group
-            </button>
-          </div>
-        )}
       </aside>
 
       {/* Main Content - ✅ REMOVED: Create Group action buttons from right side */}
@@ -949,5 +745,5 @@ export default function GroupsList() {
       </div>
     </div>
   );
-} 
+}
 

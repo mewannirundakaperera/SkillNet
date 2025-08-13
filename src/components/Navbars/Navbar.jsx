@@ -325,7 +325,7 @@ export default function IntelligentNavbar() {
         { to: "/", label: "Home" },
         { to: "/StudentConnect", label: "Requests" },
         { to: "/GroupChat", label: "Groups" },
-        { to: "/SelectTeacher", label: "Teach & Learn" },
+        // { to: "/SelectTeacher", label: "Teach & Learn" }, // Temporarily hidden
         { to: "/Settings", label: "Settings" }
       ]
     };

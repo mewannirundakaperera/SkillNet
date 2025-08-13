@@ -377,301 +377,345 @@ const MyRequests = () => {
     }
 
     return (
-        <div className="p-8 bg-slate-900 min-h-screen">
-            {/* Page Header */}
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-white mb-2">My Requests</h1>
-                    <p className="text-slate-300">Manage all your created requests</p>
+        <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] relative overflow-hidden">
+            {/* Educational Background Pattern */}
+            <div className="absolute inset-0">
+                {/* Geometric Shapes - Increased opacity and size for better visibility */}
+                <div className="absolute top-10 left-10 w-80 h-80 bg-gradient-to-br from-[#3B82F6]/40 to-[#1D4ED8]/40 rounded-full blur-2xl"></div>
+                <div className="absolute top-40 right-20 w-64 h-64 bg-gradient-to-br from-[#8B5CF6]/40 to-[#7C3AED]/40 rounded-full blur-2xl"></div>
+                <div className="absolute bottom-20 left-1/4 w-48 h-48 bg-gradient-to-br from-[#10B981]/40 to-[#059669]/40 rounded-full blur-2xl"></div>
+                
+                {/* Additional geometric elements for more visual interest */}
+                <div className="absolute top-1/3 left-1/6 w-32 h-32 bg-gradient-to-br from-[#F59E0B]/30 to-[#D97706]/30 rounded-full blur-xl"></div>
+                <div className="absolute bottom-1/4 right-1/6 w-40 h-40 bg-gradient-to-br from-[#EC4899]/30 to-[#DB2777]/30 rounded-full blur-xl"></div>
+                
+                {/* Educational Icons Pattern - Increased opacity for better visibility */}
+                <div className="absolute top-1/4 left-1/3 opacity-15">
+                    <svg className="w-32 h-32 text-[#3B82F6]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09v6.82L12 23 1 15.82V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9z"/>
+                    </svg>
                 </div>
-                <div className="flex gap-3">
-                    <Link
-                        to="/requests/create"
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                        + Create 1:1 Request
-                    </Link>
-                    <Link
-                        to="/requests/create-group"
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                        + Create Group Request
-                    </Link>
+                <div className="absolute top-1/3 right-1/4 opacity-15">
+                    <svg className="w-28 h-28 text-[#8B5CF6]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 0 1 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>
+                    </svg>
                 </div>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-7 gap-4 mb-8">
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-400">
-                    <div className="text-lg font-bold text-white">{statsData.total}</div>
-                    <div className="text-slate-300 text-sm">Total</div>
+                <div className="absolute bottom-1/3 left-1/6 opacity-15">
+                    <svg className="w-20 h-20 text-[#10B981]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
                 </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <div className="text-lg font-bold text-blue-400">{statsData.oneToOne}</div>
-                    <div className="text-slate-300 text-sm">One-to-One</div>
+                
+                {/* Additional educational icons for more visual richness */}
+                <div className="absolute top-1/2 right-1/3 opacity-10">
+                    <svg className="w-24 h-24 text-[#F59E0B]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                    </svg>
                 </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
-                    <div className="text-lg font-bold text-purple-400">{statsData.group}</div>
-                    <div className="text-slate-300 text-sm">Group</div>
-                </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
-                    <div className="text-lg font-bold text-slate-300">{statsData.draft}</div>
-                    <div className="text-slate-300 text-sm">Draft</div>
-                </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <div className="text-lg font-bold text-green-400">{statsData.open}</div>
-                    <div className="text-slate-300 text-sm">Open</div>
-                </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <div className="text-lg font-bold text-blue-400">{statsData.accepted}</div>
-                    <div className="text-slate-300 text-sm">Accepted</div>
-                </div>
-                <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
-                    <div className="text-lg font-bold text-orange-400">{statsData.completed}</div>
-                    <div className="text-slate-300 text-sm">Completed</div>
+                <div className="absolute bottom-1/3 right-1/4 opacity-10">
+                    <svg className="w-16 h-16 text-[#EC4899]" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1.08-1.36-1.9-1.36h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                    </svg>
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="bg-slate-800 rounded-lg shadow-sm p-6 mb-6">
-                <div className="flex flex-wrap gap-4 items-center">
+            {/* Main Content */}
+            <div className="relative z-10 p-8">
+                {/* Page Header */}
+                <div className="flex justify-between items-center mb-6">
                     <div>
-                        <label className="block text-sm font-medium text-slate-200 mb-2">Request Type</label>
-                        <select
-                            value={selectedTab}
-                            onChange={(e) => setSelectedTab(e.target.value)}
-                            className="border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:border-transparent bg-slate-700 text-white"
-                        >
-                            <option value="all">All Types</option>
-                            <option value="one-to-one">One-to-One</option>
-                            <option value="group">Group</option>
-                        </select>
+                        <h1 className="text-2xl font-bold text-white mb-2">My Requests</h1>
+                        <p className="text-slate-300">Manage all your created requests</p>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-200 mb-2">Status</label>
-                        <select
-                            value={selectedStatus}
-                            onChange={(e) => setSelectedStatus(e.target.value)}
-                            className="border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:border-transparent bg-slate-700 text-white"
-                        >
-                            <option value="all">All Statuses</option>
-                            <option value="draft">Draft</option>
-                            <option value="open">Open</option>
-                            <option value="active">Active</option>
-                            <option value="pending">Pending</option>
-                            <option value="accepted">Accepted</option>
-                            <option value="completed">Completed</option>
-                            <option value="archived">Archived</option>
-                        </select>
-                    </div>
-                    <div className="ml-auto">
-                        <p className="text-sm text-slate-300">
-                            Showing {combinedRequests.length} of {statsData.total} requests
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Requests List */}
-            {combinedRequests.length > 0 ? (
-                <div className="bg-slate-800 rounded-lg shadow-sm">
-                    <div className="p-6 border-b border-slate-700">
-                        <h2 className="text-lg font-semibold text-white">
-                            All Requests ({combinedRequests.length})
-                        </h2>
-                    </div>
-
-                    <div className="divide-y divide-slate-700">
-                        {combinedRequests.map((request) => (
-                            <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-slate-700 transition-colors">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <span className="text-xl">{getStatusIcon(request.status)}</span>
-                                            <h3 className="text-lg font-semibold text-white">{request.title}</h3>
-                                            <span 
-                                                className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(request.status)} cursor-help`}
-                                                title={getStatusDescription(request.status)}
-                                            >
-                                                {request.status}
-                                            </span>
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                request.type === 'group' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'
-                                            }`}>
-                                                {request.type === 'group' ? '👥 Group' : '👤 1:1'}
-                                            </span>
-                                            {request.featured && (
-                                                <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-900 text-yellow-200">
-                                                    ⭐ Featured
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <p className="text-slate-300 mb-3 line-clamp-2">{request.description}</p>
-
-                                        <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
-                                            {request.type === 'one-to-one' && (
-                                                <>
-                                                    <span>📚 {request.subject}</span>
-                                                    <span>📅 {formatDate(request.preferredDate)}</span>
-                                                    <span>⏰ {request.preferredTime || 'Not set'}</span>
-                                                                                                         <span>💰 {request.currency || 'Rs.'}{request.paymentAmount || '0'}</span>
-                                                    <span>⏱️ {request.duration || '60'} min</span>
-                                                    <span>👥 {request.participants?.length || 0} participants</span>
-                                                </>
-                                            )}
-                                            {request.type === 'group' && (
-                                                <>
-                                                    <span>🏷️ {request.category}</span>
-                                                    <span>👍 {request.voteCount || 0} votes</span>
-                                                    <span>👥 {request.participantCount || 0} participants</span>
-                                                    {request.rate && <span>💰 {request.rate}</span>}
-                                                    {request.deadline && <span>📅 {formatDate(request.deadline)}</span>}
-                                                </>
-                                            )}
-                                            {request.views > 0 && (
-                                                <span>👀 {request.views} views</span>
-                                            )}
-                                        </div>
-
-                                        {request.tags && request.tags.length > 0 && (
-                                            <div className="flex gap-2 mb-3">
-                                                {request.tags.map((tag, index) => (
-                                                    <span key={index} className="bg-slate-700 text-slate-200 px-2 py-1 rounded text-xs">
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {request.skills && request.skills.length > 0 && (
-                                            <div className="flex gap-2 mb-3">
-                                                {request.skills.map((skill, index) => (
-                                                    <span key={index} className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
-                                                        {skill}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <div className="text-xs text-slate-500">
-                                            Created {formatTimeAgo(request.createdAt)}
-                                            {request.updatedAt && request.updatedAt > request.createdAt && (
-                                                <span> • Updated {formatTimeAgo(request.updatedAt)}</span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 ml-4">
-                                        <Link
-                                            to={`/requests/details/${request.id}?type=${request.type}`}
-                                            className="bg-slate-700 text-slate-200 px-3 py-1 rounded text-sm font-medium hover:bg-slate-600 transition-colors text-center"
-                                        >
-                                            View Details
-                                        </Link>
-
-                                        {request.status === 'draft' && (
-                                            <>
-                                                <button
-                                                    onClick={() => handleRequestAction(request.id, 'publish', request.type)}
-                                                    disabled={actionLoading[request.id] === 'publish'}
-                                                    className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                                                >
-                                                    {actionLoading[request.id] === 'publish' ? 'Publishing...' : 'Publish'}
-                                                </button>
-                                                <Link
-                                                    to={`/requests/edit/${request.id}?type=${request.type}`}
-                                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
-                                                >
-                                                    Edit
-                                                </Link>
-                                            </>
-                                        )}
-
-                                        {['open', 'active', 'pending', 'voting_open'].includes(request.status) && (
-                                            <>
-                                                <Link
-                                                    to={`/requests/edit/${request.id}?type=${request.type}`}
-                                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
-                                                >
-                                                    Edit
-                                                </Link>
-                                                <button
-                                                    onClick={() => handleRequestAction(request.id, 'delete', request.type)}
-                                                    disabled={actionLoading[request.id] === 'delete'}
-                                                    className="bg-red-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-                                                >
-                                                    {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete'}
-                                                </button>
-                                            </>
-                                        )}
-
-                                        {request.status === 'accepted' && (
-                                            <>
-                                                <Link
-                                                    to={`/requests/edit/${request.id}?type=${request.type}`}
-                                                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
-                                                >
-                                                    Edit
-                                                </Link>
-                                                <button
-                                                    onClick={() => handleRequestAction(request.id, 'complete', request.type)}
-                                                    disabled={actionLoading[request.id] === 'complete'}
-                                                    className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-                                                >
-                                                    {actionLoading[request.id] === 'complete' ? 'Completing...' : 'Complete'}
-                                                </button>
-                                            </>
-                                        )}
-
-                                        {['draft', 'completed', 'archived', 'cancelled'].includes(request.status) && (
-                                            <button
-                                                onClick={() => handleRequestAction(request.id, 'delete', request.type)}
-                                                disabled={actionLoading[request.id] === 'delete'}
-                                                className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
-                                            >
-                                                {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete'}
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            ) : (
-                <div className="bg-slate-800 rounded-lg shadow-sm p-12 text-center">
-                    <div className="text-slate-400 text-4xl mb-4">📝</div>
-                    <h3 className="text-lg font-semibold text-white mb-2">
-                        {statsData.total === 0 ? 'No requests found' : 'No requests match your filters'}
-                    </h3>
-                    <p className="text-slate-300 mb-6">
-                        {statsData.total === 0
-                            ? "You haven't created any requests yet."
-                            : "Try adjusting your filters to see more requests."
-                        }
-                    </p>
-                    <div className="flex gap-3 justify-center">
-                        {statsData.total > 0 && (
-                            <button
-                                onClick={() => {
-                                    setSelectedTab('all');
-                                    setSelectedStatus('all');
-                                }}
-                                className="text-blue-400 hover:text-blue-300 font-medium"
-                            >
-                                Clear Filters
-                            </button>
-                        )}
+                    <div className="flex gap-3">
                         <Link
                             to="/requests/create"
-                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                         >
-                            Create Your First Request
+                            + Create 1:1 Request
+                        </Link>
+                        <Link
+                            to="/requests/create-group"
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                        >
+                            + Create Group Request
                         </Link>
                     </div>
                 </div>
-            )}
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-7 gap-4 mb-8">
+                    <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-400">
+                        <div className="text-lg font-bold text-white">{statsData.total}</div>
+                        <div className="text-slate-300 text-sm">Total</div>
+                    </div>
+                    <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+                        <div className="text-lg font-bold text-blue-400">{statsData.oneToOne}</div>
+                        <div className="text-slate-300 text-sm">One-to-One</div>
+                    </div>
+                    <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+                        <div className="text-lg font-bold text-purple-400">{statsData.group}</div>
+                        <div className="text-slate-300 text-sm">Group</div>
+                    </div>
+                    <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-gray-500">
+                        <div className="text-lg font-bold text-slate-300">{statsData.draft}</div>
+                        <div className="text-slate-300 text-sm">Draft</div>
+                    </div>
+                    <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+                        <div className="text-lg font-bold text-green-400">{statsData.open}</div>
+                        <div className="text-slate-300 text-sm">Open</div>
+                    </div>
+                    <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+                        <div className="text-lg font-bold text-blue-400">{statsData.accepted}</div>
+                        <div className="text-slate-300 text-sm">Accepted</div>
+                    </div>
+                    <div className="bg-slate-800 rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
+                        <div className="text-lg font-bold text-orange-400">{statsData.completed}</div>
+                        <div className="text-slate-300 text-sm">Completed</div>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="bg-slate-800 rounded-lg shadow-sm p-6 mb-6">
+                    <div className="flex flex-wrap gap-4 items-center">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-200 mb-2">Request Type</label>
+                            <select
+                                value={selectedTab}
+                                onChange={(e) => setSelectedTab(e.target.value)}
+                                className="border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:border-transparent bg-slate-700 text-white"
+                            >
+                                <option value="all">All Types</option>
+                                <option value="one-to-one">One-to-One</option>
+                                <option value="group">Group</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-200 mb-2">Status</label>
+                            <select
+                                value={selectedStatus}
+                                onChange={(e) => setSelectedStatus(e.target.value)}
+                                className="border border-slate-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:border-transparent bg-slate-700 text-white"
+                            >
+                                <option value="all">All Statuses</option>
+                                <option value="draft">Draft</option>
+                                <option value="open">Open</option>
+                                <option value="active">Active</option>
+                                <option value="pending">Pending</option>
+                                <option value="accepted">Accepted</option>
+                                <option value="completed">Completed</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div className="ml-auto">
+                            <p className="text-sm text-slate-300">
+                                Showing {combinedRequests.length} of {statsData.total} requests
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Requests List */}
+                {combinedRequests.length > 0 ? (
+                    <div className="bg-slate-800 rounded-lg shadow-sm">
+                        <div className="p-6 border-b border-slate-700">
+                            <h2 className="text-lg font-semibold text-white">
+                                All Requests ({combinedRequests.length})
+                            </h2>
+                        </div>
+
+                        <div className="divide-y divide-slate-700">
+                            {combinedRequests.map((request) => (
+                                <div key={`${request.type}-${request.id}`} className="p-6 hover:bg-slate-700 transition-colors">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="text-xl">{getStatusIcon(request.status)}</span>
+                                                <h3 className="text-lg font-semibold text-white">{request.title}</h3>
+                                                <span 
+                                                    className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(request.status)} cursor-help`}
+                                                    title={getStatusDescription(request.status)}
+                                                >
+                                                    {request.status}
+                                                </span>
+                                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                                    request.type === 'group' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'
+                                                }`}>
+                                                    {request.type === 'group' ? '👥 Group' : '👤 1:1'}
+                                                </span>
+                                                {request.featured && (
+                                                    <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-900 text-yellow-200">
+                                                        ⭐ Featured
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <p className="text-slate-300 mb-3 line-clamp-2">{request.description}</p>
+
+                                            <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
+                                                {request.type === 'one-to-one' && (
+                                                    <>
+                                                        <span>📚 {request.subject}</span>
+                                                        <span>📅 {formatDate(request.preferredDate)}</span>
+                                                        <span>⏰ {request.preferredTime || 'Not set'}</span>
+                                                                                                         <span>💰 {request.currency || 'Rs.'}{request.paymentAmount || '0'}</span>
+                                                        <span>⏱️ {request.duration || '60'} min</span>
+                                                        <span>👥 {request.participants?.length || 0} participants</span>
+                                                    </>
+                                                )}
+                                                {request.type === 'group' && (
+                                                    <>
+                                                        <span>🏷️ {request.category}</span>
+                                                        <span>👍 {request.voteCount || 0} votes</span>
+                                                        <span>👥 {request.participantCount || 0} participants</span>
+                                                        {request.rate && <span>💰 {request.rate}</span>}
+                                                        {request.deadline && <span>📅 {formatDate(request.deadline)}</span>}
+                                                    </>
+                                                )}
+                                                {request.views > 0 && (
+                                                    <span>👀 {request.views} views</span>
+                                                )}
+                                            </div>
+
+                                            {request.tags && request.tags.length > 0 && (
+                                                <div className="flex gap-2 mb-3">
+                                                    {request.tags.map((tag, index) => (
+                                                        <span key={index} className="bg-slate-700 text-slate-200 px-2 py-1 rounded text-xs">
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {request.skills && request.skills.length > 0 && (
+                                                <div className="flex gap-2 mb-3">
+                                                    {request.skills.map((skill, index) => (
+                                                        <span key={index} className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
+                                                            {skill}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="text-xs text-slate-500">
+                                                Created {formatTimeAgo(request.createdAt)}
+                                                {request.updatedAt && request.updatedAt > request.createdAt && (
+                                                    <span> • Updated {formatTimeAgo(request.updatedAt)}</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 ml-4">
+                                            <Link
+                                                to={`/requests/details/${request.id}?type=${request.type}`}
+                                                className="bg-slate-700 text-slate-200 px-3 py-1 rounded text-sm font-medium hover:bg-slate-600 transition-colors text-center"
+                                            >
+                                                View Details
+                                            </Link>
+
+                                            {request.status === 'draft' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleRequestAction(request.id, 'publish', request.type)}
+                                                        disabled={actionLoading[request.id] === 'publish'}
+                                                        className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                                                    >
+                                                        {actionLoading[request.id] === 'publish' ? 'Publishing...' : 'Publish'}
+                                                    </button>
+                                                    <Link
+                                                        to={`/requests/edit/${request.id}?type=${request.type}`}
+                                                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
+                                                    >
+                                                        Edit
+                                                    </Link>
+                                                </>
+                                            )}
+
+                                            {['open', 'active', 'pending', 'voting_open'].includes(request.status) && (
+                                                <>
+                                                    <Link
+                                                        to={`/requests/edit/${request.id}?type=${request.type}`}
+                                                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
+                                                    >
+                                                        Edit
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => handleRequestAction(request.id, 'delete', request.type)}
+                                                        disabled={actionLoading[request.id] === 'delete'}
+                                                        className="bg-red-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                                                    >
+                                                        {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete'}
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {request.status === 'accepted' && (
+                                                <>
+                                                    <Link
+                                                        to={`/requests/edit/${request.id}?type=${request.type}`}
+                                                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors text-center"
+                                                    >
+                                                        Edit
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => handleRequestAction(request.id, 'complete', request.type)}
+                                                        disabled={actionLoading[request.id] === 'complete'}
+                                                        className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                                                    >
+                                                        {actionLoading[request.id] === 'complete' ? 'Completing...' : 'Complete'}
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {['draft', 'completed', 'archived', 'cancelled'].includes(request.status) && (
+                                                <button
+                                                    onClick={() => handleRequestAction(request.id, 'delete', request.type)}
+                                                    disabled={actionLoading[request.id] === 'delete'}
+                                                    className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm font-medium hover:bg-red-200 transition-colors disabled:opacity-50"
+                                                >
+                                                    {actionLoading[request.id] === 'delete' ? 'Deleting...' : 'Delete'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-slate-800 rounded-lg shadow-sm p-12 text-center">
+                        <div className="text-slate-400 text-4xl mb-4">📝</div>
+                        <h3 className="text-lg font-semibold text-white mb-2">
+                            {statsData.total === 0 ? 'No requests found' : 'No requests match your filters'}
+                        </h3>
+                        <p className="text-slate-300 mb-6">
+                            {statsData.total === 0
+                                ? "You haven't created any requests yet."
+                                : "Try adjusting your filters to see more requests."
+                            }
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                            {statsData.total > 0 && (
+                                <button
+                                    onClick={() => {
+                                        setSelectedTab('all');
+                                        setSelectedStatus('all');
+                                    }}
+                                    className="text-blue-400 hover:text-blue-300 font-medium"
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
+                            <Link
+                                to="/requests/create"
+                                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                            >
+                                Create Your First Request
+                            </Link>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

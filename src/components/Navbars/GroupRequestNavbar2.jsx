@@ -12,7 +12,7 @@ export default function GroupRequestsNavbar2() {
         <li><Link to="/" className="hover:text-indigo-600">Home</Link></li>
         <li><a href="/StudentConnect" className="hover:text-indigo-600">Request</a></li>
         <li><a href="/GroupChat" className="hover:text-indigo-600">Groups</a></li>
-        <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li>
+        {/* <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li> */}
         <li><a href="/Settings" className="hover:text-indigo-600">Settings</a></li>
       </ul>
       
@@ -32,7 +32,7 @@ export default function GroupRequestsNavbar2() {
             <li><a href="/StudentConnect" className="hover:text-indigo-600 w-full block text-center">Request</a></li>
             <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Connections</a></li>
             <li><a href="/GroupChat" className="hover:text-indigo-600 w-full block text-center">Groups</a></li>
-            <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li>
+            {/* <li><a href="/SelectTeacher" className="hover:text-indigo-600">Teach & Learn</a></li> */}
             <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Messages</a></li>
             <li><a href="#" className="hover:text-indigo-600 w-full block text-center">Settings</a></li>
           </ul>

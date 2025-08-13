@@ -86,13 +86,13 @@ const StudentConnect = () => {
             ...user,
             ...result.userData,
             displayName: result.userData.displayName || result.userData.name || user.name || "User",
-            avatar: result.userData.avatar || result.userData.photoURL || "https://randomuser.me/api/portraits/men/14.jpg"
+            avatar: result.userData.avatar || result.userData.photoURL || "https://ui-avatars.com/api/?name=Student&background=3b82f6&color=fff&size=200"
           });
         } else {
           setUserProfile({
             ...user,
             displayName: user.name || "User",
-            avatar: "https://randomuser.me/api/portraits/men/14.jpg"
+            avatar: "https://ui-avatars.com/api/?name=Student&background=3b82f6&color=fff&size=200"
           });
         }
       } catch (error) {
@@ -611,7 +611,7 @@ const StudentConnect = () => {
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <img
-              src={userProfile?.avatar || "https://randomuser.me/api/portraits/men/14.jpg"}
+              src={userProfile?.avatar || "https://ui-avatars.com/api/?name=Student&background=3b82f6&color=fff&size=200"}
               alt={userProfile?.displayName || "User"}
               className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1] shadow-lg"
             />

@@ -41,10 +41,26 @@ export default function GroupDetails() {
   const [error, setError] = useState(null);
   const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [searchUsers, setSearchUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    category: '',
+    isPublic: true,
+    maxMembers: 100,
+    rules: '',
+    allowFileSharing: true,
+    allowVoiceMessages: true,
+    moderatedJoining: false,
+    allowInvites: true
+  });
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState(null);
 
   // Check admin status
   useEffect(() => {
@@ -52,11 +68,23 @@ export default function GroupDetails() {
       if (!user?.id) return;
 
       try {
-        const adminRef = doc(db, 'admin', user.id);
-        const adminSnap = await getDoc(adminRef);
-        setIsCurrentUserAdmin(adminSnap.exists());
+        console.log('🔍 Checking admin status for user:', user.id);
+        
+        // Check admin status from user document role field
+        const userRef = doc(db, 'users', user.id);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const isUserAdmin = userData.role === 'admin';
+          setIsCurrentUserAdmin(isUserAdmin);
+          console.log('✅ Admin status from user role:', isUserAdmin);
+        } else {
+          console.log('ℹ️ User document not found, assuming not admin');
+          setIsCurrentUserAdmin(false);
+        }
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('❌ Error checking admin status:', error);
         setIsCurrentUserAdmin(false);
       }
     };
@@ -128,6 +156,20 @@ export default function GroupDetails() {
 
     return unsubscribe;
   }, [groupId, currentGroup]);
+
+  // Populate edit form when modal opens
+  useEffect(() => {
+    console.log('🔄 Edit modal useEffect triggered');
+    console.log('📊 showEditModal:', showEditModal);
+    console.log('📁 currentGroup:', currentGroup);
+    
+    if (showEditModal && currentGroup) {
+      console.log('✅ Modal is open and group data available, populating form...');
+      populateEditForm();
+    } else if (showEditModal && !currentGroup) {
+      console.warn('⚠️ Modal is open but no group data available');
+    }
+  }, [showEditModal, currentGroup]);
 
   // Load group statistics
   const loadGroupStatistics = async (groupId) => {
@@ -361,6 +403,177 @@ export default function GroupDetails() {
     }
   };
 
+  // Populate edit form with current group data
+  const populateEditForm = () => {
+    console.log('🔄 Populating edit form with group data:', currentGroup);
+    
+    if (currentGroup) {
+      const formData = {
+        name: currentGroup.name || '',
+        description: currentGroup.description || '',
+        category: currentGroup.category || '',
+        isPublic: currentGroup.isPublic !== undefined ? currentGroup.isPublic : true,
+        maxMembers: currentGroup.maxMembers || 100,
+        rules: currentGroup.rules || '',
+        allowFileSharing: currentGroup.settings?.allowFileSharing !== undefined ? currentGroup.settings.allowFileSharing : true,
+        allowVoiceMessages: currentGroup.settings?.allowVoiceMessages !== undefined ? currentGroup.settings.allowVoiceMessages : true,
+        moderatedJoining: currentGroup.settings?.moderatedJoining !== undefined ? currentGroup.settings.moderatedJoining : false,
+        allowInvites: currentGroup.settings?.allowInvites !== undefined ? currentGroup.settings.allowInvites : true
+      };
+      
+      console.log('📝 Setting edit form data:', formData);
+      setEditFormData(formData);
+      
+      console.log('🖼️ Setting image preview:', currentGroup.image || null);
+      setEditImagePreview(currentGroup.image || null);
+      setEditImageFile(null);
+      
+      console.log('✅ Edit form populated successfully');
+    } else {
+      console.warn('⚠️ No current group data available for form population');
+    }
+  };
+
+  // Handle edit form input changes
+  const handleEditInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  // Handle edit image change
+  const handleEditImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file');
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
+        return;
+      }
+
+      setEditImageFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setEditImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle edit form submission
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    
+    console.log('🔄 Starting group edit submission...');
+    console.log('📝 Edit form data:', editFormData);
+    console.log('🖼️ Image file:', editImageFile);
+    console.log('👤 Current user admin status:', isCurrentUserAdmin);
+    
+    if (!isCurrentUserAdmin) {
+      console.error('❌ User is not an admin, cannot edit group');
+      alert('Only admins can edit groups');
+      return;
+    }
+
+    if (!currentGroup) {
+      console.error('❌ No current group data available');
+      alert('Group data not available. Please refresh the page.');
+      return;
+    }
+
+    // Form validation
+    if (!editFormData.name.trim()) {
+      alert('Group name is required');
+      return;
+    }
+
+    if (!editFormData.description.trim()) {
+      alert('Group description is required');
+      return;
+    }
+
+    if (!editFormData.category) {
+      alert('Please select a category');
+      return;
+    }
+
+    if (editFormData.maxMembers < 2 || editFormData.maxMembers > 1000) {
+      alert('Maximum members must be between 2 and 1000');
+      return;
+    }
+
+    console.log('✅ Form validation passed');
+
+    setEditing(true);
+    try {
+      // Prepare group data for update
+      const updateData = {
+        ...editFormData,
+        settings: {
+          allowFileSharing: editFormData.allowFileSharing,
+          allowVoiceMessages: editFormData.allowVoiceMessages,
+          moderatedJoining: editFormData.moderatedJoining,
+          allowInvites: editFormData.allowInvites
+        }
+      };
+
+      console.log('📤 Prepared update data:', updateData);
+
+      // Update the group
+      const updatedGroup = await GroupsService.editGroup(
+        groupId, 
+        updateData, 
+        editImageFile, 
+        true // isAdmin = true
+      );
+
+      console.log('✅ Group updated successfully:', updatedGroup);
+      
+      // Update local state
+      setCurrentGroup(updatedGroup);
+      
+      // Close modal and show success
+      setShowEditModal(false);
+      setEditImageFile(null);
+      setEditImagePreview(null);
+      
+      alert('Group updated successfully!');
+      
+    } catch (error) {
+      console.error('❌ Error updating group:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Provide more specific error messages based on error type
+      let errorMessage = `Failed to update group: ${error.message}`;
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = 'Permission denied. You may not have the right to edit this group.';
+      } else if (error.code === 'not-found') {
+        errorMessage = 'Group not found. Please refresh the page.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setEditing(false);
+    }
+  };
+
   // Handle inviting a user to the group
   const handleInviteUser = async (userToInvite) => {
     if (!currentGroup || !user?.id || !userToInvite.uid) return;
@@ -462,6 +675,23 @@ export default function GroupDetails() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Edit Group Button - Admin only */}
+              {isCurrentUserAdmin && (
+                <button
+                  onClick={() => {
+                    console.log('🖱️ Edit button clicked');
+                    console.log('👤 User admin status:', isCurrentUserAdmin);
+                    console.log('📁 Current group:', currentGroup);
+                    setShowEditModal(true);
+                  }}
+                  className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-700 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Group
+                </button>
+              )}
               {/* Invite Members Button - Only for group members */}
               {(currentGroup?.members?.includes(user?.id) || currentGroup?.hiddenMembers?.includes(user?.id)) && (
                 <button
@@ -881,6 +1111,266 @@ export default function GroupDetails() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Group Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="card-dark rounded-xl shadow-xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-white">Edit Group</h3>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditImageFile(null);
+                  setEditImagePreview(null);
+                }}
+                className="text-[#A0AEC0] hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  {/* Group Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Group Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={editFormData.name}
+                      onChange={handleEditInputChange}
+                      className="input-dark w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
+                      placeholder="Enter group name"
+                      maxLength={50}
+                      required
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Description *
+                    </label>
+                    <textarea
+                      name="description"
+                      value={editFormData.description}
+                      onChange={handleEditInputChange}
+                      rows={4}
+                      className="input-dark w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
+                      placeholder="Describe what your group is about..."
+                      maxLength={500}
+                      required
+                    />
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Category *
+                    </label>
+                    <select
+                      name="category"
+                      value={editFormData.category}
+                      onChange={handleEditInputChange}
+                      className="input-dark w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
+                      required
+                    >
+                      <option value="">Select a category</option>
+                      {Object.entries(GROUP_CATEGORIES).map(([key, value]) => (
+                        <option key={key} value={value}>
+                          {value.charAt(0).toUpperCase() + value.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Max Members */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Maximum Members
+                    </label>
+                    <input
+                      type="number"
+                      name="maxMembers"
+                      value={editFormData.maxMembers}
+                      onChange={handleEditInputChange}
+                      min={2}
+                      max={1000}
+                      className="input-dark w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-4">
+                  {/* Group Image */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Group Image
+                    </label>
+                    <div className="border-2 border-dashed border-[#4299E1] rounded-lg p-6 text-center relative">
+                      {editImagePreview ? (
+                        <div className="space-y-4">
+                          <img
+                            src={editImagePreview}
+                            alt="Group preview"
+                            className="w-32 h-32 rounded-lg object-cover mx-auto"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditImageFile(null);
+                              setEditImagePreview(null);
+                            }}
+                            className="text-red-400 hover:text-red-300 text-sm"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <svg className="w-12 h-12 text-[#A0AEC0] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <p className="text-[#E0E0E0]">Click to upload new image</p>
+                          <p className="text-xs text-[#A0AEC0]">PNG, JPG up to 5MB</p>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditImageChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Group Settings */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-white">Public Group</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="isPublic"
+                          checked={editFormData.isPublic}
+                          onChange={handleEditInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-[#4A5568] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4299E1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#4A5568] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4299E1]"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-white">File Sharing</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="allowFileSharing"
+                          checked={editFormData.allowFileSharing}
+                          onChange={handleEditInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-[#4A5568] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4299E1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#4A5568] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4299E1]"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-white">Voice Messages</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="allowVoiceMessages"
+                          checked={editFormData.allowVoiceMessages}
+                          onChange={handleEditInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-[#4A5568] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4299E1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#4A5568] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4299E1]"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-white">Moderated Joining</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="moderatedJoining"
+                          checked={editFormData.moderatedJoining}
+                          onChange={handleEditInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-[#4A5568] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4299E1] rounded-full peer peer-checked:after:full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#4A5568] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4299E1]"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-white">Allow Invites</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="allowInvites"
+                          checked={editFormData.allowInvites}
+                          onChange={handleEditInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-[#4A5568] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#4299E1] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#4A5568] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4299E1]"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group Rules */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Group Rules (Optional)
+                </label>
+                <textarea
+                  name="rules"
+                  value={editFormData.rules}
+                  onChange={handleEditInputChange}
+                  rows={3}
+                  className="input-dark w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-[#4299E1] focus:border-transparent"
+                  placeholder="Set guidelines for your group members..."
+                  maxLength={1000}
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-4 pt-6 border-t border-[#4A5568]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditImageFile(null);
+                    setEditImagePreview(null);
+                  }}
+                  className="px-6 py-3 border border-[#4A5568] text-[#A0AEC0] rounded-lg hover:bg-[#2D3748] hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editing}
+                  className="btn-gradient-primary px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {editing && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  {editing ? 'Updating Group...' : 'Update Group'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

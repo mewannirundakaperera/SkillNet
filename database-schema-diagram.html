@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillNet Database Schema Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+            color: #E0E0E0;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #3B82F6, #8B5CF6, #10B981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: #A0AEC0;
+        }
+
+        .schema-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .overview-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .overview-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .overview-card h3 {
+            color: #3B82F6;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .overview-card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .overview-card li {
+            padding: 5px 0;
+            color: #A0AEC0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .overview-card li:last-child {
+            border-bottom: none;
+        }
+
+        .collections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .collection-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .collection-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .collection-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .collection-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.2rem;
+        }
+
+        .collection-title {
+            flex: 1;
+        }
+
+        .collection-title h3 {
+            color: #3B82F6;
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+
+        .collection-title p {
+            color: #A0AEC0;
+            font-size: 0.9rem;
+        }
+
+        .fields-section {
+            margin-bottom: 20px;
+        }
+
+        .fields-section h4 {
+            color: #10B981;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .fields-section h4::before {
+            content: "📋";
+            margin-right: 8px;
+        }
+
+        .field-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid #3B82F6;
+        }
+
+        .field-name {
+            font-weight: 600;
+            color: #E0E0E0;
+            min-width: 120px;
+        }
+
+        .field-type {
+            color: #8B5CF6;
+            font-size: 0.9rem;
+            margin-left: auto;
+            padding: 2px 8px;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 4px;
+        }
+
+        .field-description {
+            color: #A0AEC0;
+            font-size: 0.85rem;
+            margin-left: 15px;
+            flex: 1;
+        }
+
+        .relationships-section {
+            margin-bottom: 20px;
+        }
+
+        .relationships-section h4 {
+            color: #F59E0B;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .relationships-section h4::before {
+            content: "🔗";
+            margin-right: 8px;
+        }
+
+        .relationship-item {
+            padding: 8px 12px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #F59E0B;
+        }
+
+        .relationship-type {
+            font-weight: 600;
+            color: #F59E0B;
+        }
+
+        .relationship-target {
+            color: #E0E0E0;
+            margin-left: 10px;
+        }
+
+        .status-flow {
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-flow h4 {
+            color: #10B981;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-flow h4::before {
+            content: "🔄";
+            margin-right: 8px;
+        }
+
+        .status-flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .status-step {
+            background: rgba(16, 185, 129, 0.2);
+            border: 2px solid #10B981;
+            border-radius: 25px;
+            padding: 10px 20px;
+            color: #10B981;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .status-step::after {
+            content: "→";
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #10B981;
+            font-size: 1.2rem;
+        }
+
+        .status-step:last-child::after {
+            display: none;
+        }
+
+        .security-section {
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .security-section h4 {
+            color: #EF4444;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .security-section h4::before {
+            content: "🔒";
+            margin-right: 8px;
+        }
+
+        .security-rule {
+            padding: 8px 12px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #EF4444;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .legend {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            margin-top: 40px;
+        }
+
+        .legend h3 {
+            color: #3B82F6;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .legend-text {
+            color: #E0E0E0;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .collections-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .field-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .field-type {
+                margin-left: 0;
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SkillNet Database Schema</h1>
+            <p>Firestore Database Structure & Relationships</p>
+        </div>
+
+        <div class="schema-overview">
+            <div class="overview-card">
+                <h3>🏗️ Architecture</h3>
+                <ul>
+                    <li><strong>Database:</strong> Firebase Firestore</li>
+                    <li><strong>Authentication:</strong> Firebase Auth</li>
+                    <li><strong>Storage:</strong> Firebase Storage + Cloudinary</li>
+                    <li><strong>Real-time:</strong> Firestore Listeners</li>
+                    <li><strong>Security:</strong> Firestore Security Rules</li>
+                </ul>
+            </div>
+
+            <div class="overview-card">
+                <h3>📊 Collections</h3>
+                <ul>
+                    <li><strong>Users:</strong> 2 collections</li>
+                    <li><strong>Requests:</strong> 4 collections</li>
+                    <li><strong>Groups:</strong> 1 collection + subcollections</li>
+                    <li><strong>Chat:</strong> 2 collections</li>
+                    <li><strong>Meetings:</strong> 1 collection</li>
+                </ul>
+            </div>
+
+            <div class="overview-card">
+                <h3>🔐 Security Model</h3>
+                <ul>
+                    <li><strong>Authentication Required:</strong> All operations</li>
+                    <li><strong>Ownership Based:</strong> User can only access own data</li>
+                    <li><strong>Group Membership:</strong> Access based on group roles</li>
+                    <li><strong>Admin Override:</strong> Special admin privileges</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="collections-grid">
+            <!-- Users Collection -->
+            <div class="collection-card">
+                <div class="collection-header">
+                    <div class="collection-icon">👤</div>
+                    <div class="collection-title">
+                        <h3>users</h3>
+                        <p>Private user data collection</p>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Core Fields</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">uid</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Firebase Auth UID (Document ID)</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">email</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">User's email address</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">displayName</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">User's display name</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">role</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">User role (user/admin)</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">createdAt</span>
+                            <span class="field-type">Timestamp</span>
+                            <span class="field-description">Account creation date</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">updatedAt</span>
+                            <span class="field-type">Timestamp</span>
+                            <span class="field-description">Last update date</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relationships-section">
+                    <h4>Relationships</h4>
+                    <div class="relationship-item">
+                        <span class="relationship-type">1:1</span>
+                        <span class="relationship-target">userProfiles collection</span>
+                    </div>
+                    <div class="relationship-item">
+                        <span class="relationship-type">1:Many</span>
+                        <span class="relationship-target">requests collection (as owner)</span>
+                    </div>
+                    <div class="relationship-item">
+                        <span class="relationship-type">1:Many</span>
+                        <span class="relationship-target">groups collection (as member)</span>
+                    </div>
+                </div>
+
+                <div class="security-section">
+                    <h4>Security Rules</h4>
+                    <div class="security-rule">allow read, write: if isAuthenticated() && isOwner(userId)</div>
+                </div>
+            </div>
+
+            <!-- User Profiles Collection -->
+            <div class="collection-card">
+                <div class="collection-header">
+                    <div class="collection-icon">📋</div>
+                    <div class="collection-title">
+                        <h3>userProfiles</h3>
+                        <p>Public user profile information</p>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Core Fields</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">uid</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Firebase Auth UID (Document ID)</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">displayName</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Public display name</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">bio</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">User biography</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">skills</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of user skills</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">interests</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of user interests</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">avatar</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Profile picture URL</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">stats</span>
+                            <span class="field-type">Object</span>
+                            <span class="field-description">Rating statistics</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relationships-section">
+                    <h4>Relationships</h4>
+                    <div class="relationship-item">
+                        <span class="relationship-type">1:1</span>
+                        <span class="relationship-target">users collection</span>
+                    </div>
+                </div>
+
+                <div class="security-section">
+                    <h4>Security Rules</h4>
+                    <div class="security-rule">allow read: if isAuthenticated()</div>
+                    <div class="security-rule">allow write: if isAuthenticated() && isOwner(userId)</div>
+                </div>
+            </div>
+
+            <!-- Requests Collection -->
+            <div class="collection-card">
+                <div class="collection-header">
+                    <div class="collection-icon">📝</div>
+                    <div class="collection-title">
+                        <h3>requests</h3>
+                        <p>One-to-one learning requests</p>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Core Fields</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">userId</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request owner ID</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">title</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request title</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">description</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request description</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">status</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request status</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">category</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request category</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">paymentAmount</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Payment amount</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">participants</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of participants</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">responses</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of responses</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-flow">
+                    <h4>Status Flow</h4>
+                    <div class="status-flow-diagram">
+                        <div class="status-step">draft</div>
+                        <div class="status-step">open</div>
+                        <div class="status-step">active</div>
+                        <div class="status-step">completed</div>
+                    </div>
+                </div>
+
+                <div class="relationships-section">
+                    <h4>Relationships</h4>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:1</span>
+                        <span class="relationship-target">users collection (owner)</span>
+                    </div>
+                    <div class="relationship-item">
+                        <span class="relationship-type">1:Many</span>
+                        <span class="relationship-target">requestResponses collection</span>
+                    </div>
+                </div>
+
+                <div class="security-section">
+                    <h4>Security Rules</h4>
+                    <div class="security-rule">allow read: if isAuthenticated()</div>
+                    <div class="security-rule">allow create: if isAuthenticated() && isRequestCreateOwner()</div>
+                    <div class="security-rule">allow update: if isAuthenticated() && (isRequestOwner() || isAdmin())</div>
+                </div>
+            </div>
+
+            <!-- Group Requests Collection -->
+            <div class="collection-card">
+                <div class="collection-header">
+                    <div class="collection-icon">👥</div>
+                    <div class="collection-title">
+                        <h3>grouprequests</h3>
+                        <p>Group learning requests</p>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Core Fields</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">userId</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request creator ID</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">targetGroupId</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Target group ID</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">title</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request title</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">description</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request description</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">status</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Request status</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">votes</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of user votes</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">participants</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of participants</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">teachers</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of teachers</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">selectedTeacher</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Selected teacher ID</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">paidParticipants</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of paid participants</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-flow">
+                    <h4>Status Flow</h4>
+                    <div class="status-flow-diagram">
+                        <div class="status-step">pending</div>
+                        <div class="status-step">voting_open</div>
+                        <div class="status-step">accepted</div>
+                        <div class="status-step">funding</div>
+                        <div class="status-step">payment_complete</div>
+                        <div class="status-step">in_progress</div>
+                        <div class="status-step">completed</div>
+                    </div>
+                </div>
+
+                <div class="relationships-section">
+                    <h4>Relationships</h4>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:1</span>
+                        <span class="relationship-target">users collection (creator)</span>
+                    </div>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:1</span>
+                        <span class="relationship-target">groups collection (target)</span>
+                    </div>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:1</span>
+                        <span class="relationship-target">users collection (selected teacher)</span>
+                    </div>
+                </div>
+
+                <div class="security-section">
+                    <h4>Security Rules</h4>
+                    <div class="security-rule">allow read: if true (public)</div>
+                    <div class="security-rule">allow create: if isAuthenticated() && isRequestCreateOwner()</div>
+                    <div class="security-rule">allow update: if isAuthenticated() && (isRequestOwner() || isAdmin())</div>
+                </div>
+            </div>
+
+            <!-- Groups Collection -->
+            <div class="collection-card">
+                <div class="collection-header">
+                    <div class="collection-icon">🏢</div>
+                    <div class="collection-title">
+                        <h3>groups</h3>
+                        <p>Learning groups and communities</p>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Core Fields</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">name</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Group name</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">description</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Group description</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">category</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Group category</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">createdBy</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Group creator ID</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">members</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of member IDs</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">hiddenMembers</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of hidden member IDs</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">memberCount</span>
+                            <span class="field-type">Number</span>
+                            <span class="field-description">Total member count</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">isPublic</span>
+                            <span class="field-type">Boolean</span>
+                            <span class="field-description">Public visibility flag</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">image</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Group image URL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Subcollections</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">messages/{messageId}</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">Group chat messages</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">activeUsers/{userId}</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">Currently active users</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">typingStatus/{userId}</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">User typing indicators</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relationships-section">
+                    <h4>Relationships</h4>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:1</span>
+                        <span class="relationship-target">users collection (creator)</span>
+                    </div>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:Many</span>
+                        <span class="relationship-target">users collection (members)</span>
+                    </div>
+                    <div class="relationship-item">
+                        <span class="relationship-type">1:Many</span>
+                        <span class="relationship-target">grouprequests collection</span>
+                    </div>
+                </div>
+
+                <div class="security-section">
+                    <h4>Security Rules</h4>
+                    <div class="security-rule">allow read: if isAuthenticated() && (isPublic || isMember || isAdmin)</div>
+                    <div class="security-rule">allow create: if isAuthenticated() && isOwner</div>
+                    <div class="security-rule">allow update: if isAuthenticated() && (isOwner || isAdmin)</div>
+                </div>
+            </div>
+
+            <!-- Chat Collections -->
+            <div class="collection-card">
+                <div class="collection-header">
+                    <div class="collection-icon">💬</div>
+                    <div class="collection-title">
+                        <h3>chats</h3>
+                        <p>Direct messaging system</p>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Core Fields</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">participants</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of participant IDs</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">lastMessage</span>
+                            <span class="field-type">Object</span>
+                            <span class="field-description">Last message details</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">createdAt</span>
+                            <span class="field-type">Timestamp</span>
+                            <span class="field-description">Chat creation date</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Subcollections</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">messages/{messageId}</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">Chat messages</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relationships-section">
+                    <h4>Relationships</h4>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:Many</span>
+                        <span class="relationship-target">users collection (participants)</span>
+                    </div>
+                </div>
+
+                <div class="security-section">
+                    <h4>Security Rules</h4>
+                    <div class="security-rule">allow read, write: if isAuthenticated() && isParticipant</div>
+                </div>
+            </div>
+
+            <!-- Meetings Collection -->
+            <div class="collection-card">
+                <div class="collection-header">
+                    <div class="collection-icon">🎥</div>
+                    <div class="collection-title">
+                        <h3>meetings</h3>
+                        <p>Video meeting management</p>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Core Fields</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">hostUserId</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Meeting host ID</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">participants</span>
+                            <span class="field-type">Array</span>
+                            <span class="field-description">List of participant IDs</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">roomId</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Jitsi room ID</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">meetingLink</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Meeting URL</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">status</span>
+                            <span class="field-type">String</span>
+                            <span class="field-description">Meeting status</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">startTime</span>
+                            <span class="field-type">Timestamp</span>
+                            <span class="field-description">Meeting start time</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">endTime</span>
+                            <span class="field-type">Timestamp</span>
+                            <span class="field-description">Meeting end time</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relationships-section">
+                    <h4>Relationships</h4>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:1</span>
+                        <span class="relationship-target">users collection (host)</span>
+                    </div>
+                    <div class="relationship-item">
+                        <span class="relationship-type">Many:Many</span>
+                        <span class="relationship-target">users collection (participants)</span>
+                    </div>
+                </div>
+
+                <div class="security-section">
+                    <h4>Security Rules</h4>
+                    <div class="security-rule">allow read: if isAuthenticated() && (isHost || isParticipant || isAdmin)</div>
+                    <div class="security-rule">allow create: if isAuthenticated()</div>
+                    <div class="security-rule">allow update: if isAuthenticated() && (isHost || isAdmin)</div>
+                </div>
+            </div>
+
+            <!-- Additional Collections -->
+            <div class="collection-card">
+                <div class="collection-header">
+                    <div class="collection-icon">🔧</div>
+                    <div class="collection-title">
+                        <h3>Additional Collections</h3>
+                        <p>Supporting data structures</p>
+                    </div>
+                </div>
+
+                <div class="fields-section">
+                    <h4>Collections</h4>
+                    <div class="field-list">
+                        <div class="field-item">
+                            <span class="field-name">requestResponses</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">Request response data</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">hiddenRequests</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">Hidden request data</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">notifications</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">User notifications</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">userActivity</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">User activity tracking</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">connections</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">User connections</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">payments</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">Payment records</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">sessionMaterials</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">Learning materials</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-name">feedback</span>
+                            <span class="field-type">Collection</span>
+                            <span class="field-description">User feedback</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relationships-section">
+                    <h4>Relationships</h4>
+                    <div class="relationship-item">
+                        <span class="relationship-type">All collections</span>
+                        <span class="relationship-target">Related to users, requests, or groups</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Legend</h3>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3B82F6;"></div>
+                    <div class="legend-text">Primary Collections</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8B5CF6;"></div>
+                    <div class="legend-text">User Data</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #10B981;"></div>
+                    <div class="legend-text">Status Flows</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #F59E0B;"></div>
+                    <div class="legend-text">Relationships</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #EF4444;"></div>
+                    <div class="legend-text">Security Rules</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add smooth scrolling and interactive features
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click to expand functionality for collection cards
+            const collectionCards = document.querySelectorAll('.collection-card');
+            
+            collectionCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    // Toggle expanded state
+                    this.classList.toggle('expanded');
+                });
+            });
+
+            // Add smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Add hover effects for status steps
+            const statusSteps = document.querySelectorAll('.status-step');
+            statusSteps.forEach(step => {
+                step.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.1)';
+                    this.style.transition = 'transform 0.2s ease';
+                });
+                
+                step.addEventListener('mouseleave', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

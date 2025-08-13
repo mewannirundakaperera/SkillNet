@@ -297,8 +297,10 @@ service cloud.firestore {
     match /admin/{adminId} {
       // Allow users to read their own admin status
       allow read: if isAuthenticated() && (request.auth.uid == adminId || isAdmin());
-      // Only admins can write to admin collection
-      allow write: if isAuthenticated() && isAdmin();
+      // Allow users to read their own admin data for authentication
+      allow read: if isAuthenticated() && request.auth.uid == adminId;
+      // Allow users to remove their own admin access, or admins to manage admin collection
+      allow write: if isAuthenticated() && (request.auth.uid == adminId || isAdmin());
     }
 
     match /adminData/{document=**} {

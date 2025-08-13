@@ -60,13 +60,30 @@ export const GROUP_TEMPLATE = {
 export class GroupsService {
 
     // Create new group
-    static async createGroup(groupData) {
+    static async createGroup(groupData, imageFile = null) {
       try {
         const groupsRef = collection(db, GROUPS_COLLECTION);
+
+        // Handle image upload if provided
+        let imageUrl = '';
+        if (imageFile) {
+          try {
+            // Import the upload function dynamically to avoid circular dependencies
+            const { uploadGroupImageToCloudinary } = await import('@/utils/uploadGroupImage');
+            if (uploadGroupImageToCloudinary) {
+              imageUrl = await uploadGroupImageToCloudinary(imageFile);
+              console.log('✅ Group image uploaded successfully:', imageUrl);
+            }
+          } catch (uploadError) {
+            console.warn('⚠️ Image upload failed, creating group without image:', uploadError);
+            // Continue without image
+          }
+        }
 
         const newGroup = {
           ...GROUP_TEMPLATE,
           ...groupData,
+          image: imageUrl, // Add the image URL if uploaded
           members: [groupData.createdBy], // Creator is first member
           memberCount: 1,
           createdAt: serverTimestamp(),
@@ -78,6 +95,62 @@ export class GroupsService {
         return {id: docRef.id, ...newGroup};
       } catch (error) {
         console.error('Error creating group:', error);
+        throw error;
+      }
+    }
+
+    // Edit existing group (Admin only)
+    static async editGroup(groupId, groupData, imageFile = null, isAdmin = false) {
+      try {
+        if (!isAdmin) {
+          throw new Error('Only admins can edit groups');
+        }
+
+        const groupRef = doc(db, GROUPS_COLLECTION, groupId);
+        
+        // Handle image upload if provided
+        let imageUrl = '';
+        if (imageFile) {
+          try {
+            // Import the upload function dynamically to avoid circular dependencies
+            const { uploadGroupImageToCloudinary } = await import('@/utils/uploadGroupImage');
+            if (uploadGroupImageToCloudinary) {
+              imageUrl = await uploadGroupImageToCloudinary(imageFile);
+              console.log('✅ Group image updated successfully:', imageUrl);
+            }
+          } catch (uploadError) {
+            console.warn('⚠️ Image upload failed, updating group without new image:', uploadError);
+            // Continue without new image
+          }
+        }
+
+        // Prepare update data
+        const updateData = {
+          ...groupData,
+          updatedAt: serverTimestamp()
+        };
+
+        // Only update image if a new one was uploaded
+        if (imageUrl) {
+          updateData.image = imageUrl;
+        }
+
+        // Remove fields that shouldn't be updated
+        delete updateData.id;
+        delete updateData.createdAt;
+        delete updateData.createdBy;
+        delete updateData.members;
+        delete updateData.memberCount;
+        delete updateData.hiddenMembers;
+        delete updateData.totalMemberCount;
+
+        await updateDoc(groupRef, updateData);
+        
+        // Return updated group data
+        const updatedGroup = await this.getGroupById(groupId);
+        return updatedGroup;
+      } catch (error) {
+        console.error('Error editing group:', error);
         throw error;
       }
     }

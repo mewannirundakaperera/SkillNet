@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/services/authService";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, deleteDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/config/firebase";
 
 export default function IntelligentNavbar() {
@@ -21,6 +21,12 @@ export default function IntelligentNavbar() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminRemovalSuccess, setAdminRemovalSuccess] = useState(false);
 
   const searchRef = useRef(null);
   const profileMenuRef = useRef(null);
@@ -95,6 +101,198 @@ export default function IntelligentNavbar() {
       fetchNotifications();
     }
   }, [user, isAuthenticated]);
+
+  // Check admin status when user changes
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user?.id) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        console.log('🔍 Checking admin status for user:', user.id);
+        
+        // Check admin status from user document role field
+        const userRef = doc(db, 'users', user.id);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const isUserAdmin = userData.role === 'admin';
+          setIsAdmin(isUserAdmin);
+          console.log('✅ Admin status from user role:', isUserAdmin);
+        } else {
+          console.log('ℹ️ User document not found, assuming not admin');
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error('❌ Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
+
+  // Handle admin authentication
+  const handleAdminAuth = async (e) => {
+    e.preventDefault();
+    
+    if (!adminPassword.trim()) {
+      setAdminError('Please enter a password');
+      return;
+    }
+
+    setAdminLoading(true);
+    setAdminError('');
+
+    try {
+      console.log('🔐 Starting admin authentication for user:', user.id);
+      
+      // Check if user exists in admin collection
+      const adminRef = doc(db, 'admin', user.id);
+      const adminSnap = await getDoc(adminRef);
+      
+      if (!adminSnap.exists()) {
+        console.log('❌ User not found in admin collection');
+        setAdminError('You are not authorized as an admin');
+        return;
+      }
+
+      const adminData = adminSnap.data();
+      console.log('✅ User found in admin collection, validating password...');
+      
+      // Validate password
+      if (adminData.password !== adminPassword) {
+        console.log('❌ Password mismatch');
+        setAdminError('Incorrect password');
+        return;
+      }
+
+      console.log('✅ Password validated successfully, granting admin role...');
+      
+      // Password matches, grant admin role by updating user collection
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
+        role: 'admin',
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('✅ Admin role granted successfully');
+      
+      // Update local state
+      setIsAdmin(true);
+      setShowAdminModal(false);
+      setAdminPassword('');
+      setAdminError('');
+      
+      alert('Admin access granted! You now have admin privileges.');
+      
+    } catch (error) {
+      console.error('❌ Admin authentication error:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Provide more specific error messages based on error type
+      let errorMessage = 'Authentication failed. Please try again.';
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = 'Permission denied. Please contact support.';
+      } else if (error.code === 'not-found') {
+        errorMessage = 'User document not found. Please contact support.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      }
+      
+      setAdminError(errorMessage);
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  // Handle removing admin access
+  const handleRemoveAdminAccess = async () => {
+    setShowRemoveConfirm(true);
+  };
+
+  // Directly remove admin access without confirmation
+  const handleDirectAdminRemoval = async () => {
+    if (!isAdmin) {
+      console.error('❌ User is not an admin, cannot remove admin access');
+      return;
+    }
+
+    if (!user || !user.id) {
+      console.error('❌ User object or ID not found');
+      return;
+    }
+
+    try {
+      console.log('🔄 Directly removing admin access for user:', user.id);
+      
+      // First, check if user document exists
+      const userRef = doc(db, 'users', user.id);
+      const userSnap = await getDoc(userRef);
+      
+      if (!userSnap.exists()) {
+        console.error('❌ User document not found:', user.id);
+        alert('User document not found. Please contact support.');
+        return;
+      }
+
+      console.log('✅ User document found, proceeding with admin removal...');
+
+      // NOTE: We do NOT remove admin data from admin collection
+      // Admin data remains in admin collection for future use
+      console.log('ℹ️ Keeping admin data in admin collection for future use');
+
+      // Update user role to 'user' in users collection
+      console.log('📝 Updating user role to "user"...');
+      await updateDoc(userRef, {
+        role: 'user',
+        updatedAt: serverTimestamp()
+      });
+      console.log('✅ User role updated successfully');
+
+      // Update local state
+      setIsAdmin(false);
+      console.log('✅ Local state updated, admin access removed');
+      
+      // Show success message
+      alert('Admin access removed successfully! You are now a regular user.');
+      
+      // Refresh the page to ensure all components get the updated admin status
+      setTimeout(() => {
+        console.log('🔄 Refreshing page...');
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Error removing admin access:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Provide more specific error messages based on error type
+      let errorMessage = 'Failed to remove admin access. Please try again.';
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = 'Permission denied. You may not have the right to remove admin access.';
+      } else if (error.code === 'not-found') {
+        errorMessage = 'One or more documents not found. Please contact support.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      }
+      
+      alert(errorMessage);
+    }
+  };
 
   // Handle search functionality - Updated to use userProfiles collection
   const handleSearch = async (value) => {
@@ -225,7 +423,7 @@ export default function IntelligentNavbar() {
         navItems: [
           { to: "/", label: "Home" },
           { to: "/groups", label: "Groups" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
+          // { to: "/SelectTeacher", label: "Teach & Learn" }, // Temporarily hidden
         ]
       };
     }
@@ -241,7 +439,7 @@ export default function IntelligentNavbar() {
         navItems: [
           { to: "/", label: "Home" },
           { to: "/StudentConnect", label: "Requests" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
+          // { to: "/SelectTeacher", label: "Teach & Learn" }, // Temporarily hidden
         ]
       };
     }
@@ -257,7 +455,7 @@ export default function IntelligentNavbar() {
         navItems: [
           { to: "/", label: "Home" },
           { to: "/StudentConnect", label: "Requests" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
+          // { to: "/SelectTeacher", label: "Teach & Learn" }, // Temporarily hidden
           { to: "/groups", label: "Discover Groups" }
         ]
       };
@@ -299,7 +497,7 @@ export default function IntelligentNavbar() {
           { to: "/profile", label: "Profile" },
           { to: "/StudentConnect", label: "Requests" },
           { to: "/groups", label: "Groups" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
+          // { to: "/SelectTeacher", label: "Teach & Learn" }, // Temporarily hidden
         ]
       };
     }
@@ -315,7 +513,7 @@ export default function IntelligentNavbar() {
           { to: "/settings", label: "Settings" },
           { to: "/StudentConnect", label: "Requests" },
           { to: "/groups", label: "Groups" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
+          // { to: "/SelectTeacher", label: "Teach & Learn" }, // Temporarily hidden
         ]
       };
     }
@@ -332,7 +530,7 @@ export default function IntelligentNavbar() {
           { to: "/", label: "Home" },
           { to: "/StudentConnect", label: "Requests" },
           { to: "/groups", label: "Groups" },
-          { to: "/SelectTeacher", label: "Teach & Learn" },
+          // { to: "/SelectTeacher", label: "Teach & Learn" }, // Temporarily hidden
         ]
       };
     }
@@ -343,12 +541,12 @@ export default function IntelligentNavbar() {
       showNotifications: true,
       showProfile: true,
       searchPlaceholder: "Search people, groups, posts...",
-      navItems: [
-        { to: "/", label: "Home" },
-        { to: "/StudentConnect", label: "Requests" },
-        { to: "/groups", label: "Groups" },
-        { to: "/SelectTeacher", label: "Teach & Learn" },
-      ]
+              navItems: [
+          { to: "/", label: "Home" },
+          { to: "/StudentConnect", label: "Requests" },
+          { to: "/groups", label: "Groups" },
+          // { to: "/SelectTeacher", label: "Teach & Learn" }, // Temporarily hidden
+        ]
     };
   };
 
@@ -486,6 +684,31 @@ export default function IntelligentNavbar() {
             {/* Page-specific Right Section */}
             {navConfig.rightSection}
 
+            {/* Admin Button */}
+            {userProfile && (
+              <button
+                onClick={async () => {
+                  if (isAdmin) {
+                    // Directly remove admin access
+                    await handleDirectAdminRemoval();
+                  } else {
+                    // Show admin authentication modal
+                    setShowAdminModal(true);
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
+                  isAdmin 
+                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                    : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                {isAdmin ? 'Admin (Click to Remove)' : 'Admin Access'}
+              </button>
+            )}
+
             {/* Notifications (conditional) */}
             {navConfig.showNotifications && (
               <div className="relative">
@@ -569,6 +792,30 @@ export default function IntelligentNavbar() {
                       <span className="text-sm text-white">Help & Support</span>
                     </Link>
 
+                    {/* Admin Access in Profile Menu */}
+                    <button
+                      onClick={async () => {
+                        setProfileMenuOpen(false);
+                        if (isAdmin) {
+                          // Directly remove admin access
+                          await handleDirectAdminRemoval();
+                        } else {
+                          // Show admin authentication modal
+                          setShowAdminModal(true);
+                        }
+                      }}
+                      className={`flex items-center gap-3 px-4 py-2 hover:bg-[#2D3748] transition-colors w-full text-left ${
+                        isAdmin ? 'text-green-400' : 'text-yellow-400'
+                      }`}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      <span className="text-sm">
+                        {isAdmin ? 'Admin (Click to Remove)' : 'Admin Access'}
+                      </span>
+                    </button>
+
                     <div className="border-t border-[#2D3748] mt-2">
                       <button
                         onClick={handleLogout}
@@ -648,10 +895,33 @@ export default function IntelligentNavbar() {
               ))}
             </div>
 
-            {/* Mobile Action Buttons */}
+                        {/* Mobile Action Buttons */}
             <div className="px-4 mt-4 space-y-2">
               {isAuthenticated ? (
                 <>
+                  {/* Mobile Admin Button */}
+                  <button
+                    onClick={async () => {
+                      if (isAdmin) {
+                        // Directly remove admin access
+                        await handleDirectAdminRemoval();
+                      } else {
+                        // Show admin authentication modal
+                        setShowAdminModal(true);
+                      }
+                    }}
+                    className={`w-full px-4 py-2 rounded font-semibold text-sm flex items-center justify-center gap-2 ${
+                      isAdmin 
+                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                        : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    {isAdmin ? 'Admin (Click to Remove)' : 'Admin Access'}
+                  </button>
+
                   {navConfig.rightSection && (
                     <div className="pb-4 border-b border-[#2D3748]">
                       {navConfig.rightSection}
@@ -659,7 +929,7 @@ export default function IntelligentNavbar() {
                   )}
                   <button
                     onClick={handleLogout}
-                                         className="w-full px-4 py-2 border border-red-600 text-red-400 rounded hover:bg-red-900 font-semibold text-sm"
+                    className="w-full px-4 py-2 border border-red-600 text-red-400 rounded hover:bg-red-900 font-semibold text-sm"
                   >
                     Sign Out
                   </button>
@@ -681,6 +951,130 @@ export default function IntelligentNavbar() {
                     Get Started
                   </Link>
                 </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Admin Password Modal */}
+        {showAdminModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-[#1A202C] rounded-xl shadow-xl p-8 w-full max-w-md border border-[#4A5568]">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  {isAdmin ? 'Admin Management' : 'Admin Authentication'}
+                </h3>
+                <p className="text-[#A0AEC0]">
+                  {isAdmin 
+                    ? 'Manage your admin privileges or remove admin access' 
+                    : 'Enter your admin password to gain access'
+                  }
+                </p>
+              </div>
+
+              {!isAdmin && (
+                <form onSubmit={handleAdminAuth} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      Admin Password
+                    </label>
+                    <input
+                      type="password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="w-full px-4 py-3 border border-[#4A5568] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4299E1] focus:border-transparent bg-[#2D3748] text-white placeholder-[#A0AEC0]"
+                      placeholder="Enter admin password"
+                      required
+                    />
+                  </div>
+
+                  {adminError && (
+                    <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                      <p className="text-sm text-red-400">{adminError}</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAdminModal(false);
+                        setAdminPassword('');
+                        setAdminError('');
+                      }}
+                      className="flex-1 px-4 py-3 border border-[#4A5568] text-[#A0AEC0] rounded-lg hover:bg-[#2D3748] hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={adminLoading}
+                      className="flex-1 px-4 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {adminLoading && (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      )}
+                      {adminLoading ? 'Authenticating...' : 'Authenticate'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {isAdmin && !adminRemovalSuccess && (
+                <div className="text-center">
+                  <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg mb-4">
+                    <p className="text-sm text-green-400">
+                      ✅ You have admin access. You can now edit groups and access admin features.
+                    </p>
+                  </div>
+                  
+                  {adminError && (
+                    <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg mb-4">
+                      <p className="text-sm text-red-400">{adminError}</p>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowAdminModal(false)}
+                      className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={handleRemoveAdminAccess}
+                      className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      Remove Admin Access
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {adminRemovalSuccess && (
+                <div className="text-center">
+                  <div className="p-4 bg-green-900/20 border border-green-500/30 rounded-lg mb-4">
+                    <p className="text-sm text-green-400">
+                      ✅ Admin access removed successfully! You are now a regular user.
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      setShowAdminModal(false);
+                      setAdminRemovalSuccess(false);
+                      window.location.reload();
+                    }}
+                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors"
+                  >
+                    Close & Refresh
+                  </button>
+                </div>
               )}
             </div>
           </div>

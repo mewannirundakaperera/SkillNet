@@ -5,6 +5,8 @@ import { collection, query, where, getDocs, getDoc, orderBy, limit, doc } from "
 import { db } from "@/config/firebase";
 import { GroupsService } from "@/firebase/collections/groups";
 import { GroupIcon, LightbulbIcon, RocketIcon } from '@/components/Icons/SvgIcons';
+import tab1Image from "@/assets/img/tab1.jpeg";
+import groupsImage from "@/assets/img/groups.jpg";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -12,6 +14,11 @@ export default function HomePage() {
     connections: 0,
     likes: 0,
     requests: 0,
+    oneToOneRequests: 0,
+    allAvailableOneToOneRequests: 0,
+    groupRequests: 0,
+    allAvailableGroupRequests: 0,
+    userPersonalRequests: 0,
     groups: 0,
     earnings: 0
   });
@@ -35,6 +42,17 @@ export default function HomePage() {
     // If user is undefined, still loading auth state
   }, [user]);
 
+  // Auto-refresh dashboard data every 30 seconds
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const intervalId = setInterval(() => {
+      loadDashboardData();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [user?.id]);
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
@@ -43,33 +61,119 @@ export default function HomePage() {
       const userDoc = await getDoc(doc(db, 'users', user.id));
       const userData = userDoc.data();
 
-      // Calculate requests (all requests user can see: one-to-one + group requests + accepted)
-      const requestsQuery = query(
-        collection(db, 'requests'),
-        where('requesterId', '==', user.id),
-        where('status', 'in', ['active', 'pending', 'accepted', 'completed'])
-      );
-      const requestsSnapshot = await getDocs(requestsQuery);
-      const oneToOneRequests = requestsSnapshot.size;
-
-      // Get group requests from user's groups
-      const userGroups = userData?.groupsJoined || [];
-      let groupRequests = 0;
-      
-      if (userGroups.length > 0) {
-        const groupRequestsQuery = query(
-          collection(db, 'grouprequests'),
-          where('groupId', 'in', userGroups)
+      // Calculate one-to-one requests (user's own requests)
+      let oneToOneRequests = 0;
+      let allAvailableOneToOneRequests = 0;
+      try {
+        // User's own one-to-one requests
+        const oneToOneRequestsQuery = query(
+          collection(db, 'requests'),
+          where('requesterId', '==', user.id)
         );
-        const groupRequestsSnapshot = await getDocs(groupRequestsQuery);
-        groupRequests = groupRequestsSnapshot.size;
+        const oneToOneRequestsSnapshot = await getDocs(oneToOneRequestsQuery);
+        oneToOneRequests = oneToOneRequestsSnapshot.size;
+        
+        // ALL available one-to-one requests (like in one-to-one page)
+        const allOneToOneRequestsQuery = query(
+          collection(db, 'requests'),
+          where('status', 'in', ['open', 'active', 'pending'])
+        );
+        const allOneToOneRequestsSnapshot = await getDocs(allOneToOneRequestsQuery);
+        allAvailableOneToOneRequests = allOneToOneRequestsSnapshot.size;
+      } catch (error) {
+        console.error('❌ Error fetching one-to-one requests:', error);
+        oneToOneRequests = 0;
+        allAvailableOneToOneRequests = 0;
       }
 
-      // Total requests = one-to-one + group requests
-      const requests = oneToOneRequests + groupRequests;
+      // Calculate groups (joined groups count) - Use same logic as GroupsList
+      let groups = 0;
+      let userGroups = []; // Will be populated with actual group IDs
+      try {
+        const groupsRef = collection(db, 'groups');
+        const userGroupsQuery = query(
+          groupsRef,
+          where('members', 'array-contains', user.id)
+        );
+        const userGroupsSnapshot = await getDocs(userGroupsQuery);
+        const userGroupsData = userGroupsSnapshot.docs.map(doc => doc.id);
+        groups = userGroupsSnapshot.size;
+        
+        // Also check hidden members
+        const hiddenGroupsQuery = query(
+          groupsRef,
+          where('hiddenMembers', 'array-contains', user.id)
+        );
+        const hiddenGroupsSnapshot = await getDocs(hiddenGroupsQuery);
+        const hiddenGroupsData = hiddenGroupsSnapshot.docs.map(doc => doc.id);
+        const hiddenGroupsCount = hiddenGroupsSnapshot.size;
+        
+        // Total groups = regular members + hidden members
+        groups += hiddenGroupsCount;
+        
+        // Combine all group IDs for requests query
+        userGroups = [...userGroupsData, ...hiddenGroupsData];
+        
+      } catch (error) {
+        console.error('❌ Error fetching user groups from groups collection:', error);
+        // Fallback to userData.groupsJoined if available
+        groups = userData?.groupsJoined?.length || 0;
+        userGroups = userData?.groupsJoined || [];
+      }
 
-      // Calculate groups (joined groups count)
-      const groups = userData?.groupsJoined?.length || 0;
+      // Calculate group requests from user's groups
+      let groupRequests = 0;
+      let allAvailableGroupRequests = 0;
+      
+      if (userGroups.length > 0) {
+        try {
+          // Get group requests from groups where user is a member
+          const groupRequestsQuery = query(
+            collection(db, 'grouprequests'),
+            where('groupId', 'in', userGroups)
+          );
+          const groupRequestsSnapshot = await getDocs(groupRequestsQuery);
+          groupRequests = groupRequestsSnapshot.size;
+          
+        } catch (error) {
+          console.error('❌ Error fetching group requests from user\'s groups:', error);
+          groupRequests = 0;
+        }
+      } else {
+        console.log('⚠️ User has no groups joined');
+      }
+
+      // Calculate ALL available group requests (for dashboard display) - Same as GroupRequests.jsx
+      try {
+        // Get ALL group requests regardless of user's group membership
+        const allGroupRequestsQuery = query(
+          collection(db, 'grouprequests')
+        );
+        const allGroupRequestsSnapshot = await getDocs(allGroupRequestsQuery);
+        allAvailableGroupRequests = allGroupRequestsSnapshot.size;
+      } catch (error) {
+        console.error('❌ Error fetching all group requests:', error);
+        allAvailableGroupRequests = 0;
+      }
+
+      // Calculate ALL available one-to-one requests (for dashboard display) - Same as OneToOneRequests.jsx
+      try {
+        // Get ALL available one-to-one requests with status open, active, pending
+        const allOneToOneRequestsQuery = query(
+          collection(db, 'requests'),
+          where('status', 'in', ['open', 'active', 'pending'])
+        );
+        const allOneToOneRequestsSnapshot = await getDocs(allOneToOneRequestsQuery);
+        allAvailableOneToOneRequests = allOneToOneRequestsSnapshot.size;
+      } catch (error) {
+        console.error('❌ Error fetching all available one-to-one requests:', error);
+        allAvailableOneToOneRequests = 0;
+      }
+
+      // Total requests = ALL group requests + ALL available one-to-one requests (for dashboard display)
+      const totalRequests = allAvailableGroupRequests + allAvailableOneToOneRequests;
+      // User's personal requests = one-to-one + group requests from their groups
+      const userPersonalRequests = oneToOneRequests + groupRequests;
 
       // Calculate earnings (from completed requests)
       const earningsQuery = query(
@@ -86,17 +190,35 @@ export default function HomePage() {
         }
       });
 
-      setStats({
-        requests,
+      const newStats = {
+        requests: totalRequests,                    // Total available (all group + all one-to-one)
+        oneToOneRequests,                          // User's personal one-to-one requests
+        allAvailableOneToOneRequests,              // All available one-to-one requests
+        groupRequests,                             // Group requests from user's joined groups
+        allAvailableGroupRequests,                 // All available group requests
+        userPersonalRequests,                      // User's personal requests (one-to-one + their group requests)
         groups,
         earnings: totalEarnings
-      });
+      };
+
+      setStats(newStats);
 
       // Load initial groups
       await loadRandomGroups();
 
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error('❌ Error loading dashboard data:', error);
+      // Set default values on error
+      setStats({
+        requests: 0,
+        oneToOneRequests: 0,
+        allAvailableOneToOneRequests: 0,
+        groupRequests: 0,
+        allAvailableGroupRequests: 0,
+        userPersonalRequests: 0,
+        groups: 0,
+        earnings: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -270,20 +392,32 @@ export default function HomePage() {
         <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8 relative z-10">
           <div className="flex-1 flex flex-col gap-8 min-w-0">
             {/* Welcome Banner for Visitors */}
-            <section className="card-dark p-8 flex flex-col items-center text-center mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
-              <div className="mb-6">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">Welcome to SkillNet</h1>
-                <p className="text-xl text-[#E0E0E0] mb-6">Connect. Collaborate. Grow. Join our professional community today.</p>
+            <section className="relative p-8 flex flex-col items-center text-center mb-2 border border-[#334155]/50 overflow-hidden rounded-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-[#4299E1]/60 cursor-pointer group">
+              {/* Background Image */}
+              <div className="absolute inset-0">
+                <img
+                  src={tab1Image}
+                  alt="Students collaborating around a table"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                {/* Dark overlay for better text readability */}
+                <div className="absolute inset-0 bg-black/50 transition-opacity duration-300 group-hover:bg-black/40"></div>
+              </div>
+              
+              {/* Content */}
+              <div className="relative z-10 mb-6 transition-all duration-300 group-hover:transform group-hover:scale-105">
+                <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white transition-all duration-300 group-hover:text-[#4299E1]">Welcome to SkillNet</h1>
+                <p className="text-xl text-[#E0E0E0] mb-6 transition-all duration-300 group-hover:text-white">Connect. Collaborate. Grow. Join our professional community today.</p>
                 <div className="flex gap-4 flex-wrap justify-center">
                   <Link
                     to="/login"
-                    className="btn-gradient-primary px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300"
+                    className="btn-gradient-primary px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg"
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/signup"
-                    className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-lg rounded-lg transition-all duration-300"
+                    className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-lg rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg"
                   >
                     Create Account
                   </Link>
@@ -292,15 +426,28 @@ export default function HomePage() {
             </section>
 
             {/* Public Groups for Visitors */}
-            <section className="card-dark p-6 mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
+            <section className="relative p-6 mb-2 border border-[#334155]/50 overflow-hidden rounded-lg transition-all duration-300 hover:scale-[1.01] hover:shadow-xl hover:border-[#4299E1]/60 cursor-pointer group">
+              {/* Background Image */}
+              <div className="absolute inset-0">
+                <img
+                  src={groupsImage}
+                  alt="Students collaborating in groups"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                {/* Dark overlay for better text readability */}
+                <div className="absolute inset-0 bg-black/60 transition-opacity duration-300 group-hover:bg-black/50"></div>
+              </div>
+              
+              {/* Content */}
+              <div className="relative z-10">
               <div className="flex justify-between items-center mb-6 min-w-0">
-                <h2 className="text-2xl font-bold text-white break-words flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold text-white break-words flex-1 min-w-0 transition-all duration-300 group-hover:text-[#4299E1]">
                   Discover Groups
-                  <span className="text-sm font-normal text-[#A0AEC0] ml-2">
+                    <span className="text-sm font-normal text-[#E0E0E0] ml-2 transition-all duration-300 group-hover:text-[#A0AEC0]">
                     (Public Groups)
                   </span>
                 </h2>
-                <Link to="/groups" className="text-[#4299E1] text-sm font-medium hover:underline flex-shrink-0">
+                  <Link to="/groups" className="text-[#4299E1] text-sm font-medium hover:underline flex-shrink-0 transition-all duration-300 group-hover:text-[#00BFFF]">
                   View All Groups
                 </Link>
               </div>
@@ -381,6 +528,7 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
+              </div>
             </section>
           </div>
 
@@ -419,6 +567,7 @@ export default function HomePage() {
                 Create Free Account
               </Link>
             </section>
+
           </aside>
         </main>
       </div>
@@ -475,39 +624,66 @@ export default function HomePage() {
           <main className="max-w-7xl mx-auto py-8 px-4 flex flex-col xl:flex-row gap-8 relative z-10">
         <div className="flex-1 flex flex-col gap-8 min-w-0">
           {/* Welcome Banner */}
-              <section className="card-dark p-8 flex flex-col items-center text-center mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
-            <div className="flex items-center gap-4 mb-4 w-full max-w-full">
+              <section className="relative p-8 flex flex-col items-center text-center mb-2 border border-[#334155]/50 overflow-hidden rounded-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-[#4299E1]/60 cursor-pointer group">
+            {/* Background Image */}
+            <div className="absolute inset-0">
+              <img
+                src={tab1Image}
+                alt="Students collaborating around a table"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              {/* Dark overlay for better text readability */}
+              <div className="absolute inset-0 bg-black/50 transition-opacity duration-300 group-hover:bg-black/40"></div>
+            </div>
+            
+            {/* Content */}
+            <div className="relative z-10 mb-6 transition-all duration-300 group-hover:transform group-hover:scale-105">
+              <div className="flex items-center gap-4 mb-4 w-full max-w-full">
               <img
                 src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || user?.name}&background=3b82f6&color=fff`}
                 alt={user?.displayName || user?.name}
-                className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1] flex-shrink-0"
+                  className="w-16 h-16 rounded-full object-cover border-4 border-[#4299E1] flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:border-[#00BFFF]"
               />
               <div className="min-w-0 flex-1 max-w-full">
-                <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white break-words" title={user?.displayName || user?.name || 'User'}>
+                  <h1 className="text-3xl md:text-4xl font-bold mb-2 text-white break-words transition-all duration-300 group-hover:text-[#4299E1]" title={user?.displayName || user?.name || 'User'}>
                   Welcome Back, {user?.displayName || user?.name || 'User'}!
                 </h1>
-                <p className="text-[#A0AEC0] text-sm break-all" title={user?.email}>
+                  <p className="text-[#A0AEC0] text-sm break-all transition-all duration-300 group-hover:text-white" title={user?.email}>
                   {user?.email}
                 </p>
               </div>
             </div>
-            <p className="text-[#E0E0E0] mb-6 break-words">Connect. Collaborate. Grow. Your professional journey continues here.</p>
+              <p className="text-[#E0E0E0] mb-6 break-words transition-all duration-300 group-hover:text-white">Connect. Collaborate. Grow. Your professional journey continues here.</p>
             <div className="flex gap-4 flex-wrap">
                 <Link
                 to="/profile"
-                className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold transition-all duration-300"
+                  className="btn-gradient-primary px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg"
                 >
                 View Profile
                 </Link>
+              </div>
             </div>
           </section>
 
           {/* Suggested Groups */}
-              <section className="card-dark p-6 mb-2 backdrop-blur-sm bg-[#1E293B]/80 border border-[#334155]/50">
+              <section className="relative p-6 mb-2 border border-[#334155]/50 overflow-hidden rounded-lg transition-all duration-300 hover:scale-[1.01] hover:shadow-xl hover:border-[#4299E1]/60 cursor-pointer group">
+            {/* Background Image */}
+            <div className="absolute inset-0">
+              <img
+                src={groupsImage}
+                alt="Students collaborating in groups"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              {/* Dark overlay for better text readability */}
+              <div className="absolute inset-0 bg-black/60 transition-opacity duration-300 group-hover:bg-black/50"></div>
+            </div>
+            
+            {/* Content */}
+            <div className="relative z-10">
             <div className="flex justify-between items-center mb-6 min-w-0">
-              <h2 className="text-2xl font-bold text-white break-words flex-1 min-w-0">
+                <h2 className="text-2xl font-bold text-white break-words flex-1 min-w-0 transition-all duration-300 group-hover:text-[#4299E1]">
                 Discover Groups
-                <span className="text-sm font-normal text-[#A0AEC0] ml-2">
+                  <span className="text-sm font-normal text-[#E0E0E0] ml-2 transition-all duration-300 group-hover:text-[#A0AEC0]">
                   (Random Selection)
                 </span>
               </h2>
@@ -523,7 +699,7 @@ export default function HomePage() {
                       setGroupsLoading(false);
                     }
                   }}
-                      className="p-2 text-[#4299E1] hover:text-[#00BFFF] transition-colors rounded-lg hover:bg-[#334155]/50 disabled:opacity-50"
+                        className="p-2 text-[#4299E1] hover:text-[#00BFFF] transition-colors rounded-lg hover:bg-[#334155]/50 disabled:opacity-50 transition-all duration-300 group-hover:text-[#00BFFF]"
                   title="Refresh groups"
                   disabled={groupsLoading}
                 >
@@ -535,7 +711,7 @@ export default function HomePage() {
                     </svg>
                   )}
                 </button>
-                <Link to="/groups" className="text-[#4299E1] text-sm font-medium hover:underline flex-shrink-0">
+                  <Link to="/groups" className="text-[#4299E1] text-sm font-medium hover:underline flex-shrink-0 transition-all duration-300 group-hover:text-[#00BFFF]">
                   View All Groups
                 </Link>
               </div>
@@ -628,6 +804,7 @@ export default function HomePage() {
                 </div>
               </div>
             )}
+              </div>
           </section>
           </div>
 
@@ -639,19 +816,56 @@ export default function HomePage() {
             <div className="grid grid-cols-1 gap-4 w-full text-center">
 
                 <div className="p-4 bg-gradient-to-br from-[#8B5CF6] to-[#A855F7] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                <div className="text-2xl font-bold">{stats.requests.toLocaleString()}</div>
-                <div className="text-sm opacity-90">Requests</div>
+                <div className="text-2xl font-bold">
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+                  ) : (
+                    stats.requests.toLocaleString()
+                  )}
+                </div>
+                <div className="text-sm opacity-90">Total Available Requests</div>
+                {(() => {
+                  const allGroupCount = stats.allAvailableGroupRequests || 0;
+                  const allOneToOneCount = stats.allAvailableOneToOneRequests || 0;
+                  // Only show breakdown if there are actual requests
+                  if (allGroupCount > 0 || allOneToOneCount > 0) {
+                    return (
+                      <div className="text-xs opacity-75 mt-1">
+                        {allGroupCount > 0 && allOneToOneCount > 0 
+                          ? `${allGroupCount} Group + ${allOneToOneCount} 1-on-1`
+                          : allGroupCount > 0 
+                            ? `${allGroupCount} Group`
+                            : `${allOneToOneCount} 1-on-1`
+                        }
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 </div>
                 <div className="p-4 bg-gradient-to-br from-[#ED8936] to-[#F56565] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                <div className="text-2xl font-bold">{stats.groups.toLocaleString()}</div>
+                <div className="text-2xl font-bold">
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+                  ) : (
+                    stats.groups.toLocaleString()
+                  )}
+                </div>
                 <div className="text-sm opacity-90">Groups</div>
               </div>
               <div className="p-4 bg-gradient-to-br from-[#F6AD55] to-[#ED8936] rounded-lg text-white hover:scale-105 transition-transform duration-200">
-                <div className="text-2xl font-bold">Rs. {stats.earnings.toLocaleString()}</div>
+                <div className="text-2xl font-bold">
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+                  ) : (
+                    `Rs. ${stats.earnings.toLocaleString()}`
+                  )}
+                </div>
                 <div className="text-sm opacity-90">Earnings</div>
                 </div>
               </div>
             </section>
+
           </aside>
         </main>
       </div>

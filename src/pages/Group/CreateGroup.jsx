@@ -29,7 +29,9 @@ export default function CreateGroup() {
   const [imagePreview, setImagePreview] = useState(null);
   const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -121,7 +123,9 @@ export default function CreateGroup() {
     }
 
     setLoading(true);
+    setUploadingImage(!!imageFile);
     setError('');
+    setSuccess('');
 
     try {
       // Prepare group data
@@ -140,31 +144,40 @@ export default function CreateGroup() {
 
       console.log('Creating group with data:', groupData);
 
-      // Handle image upload with fallback
-      let finalImageFile = null;
-      if (imageFile) {
-        if (uploadGroupImageToCloudinary) {
-          finalImageFile = imageFile;
-        } else {
-          console.warn('Image upload not available, creating group without image');
-          setError('Image upload is currently unavailable, but the group will be created without an image.');
-          // Don't return, just continue without the image
-        }
-      }
-
-      // Create group
-      const newGroup = await GroupsService.createGroup(groupData, finalImageFile);
+      // Create group with image (if provided)
+      const newGroup = await GroupsService.createGroup(groupData, imageFile);
 
       console.log('Group created successfully:', newGroup);
 
-      // Redirect to the new group
-      navigate(`/chat/${newGroup.id}`);
+      // Show success message
+      setSuccess(`Group "${newGroup.name}" created successfully! Redirecting...`);
+      setError('');
+      
+      // Redirect to the new group after a short delay
+      setTimeout(() => {
+        navigate(`/chat/${newGroup.id}`);
+      }, 1500);
 
     } catch (error) {
       console.error('Error creating group:', error);
-      setError(error.message || 'Failed to create group. Please try again.');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to create group. Please try again.';
+      
+      if (error.message.includes('Image upload failed')) {
+        errorMessage = 'Group image upload failed. The group will be created without an image.';
+      } else if (error.message.includes('Network error')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.message.includes('Permission denied')) {
+        errorMessage = 'Permission denied. Please check your authentication and try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
+      setUploadingImage(false);
     }
   };
 
@@ -206,12 +219,26 @@ export default function CreateGroup() {
 
         {/* Enhanced Form */}
         <form onSubmit={handleSubmit} className="card-dark rounded-2xl shadow-lg p-10 border border-[#4A5568]">
+        {/* Success Display */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+            <div className="flex">
+              <svg className="w-5 h-5 text-green-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div className="ml-3">
+                <p className="text-sm text-green-400">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Error Display */}
         {error && (
           <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
             <div className="flex">
               <svg className="w-5 h-5 text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.437-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
               <div className="ml-3">
                 <p className="text-sm text-red-400">{error}</p>
@@ -220,19 +247,7 @@ export default function CreateGroup() {
           </div>
         )}
 
-        {/* Warning if image upload not available */}
-        {!uploadGroupImageToCloudinary && (
-          <div className="mb-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
-            <div className="flex">
-              <svg className="w-5 h-5 text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-400">Image upload is currently unavailable. You can create the group without an image.</p>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column */}
@@ -349,10 +364,13 @@ export default function CreateGroup() {
             <div>
               <label className="block text-sm font-medium text-white mb-2">
                 Group Image (Optional)
+                {uploadingImage && (
+                  <span className="ml-2 text-xs text-[#4299E1] animate-pulse">
+                    • Uploading...
+                  </span>
+                )}
               </label>
-              <div className={`border-2 border-dashed rounded-lg p-6 text-center relative ${
-                uploadGroupImageToCloudinary ? 'border-[#4299E1]' : 'border-[#4A5568] bg-[#2D3748]'
-              }`}>
+              <div className="border-2 border-dashed border-[#4299E1] rounded-lg p-6 text-center relative">
                 {imagePreview ? (
                   <div className="space-y-4">
                     <img
@@ -376,20 +394,16 @@ export default function CreateGroup() {
                     <svg className="w-12 h-12 text-[#A0AEC0] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <p className={`text-[#E0E0E0] ${!uploadGroupImageToCloudinary ? 'text-[#718096]' : ''}`}>
-                      {uploadGroupImageToCloudinary ? 'Click to upload group image' : 'Image upload unavailable'}
-                    </p>
+                    <p className="text-[#E0E0E0]">Click to upload group image</p>
                     <p className="text-xs text-[#A0AEC0]">PNG, JPG up to 5MB</p>
                   </div>
                 )}
-                {uploadGroupImageToCloudinary && (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
               </div>
             </div>
 
@@ -506,7 +520,12 @@ export default function CreateGroup() {
             {loading && (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
             )}
-            {loading ? 'Creating Group...' : 'Create Group'}
+            {loading 
+              ? uploadingImage 
+                ? 'Uploading Image & Creating Group...' 
+                : 'Creating Group...' 
+              : 'Create Group'
+            }
           </button>
         </div>
         </form>
